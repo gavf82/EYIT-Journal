@@ -1,13 +1,15 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "wouter";
 import { JOURNAL } from "../data/journal";
 import { useStore, getRatingKey } from "../lib/store";
-import { countAll, countArea, countStep, countStrand, STATUS_LABELS } from "../lib/progress";
+import { countAll, countArea, countStrand, STATUS_LABELS } from "../lib/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Printer, Download } from "lucide-react";
 import { exportJournalJSON } from "../lib/export";
 import { cn } from "../lib/utils";
+import { ageInMonths, formatAge, stepMatchesAge } from "../lib/age";
+import { Switch } from "@/components/ui/switch";
 
 function ProgressBar({
   counts,
@@ -67,6 +69,10 @@ export default function SummaryPage() {
     [childId, state.ratings],
   );
 
+  const childMonths = child ? ageInMonths(child.dob) : null;
+  const childAgeLabel = child ? formatAge(child.dob) : "";
+  const [ageFilterOn, setAgeFilterOn] = useState<boolean>(childMonths !== null);
+
   if (!child) {
     return (
       <div className="container max-w-2xl px-4 py-16 text-center">
@@ -87,7 +93,20 @@ export default function SummaryPage() {
         >
           <ArrowLeft className="h-4 w-4" /> Back to journal
         </Link>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {childMonths !== null && (
+            <label
+              className="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs cursor-pointer select-none hover:bg-muted/40"
+              data-testid="toggle-age-filter-summary-label"
+            >
+              <Switch
+                checked={ageFilterOn}
+                onCheckedChange={setAgeFilterOn}
+                data-testid="toggle-age-filter-summary"
+              />
+              <span className="font-medium">Age relevant only</span>
+            </label>
+          )}
           <Button variant="outline" className="gap-2" onClick={() => exportJournalJSON(childId)}>
             <Download className="h-4 w-4" /> Export JSON
           </Button>
@@ -127,6 +146,11 @@ export default function SummaryPage() {
               <dd className="font-medium">{formatDate(new Date().toISOString())}</dd>
             </div>
           </dl>
+          {ageFilterOn && childMonths !== null && (
+            <p className="mt-3 text-xs text-muted-foreground italic">
+              Age filter on — showing steps up to {childAgeLabel}.
+            </p>
+          )}
         </header>
 
         <section>
@@ -209,19 +233,28 @@ export default function SummaryPage() {
                         text: string;
                         status: "emerging" | "developing" | "secure";
                       }[] = [];
+                      let hiddenRatedSteps = 0;
+                      const seenHiddenSteps = new Set<number>();
                       strand.steps.forEach((step, stIdx) => {
                         if (!step.items || step.note) return;
+                        const inAgeRange =
+                          !ageFilterOn || stepMatchesAge(step.ageRange, childMonths);
                         step.items.forEach((item) => {
                           const key = getRatingKey(childId, aIdx, sIdx, stIdx, item.key);
                           const r = state.ratings[key];
                           if (r && r.status) {
-                            ratedItems.push({
-                              step: step.number,
-                              ageRange: step.ageRange,
-                              itemKey: item.key,
-                              text: item.text,
-                              status: r.status,
-                            });
+                            if (inAgeRange) {
+                              ratedItems.push({
+                                step: step.number,
+                                ageRange: step.ageRange,
+                                itemKey: item.key,
+                                text: item.text,
+                                status: r.status,
+                              });
+                            } else if (!seenHiddenSteps.has(stIdx)) {
+                              seenHiddenSteps.add(stIdx);
+                              hiddenRatedSteps += 1;
+                            }
                           }
                         });
                       });
@@ -237,7 +270,11 @@ export default function SummaryPage() {
                             </span>
                           </div>
                           {ratedItems.length === 0 ? (
-                            <p className="text-xs text-muted-foreground italic">No ratings yet.</p>
+                            <p className="text-xs text-muted-foreground italic">
+                              {ageFilterOn && hiddenRatedSteps > 0
+                                ? "No ratings within current age range."
+                                : "No ratings yet."}
+                            </p>
                           ) : (
                             <ul className="space-y-1.5">
                               {ratedItems.map((it, idx) => (
@@ -255,13 +292,20 @@ export default function SummaryPage() {
                                   </span>
                                   <span>
                                     <span className="text-muted-foreground text-xs mr-1">
-                                      Step {it.step} · {it.itemKey}.
+                                      Step {it.step} ({it.ageRange}) · {it.itemKey}.
                                     </span>
                                     {it.text}
                                   </span>
                                 </li>
                               ))}
                             </ul>
+                          )}
+                          {ageFilterOn && hiddenRatedSteps > 0 && (
+                            <p className="mt-1.5 text-[11px] text-muted-foreground italic">
+                              {hiddenRatedSteps} later step
+                              {hiddenRatedSteps === 1 ? "" : "s"} with ratings hidden by age
+                              filter.
+                            </p>
                           )}
                         </div>
                       );
