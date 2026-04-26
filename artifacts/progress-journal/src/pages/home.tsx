@@ -41,14 +41,16 @@ function AddChildDialog() {
   const [dob, setDob] = useState("");
   const [startDate, setStartDate] = useState("");
 
+  const today = new Date().toISOString().slice(0, 10);
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = name.trim();
-    if (!trimmed) return;
+    if (!trimmed || !dob) return;
     addChild({
       name: trimmed,
       dob,
-      startDate: startDate || new Date().toISOString().slice(0, 10),
+      startDate: startDate || today,
     });
     setName("");
     setDob("");
@@ -86,14 +88,21 @@ function AddChildDialog() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="dob">Date of birth</Label>
+                <Label htmlFor="dob">
+                  Date of birth <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="dob"
                   type="date"
                   value={dob}
                   onChange={(e) => setDob(e.target.value)}
+                  max={today}
+                  required
                   data-testid="input-child-dob"
                 />
+                <p className="text-[11px] text-muted-foreground">
+                  Used to show only age-relevant steps in the journal.
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="start">Journal start date</Label>
@@ -102,16 +111,24 @@ function AddChildDialog() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
+                  max={today}
                   data-testid="input-child-start"
                 />
               </div>
             </div>
+            {dob && (
+              <p className="text-xs text-muted-foreground">
+                Age today: <span className="font-medium text-foreground">{formatAge(dob)}</span>
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" data-testid="button-save-child">Save</Button>
+            <Button type="submit" data-testid="button-save-child" disabled={!name.trim() || !dob}>
+              Save
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

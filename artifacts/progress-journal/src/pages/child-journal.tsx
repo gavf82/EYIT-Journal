@@ -445,6 +445,7 @@ function EditChildDialog({
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            if (!name.trim() || !dob) return;
             updateChild(childId, { name: name.trim(), dob, startDate });
             onOpenChange(false);
           }}
@@ -461,8 +462,21 @@ function EditChildDialog({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="e-dob">Date of birth</Label>
-                <Input id="e-dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+                <Label htmlFor="e-dob">
+                  Date of birth <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="e-dob"
+                  type="date"
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  max={new Date().toISOString().slice(0, 10)}
+                  required
+                  data-testid="input-edit-child-dob"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Used to show only age-relevant steps.
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="e-start">Journal start</Label>
@@ -471,15 +485,21 @@ function EditChildDialog({
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
+                  max={new Date().toISOString().slice(0, 10)}
                 />
               </div>
             </div>
+            {dob && (
+              <p className="text-xs text-muted-foreground">
+                Age today: <span className="font-medium text-foreground">{formatAge(dob)}</span>
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" className="gap-2">
+            <Button type="submit" className="gap-2" disabled={!name.trim() || !dob}>
               <Save className="h-4 w-4" /> Save
             </Button>
           </DialogFooter>
@@ -717,6 +737,26 @@ export default function ChildJournalPage() {
         </Card>
       </div>
 
+      {/* Missing DOB notice */}
+      {childMonths === null && (
+        <div className="mb-5 rounded-lg border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700/40 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="text-sm">
+            <p className="font-medium">Add a date of birth to filter age-relevant steps.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Without it, every step from birth to 60+ months is shown.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setEditOpen(true)}
+            data-testid="button-set-dob"
+          >
+            <Pencil className="h-3.5 w-3.5 mr-1.5" /> Set date of birth
+          </Button>
+        </div>
+      )}
+
       {/* Area tabs */}
       <div className="flex flex-wrap gap-1.5 mb-5 border-b border-border pb-3">
         {JOURNAL.map((a, idx) => {
@@ -825,7 +865,7 @@ export default function ChildJournalPage() {
             filter={filter}
             ratings={state.ratings}
             setRating={setRating}
-            open={openStrands[`${areaIdx}::${sIdx}`] ?? false}
+            open={openStrands[`${areaIdx}::${sIdx}`] ?? true}
             onOpenChange={(open) => toggleStrand(areaIdx, sIdx, open)}
             childMonths={childMonths}
             ageFilterOn={ageFilterOn}
