@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "EYIT Development Journal"
+version = "1.0.0"
+id = "artifacts/progress-journal"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25801
+
+[services.development]
+run = "pnpm --filter @workspace/progress-journal run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/progress-journal", "run", "build" ]
+publicDir = "artifacts/progress-journal/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25801"
+BASE_PATH = "/"

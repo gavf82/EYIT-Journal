@@ -1,0 +1,704 @@
+import { useMemo, useRef, useState, useEffect } from "react";
+import { Link, useParams, useLocation } from "wouter";
+import { JOURNAL, JournalArea, JournalStep, JournalStrand, Status } from "../data/journal";
+import { useStore, getRatingKey } from "../lib/store";
+import { exportJournalCSV, exportJournalJSON, importJournalJSON } from "../lib/export";
+import {
+  countAll,
+  countArea,
+  countStep,
+  countStrand,
+  STATUS_LABELS,
+} from "../lib/progress";
+import { StatusSelector } from "../components/status-selector";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  ArrowLeft,
+  Download,
+  Filter,
+  MoreVertical,
+  Printer,
+  Trash2,
+  Upload,
+  RotateCcw,
+  CheckCircle2,
+  Pencil,
+  Save,
+  Info,
+} from "lucide-react";
+import { useToast } from "../hooks/use-toast";
+import { cn } from "../lib/utils";
+
+type FilterValue = "all" | "rated" | "unrated" | "emerging" | "developing" | "secure";
+
+function ProgressBar({ counts }: { counts: ReturnType<typeof countAll> }) {
+  if (counts.total === 0) return null;
+  return (
+    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden flex">
+      <div
+        className="h-full bg-[hsl(var(--status-emerging))]"
+        style={{ width: `${(counts.emerging / counts.total) * 100}%` }}
+      />
+      <div
+        className="h-full bg-[hsl(var(--status-developing))]"
+        style={{ width: `${(counts.developing / counts.total) * 100}%` }}
+      />
+      <div
+        className="h-full bg-[hsl(var(--status-secure))]"
+        style={{ width: `${(counts.secure / counts.total) * 100}%` }}
+      />
+    </div>
+  );
+}
+
+function CountChip({
+  label,
+  value,
+  variant,
+}: {
+  label: string;
+  value: number;
+  variant: "emerging" | "developing" | "secure" | "muted";
+}) {
+  const map = {
+    emerging:
+      "bg-[hsl(var(--status-emerging)/0.15)] text-[hsl(35_70%_30%)] border-[hsl(var(--status-emerging)/0.4)]",
+    developing:
+      "bg-[hsl(var(--status-developing)/0.15)] text-[hsl(175_45%_22%)] border-[hsl(var(--status-developing)/0.4)]",
+    secure:
+      "bg-[hsl(var(--status-secure)/0.18)] text-[hsl(135_45%_22%)] border-[hsl(var(--status-secure)/0.4)]",
+    muted: "bg-muted text-muted-foreground border-border",
+  };
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium",
+        map[variant],
+      )}
+    >
+      <span>{label}</span>
+      <span className="tabular-nums">{value}</span>
+    </span>
+  );
+}
+
+interface ItemRowProps {
+  childId: string;
+  aIdx: number;
+  sIdx: number;
+  stIdx: number;
+  itemKey: string;
+  text: string;
+  value: Status;
+  onChange: (next: Status) => void;
+}
+
+function ItemRow({ itemKey, text, value, onChange }: Omit<ItemRowProps, "childId" | "aIdx" | "sIdx" | "stIdx">) {
+  return (
+    <div
+      className="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-3 md:gap-6 py-3 border-t border-border first:border-t-0"
+      data-testid={`row-item-${itemKey}`}
+    >
+      <div className="flex gap-3 items-start">
+        <span className="mt-0.5 inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-muted px-1.5 text-[11px] font-medium text-muted-foreground tabular-nums">
+          {itemKey}
+        </span>
+        <p className="text-sm leading-relaxed text-foreground">{text}</p>
+      </div>
+      <div className="md:pl-2">
+        <StatusSelector value={value} onChange={onChange} size="sm" />
+      </div>
+    </div>
+  );
+}
+
+interface StepCardProps {
+  childId: string;
+  aIdx: number;
+  sIdx: number;
+  stIdx: number;
+  step: JournalStep;
+  filter: FilterValue;
+  ratings: ReturnType<typeof useStore>["state"]["ratings"];
+  setRating: ReturnType<typeof useStore>["setRating"];
+}
+
+function passesFilter(filter: FilterValue, status: Status): boolean {
+  if (filter === "all") return true;
+  if (filter === "rated") return status !== null;
+  if (filter === "unrated") return status === null;
+  return status === filter;
+}
+
+function StepCard({ childId, aIdx, sIdx, stIdx, step, filter, ratings, setRating }: StepCardProps) {
+  const counts = useMemo(
+    () => countStep(childId, aIdx, sIdx, stIdx, step, ratings),
+    [childId, aIdx, sIdx, stIdx, step, ratings],
+  );
+
+  if (step.note || !step.items) {
+    return (
+      <Card className="border-dashed bg-muted/30">
+        <CardContent className="py-4">
+          <div className="flex items-start gap-3">
+            <div className="shrink-0 mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Info className="h-4 w-4" />
+            </div>
+            <div>
+              <h4 className="font-medium text-sm">
+                Step {step.number} <span className="text-muted-foreground font-normal">({step.ageRange})</span>
+              </h4>
+              <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+                {step.description ?? "Refer to the published EYIT guidance for this step."}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const visibleItems = step.items.filter((item) => {
+    const key = getRatingKey(childId, aIdx, sIdx, stIdx, item.key);
+    const status = ratings[key]?.status ?? null;
+    return passesFilter(filter, status);
+  });
+
+  return (
+    <Card data-testid={`step-${aIdx}-${sIdx}-${stIdx}`}>
+      <CardContent className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div>
+            <h4 className="font-medium">
+              Step {step.number}{" "}
+              <span className="text-muted-foreground font-normal">({step.ageRange})</span>
+            </h4>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {counts.rated} of {counts.total} rated · {counts.percentRated}%
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <CountChip label="E" value={counts.emerging} variant="emerging" />
+            <CountChip label="D" value={counts.developing} variant="developing" />
+            <CountChip label="S" value={counts.secure} variant="secure" />
+          </div>
+        </div>
+        <div className="mb-4">
+          <ProgressBar counts={counts} />
+        </div>
+
+        {visibleItems.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic py-3">
+            No items match the current filter.
+          </p>
+        ) : (
+          <div>
+            {visibleItems.map((item) => {
+              const key = getRatingKey(childId, aIdx, sIdx, stIdx, item.key);
+              const status = ratings[key]?.status ?? null;
+              return (
+                <ItemRow
+                  key={item.key}
+                  itemKey={item.key}
+                  text={item.text}
+                  value={status}
+                  onChange={(next) => setRating(key, next)}
+                />
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+interface StrandSectionProps {
+  childId: string;
+  aIdx: number;
+  sIdx: number;
+  strand: JournalStrand;
+  filter: FilterValue;
+  ratings: ReturnType<typeof useStore>["state"]["ratings"];
+  setRating: ReturnType<typeof useStore>["setRating"];
+}
+
+function StrandSection({ childId, aIdx, sIdx, strand, filter, ratings, setRating }: StrandSectionProps) {
+  const counts = useMemo(
+    () => countStrand(childId, aIdx, sIdx, strand, ratings),
+    [childId, aIdx, sIdx, strand, ratings],
+  );
+
+  return (
+    <section className="space-y-3" data-testid={`strand-${aIdx}-${sIdx}`}>
+      <div className="border-b border-border pb-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold tracking-tight">{strand.name}</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {counts.rated} of {counts.total} statements rated
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <CountChip label="Emerging" value={counts.emerging} variant="emerging" />
+            <CountChip label="Developing" value={counts.developing} variant="developing" />
+            <CountChip label="Secure" value={counts.secure} variant="secure" />
+            <CountChip label="Unset" value={counts.unset} variant="muted" />
+          </div>
+        </div>
+        <div className="mt-2.5">
+          <ProgressBar counts={counts} />
+        </div>
+      </div>
+
+      <Accordion type="multiple" className="space-y-2">
+        {strand.steps.map((step, stIdx) => {
+          const sc = countStep(childId, aIdx, sIdx, stIdx, step, ratings);
+          return (
+            <AccordionItem
+              key={stIdx}
+              value={`s-${stIdx}`}
+              className="border border-border rounded-lg bg-card overflow-hidden data-[state=open]:shadow-sm"
+            >
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50 [&[data-state=open]]:bg-muted/40">
+                <div className="flex flex-1 items-center justify-between gap-3 mr-2">
+                  <div className="text-left">
+                    <div className="font-medium text-sm">
+                      Step {step.number}{" "}
+                      <span className="text-muted-foreground font-normal">({step.ageRange})</span>
+                    </div>
+                    {!step.note && step.items && (
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {sc.rated}/{sc.total} rated
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {!step.note && step.items && (
+                      <div className="hidden sm:block w-28">
+                        <ProgressBar counts={sc} />
+                      </div>
+                    )}
+                    {sc.percentRated === 100 && sc.total > 0 && (
+                      <CheckCircle2 className="h-4 w-4 text-[hsl(var(--status-secure))]" />
+                    )}
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 pt-1">
+                <StepCard
+                  childId={childId}
+                  aIdx={aIdx}
+                  sIdx={sIdx}
+                  stIdx={stIdx}
+                  step={step}
+                  filter={filter}
+                  ratings={ratings}
+                  setRating={setRating}
+                />
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
+      </Accordion>
+    </section>
+  );
+}
+
+function EditChildDialog({
+  childId,
+  initial,
+  open,
+  onOpenChange,
+}: {
+  childId: string;
+  initial: { name: string; dob: string; startDate: string };
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const { updateChild } = useStore();
+  const [name, setName] = useState(initial.name);
+  const [dob, setDob] = useState(initial.dob);
+  const [startDate, setStartDate] = useState(initial.startDate);
+
+  useEffect(() => {
+    if (open) {
+      setName(initial.name);
+      setDob(initial.dob);
+      setStartDate(initial.startDate);
+    }
+  }, [open, initial]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            updateChild(childId, { name: name.trim(), dob, startDate });
+            onOpenChange(false);
+          }}
+          className="space-y-4"
+        >
+          <DialogHeader>
+            <DialogTitle>Edit child</DialogTitle>
+            <DialogDescription>Update the basic details for this journal.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="e-name">Name</Label>
+              <Input id="e-name" value={name} onChange={(e) => setName(e.target.value)} required />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="e-dob">Date of birth</Label>
+                <Input id="e-dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="e-start">Journal start</Label>
+                <Input
+                  id="e-start"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" className="gap-2">
+              <Save className="h-4 w-4" /> Save
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default function ChildJournalPage() {
+  const params = useParams<{ id: string }>();
+  const childId = params.id ?? "";
+  const [, navigate] = useLocation();
+  const { state, deleteChild, setRating } = useStore();
+  const child = state.children.find((c) => c.id === childId);
+  const { toast } = useToast();
+
+  const [areaIdx, setAreaIdx] = useState(0);
+  const [filter, setFilter] = useState<FilterValue>("all");
+  const [editOpen, setEditOpen] = useState(false);
+  const importRef = useRef<HTMLInputElement>(null);
+
+  const overall = useMemo(
+    () => (childId ? countAll(childId, state.ratings) : countAll("", {})),
+    [childId, state.ratings],
+  );
+
+  if (!child) {
+    return (
+      <div className="container max-w-2xl px-4 py-16 text-center">
+        <h1 className="text-2xl font-semibold">Child not found</h1>
+        <p className="text-muted-foreground mt-2">
+          This journal may have been deleted on this device.
+        </p>
+        <Button asChild className="mt-6">
+          <Link href="/">Back to children</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const area: JournalArea = JOURNAL[areaIdx];
+  const areaCounts = countArea(childId, areaIdx, area, state.ratings);
+
+  function clearChildRatings() {
+    Object.keys(state.ratings)
+      .filter((k) => k.startsWith(`${childId}::`))
+      .forEach((k) => setRating(k, null));
+    toast({ title: "Ratings cleared", description: `All ratings reset for ${child!.name}.` });
+  }
+
+  function handleDelete() {
+    deleteChild(childId);
+    toast({ title: "Journal deleted" });
+    navigate("/");
+  }
+
+  return (
+    <div className="container max-w-screen-2xl px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+      {/* Header */}
+      <div className="flex flex-col gap-4 mb-6">
+        <Link
+          href="/"
+          className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 w-fit"
+          data-testid="link-back-home"
+        >
+          <ArrowLeft className="h-4 w-4" /> All children
+        </Link>
+
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight" data-testid="text-child-name">
+              {child.name}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {overall.rated} of {overall.total} statements rated · {overall.percentRated}% complete
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" className="gap-2">
+              <Link href={`/child/${childId}/summary`} data-testid="link-summary">
+                <Printer className="h-4 w-4" /> Summary
+              </Link>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" data-testid="button-child-menu">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Journal</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => setEditOpen(true)}>
+                  <Pencil className="h-4 w-4 mr-2" /> Edit details
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Data</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => exportJournalJSON(childId)}>
+                  <Download className="h-4 w-4 mr-2" /> Export as JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => exportJournalCSV(childId)}>
+                  <Download className="h-4 w-4 mr-2" /> Export as CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => importRef.current?.click()}>
+                  <Upload className="h-4 w-4 mr-2" /> Import JSON
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Reset</DropdownMenuLabel>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <RotateCcw className="h-4 w-4 mr-2" /> Clear all ratings
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Clear all ratings?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This removes every rating for {child.name}. The child entry stays. This
+                        cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={clearChildRatings}>Clear ratings</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem
+                      onSelect={(e) => e.preventDefault()}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" /> Delete journal
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this journal?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Permanently removes {child.name} and every rating from this device. This
+                        cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={handleDelete}
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <input
+              ref={importRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                try {
+                  await importJournalJSON(f);
+                  toast({ title: "Journal imported" });
+                } catch (err: any) {
+                  toast({
+                    title: "Import failed",
+                    description: err?.message ?? "Could not parse file.",
+                    variant: "destructive",
+                  });
+                } finally {
+                  if (importRef.current) importRef.current.value = "";
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Overall progress */}
+        <Card>
+          <CardContent className="p-4 md:p-5">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 items-center">
+              <div className="md:col-span-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+                  <span>Overall progress</span>
+                  <span className="font-medium text-foreground tabular-nums">
+                    {overall.percentRated}%
+                  </span>
+                </div>
+                <ProgressBar counts={overall} />
+              </div>
+              <CountChip label="Emerging" value={overall.emerging} variant="emerging" />
+              <CountChip label="Developing" value={overall.developing} variant="developing" />
+              <CountChip label="Secure" value={overall.secure} variant="secure" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Area tabs */}
+      <div className="flex flex-wrap gap-1.5 mb-5 border-b border-border pb-3">
+        {JOURNAL.map((a, idx) => {
+          const ac = countArea(childId, idx, a, state.ratings);
+          const active = idx === areaIdx;
+          return (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => setAreaIdx(idx)}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-xs md:text-sm font-medium transition-colors border",
+                active
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                  : "bg-card text-muted-foreground border-border hover:text-foreground hover:border-primary/40",
+              )}
+              data-testid={`tab-area-${idx}`}
+            >
+              <span>{a.area}</span>
+              <span
+                className={cn(
+                  "ml-2 inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] tabular-nums",
+                  active ? "bg-primary-foreground/20" : "bg-muted",
+                )}
+              >
+                {ac.percentRated}%
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Area body */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">{area.area}</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            {area.strands.length} strand{area.strands.length === 1 ? "" : "s"} ·{" "}
+            {areaCounts.rated} of {areaCounts.total} statements rated
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={filter} onValueChange={(v) => setFilter(v as FilterValue)}>
+            <SelectTrigger className="w-[180px]" data-testid="select-filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Show all items</SelectItem>
+              <SelectItem value="rated">Rated only</SelectItem>
+              <SelectItem value="unrated">Not yet rated</SelectItem>
+              <SelectItem value="emerging">{STATUS_LABELS.emerging}</SelectItem>
+              <SelectItem value="developing">{STATUS_LABELS.developing}</SelectItem>
+              <SelectItem value="secure">{STATUS_LABELS.secure}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-8">
+        {area.strands.map((strand, sIdx) => (
+          <StrandSection
+            key={sIdx}
+            childId={childId}
+            aIdx={areaIdx}
+            sIdx={sIdx}
+            strand={strand}
+            filter={filter}
+            ratings={state.ratings}
+            setRating={setRating}
+          />
+        ))}
+      </div>
+
+      <EditChildDialog
+        childId={childId}
+        initial={{ name: child.name, dob: child.dob, startDate: child.startDate }}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+      />
+    </div>
+  );
+}

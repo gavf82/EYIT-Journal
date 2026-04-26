@@ -1,0 +1,332 @@
+import { useMemo, useState } from "react";
+import { Link } from "wouter";
+import { useStore } from "../lib/store";
+import { countAll } from "../lib/progress";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Plus, ChevronRight, Calendar, Sparkles, BookText, Upload } from "lucide-react";
+import { importJournalJSON } from "../lib/export";
+import { useToast } from "../hooks/use-toast";
+import { useRef } from "react";
+
+function formatDate(d: string) {
+  if (!d) return "";
+  try {
+    return new Date(d).toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return d;
+  }
+}
+
+function ageInMonths(dob: string) {
+  if (!dob) return null;
+  const d = new Date(dob);
+  if (isNaN(d.getTime())) return null;
+  const now = new Date();
+  let months = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+  if (now.getDate() < d.getDate()) months -= 1;
+  return Math.max(0, months);
+}
+
+function formatAge(dob: string) {
+  const m = ageInMonths(dob);
+  if (m === null) return "";
+  const years = Math.floor(m / 12);
+  const months = m % 12;
+  if (years === 0) return `${months} mo`;
+  if (months === 0) return `${years} yr`;
+  return `${years} yr ${months} mo`;
+}
+
+function AddChildDialog() {
+  const { addChild } = useStore();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [dob, setDob] = useState("");
+  const [startDate, setStartDate] = useState("");
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    addChild({
+      name: trimmed,
+      dob,
+      startDate: startDate || new Date().toISOString().slice(0, 10),
+    });
+    setName("");
+    setDob("");
+    setStartDate("");
+    setOpen(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button data-testid="button-add-child" className="gap-2">
+          <Plus className="h-4 w-4" /> Add child
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <DialogHeader>
+            <DialogTitle>Add a child</DialogTitle>
+            <DialogDescription>
+              Create a new development journal. Information stays only on this device.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Child's name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Amelia Carter"
+                required
+                autoFocus
+                data-testid="input-child-name"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="dob">Date of birth</Label>
+                <Input
+                  id="dob"
+                  type="date"
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  data-testid="input-child-dob"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="start">Journal start date</Label>
+                <Input
+                  id="start"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  data-testid="input-child-start"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" data-testid="button-save-child">Save</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ImportButton() {
+  const ref = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  return (
+    <>
+      <input
+        ref={ref}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={async (e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          try {
+            await importJournalJSON(f);
+            toast({ title: "Journal imported", description: "Child and progress added." });
+          } catch (err: any) {
+            toast({
+              title: "Import failed",
+              description: err?.message ?? "Unable to read file.",
+              variant: "destructive",
+            });
+          } finally {
+            if (ref.current) ref.current.value = "";
+          }
+        }}
+      />
+      <Button
+        variant="outline"
+        className="gap-2"
+        onClick={() => ref.current?.click()}
+        data-testid="button-import-home"
+      >
+        <Upload className="h-4 w-4" /> Import journal
+      </Button>
+    </>
+  );
+}
+
+interface ChildCardProps {
+  childId: string;
+  name: string;
+  dob: string;
+  startDate: string;
+  updatedAt: string;
+  ratings: ReturnType<typeof useStore>["state"]["ratings"];
+}
+
+function ChildCard({ childId, name, dob, startDate, updatedAt, ratings }: ChildCardProps) {
+  const counts = useMemo(() => countAll(childId, ratings), [childId, ratings]);
+  return (
+    <Link href={`/child/${childId}`} className="block group" data-testid={`card-child-${childId}`}>
+      <Card className="h-full transition-all hover:shadow-md hover:border-primary/40">
+        <CardHeader>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle className="text-xl">{name}</CardTitle>
+              <CardDescription className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                {dob && (
+                  <span className="inline-flex items-center gap-1">
+                    <Calendar className="h-3 w-3" /> {formatAge(dob)}
+                  </span>
+                )}
+                {startDate && <span>started {formatDate(startDate)}</span>}
+              </CardDescription>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+              <span>{counts.rated} of {counts.total} items rated</span>
+              <span className="font-medium text-foreground">{counts.percentRated}%</span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-muted overflow-hidden flex">
+              {counts.total > 0 && (
+                <>
+                  <div
+                    className="h-full bg-[hsl(var(--status-emerging))]"
+                    style={{ width: `${(counts.emerging / counts.total) * 100}%` }}
+                  />
+                  <div
+                    className="h-full bg-[hsl(var(--status-developing))]"
+                    style={{ width: `${(counts.developing / counts.total) * 100}%` }}
+                  />
+                  <div
+                    className="h-full bg-[hsl(var(--status-secure))]"
+                    style={{ width: `${(counts.secure / counts.total) * 100}%` }}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="rounded-md border border-border bg-[hsl(var(--status-emerging)/0.08)] px-2 py-1.5">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Emerging</div>
+              <div className="font-semibold text-base">{counts.emerging}</div>
+            </div>
+            <div className="rounded-md border border-border bg-[hsl(var(--status-developing)/0.08)] px-2 py-1.5">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Developing</div>
+              <div className="font-semibold text-base">{counts.developing}</div>
+            </div>
+            <div className="rounded-md border border-border bg-[hsl(var(--status-secure)/0.08)] px-2 py-1.5">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Secure</div>
+              <div className="font-semibold text-base">{counts.secure}</div>
+            </div>
+          </div>
+          {updatedAt && (
+            <div className="text-[11px] text-muted-foreground">
+              Updated {formatDate(updatedAt)}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
+export default function HomePage() {
+  const { state } = useStore();
+  const sorted = useMemo(
+    () => [...state.children].sort((a, b) => a.name.localeCompare(b.name)),
+    [state.children],
+  );
+
+  return (
+    <div className="container max-w-screen-2xl px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
+            Children
+          </h1>
+          <p className="mt-2 text-muted-foreground max-w-xl">
+            A calm, structured way to follow each child's early years development across
+            the seven areas of learning.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ImportButton />
+          <AddChildDialog />
+        </div>
+      </div>
+
+      {sorted.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="py-12 text-center">
+            <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <h2 className="text-lg font-medium">No children yet</h2>
+            <p className="text-muted-foreground mt-1 max-w-sm mx-auto text-sm">
+              Add a child to start logging progress against the seven areas of the
+              EYIT Development Journal.
+            </p>
+            <div className="mt-6 flex justify-center gap-2">
+              <AddChildDialog />
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sorted.map((c) => (
+            <ChildCard
+              key={c.id}
+              childId={c.id}
+              name={c.name}
+              dob={c.dob}
+              startDate={c.startDate}
+              updatedAt={c.updatedAt}
+              ratings={state.ratings}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className="mt-10 max-w-2xl">
+        <h2 className="text-base font-semibold flex items-center gap-2">
+          <BookText className="h-4 w-4 text-primary" /> About this journal
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+          The EYIT Development Journal supports practitioners and parents to notice and
+          celebrate small steps of progress. For every statement you can mark whether
+          a skill is <span className="font-medium text-foreground">emerging</span>,
+          <span className="font-medium text-foreground"> developing</span>, or
+          <span className="font-medium text-foreground"> secure</span>. All information
+          stays in your browser — nothing is sent anywhere.
+        </p>
+      </div>
+    </div>
+  );
+}
