@@ -20,6 +20,11 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -68,6 +73,9 @@ import {
   Pencil,
   Save,
   Info,
+  ChevronDown,
+  ChevronsDownUp,
+  ChevronsUpDown,
 } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 import { cn } from "../lib/utils";
@@ -264,37 +272,66 @@ interface StrandSectionProps {
   filter: FilterValue;
   ratings: ReturnType<typeof useStore>["state"]["ratings"];
   setRating: ReturnType<typeof useStore>["setRating"];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-function StrandSection({ childId, aIdx, sIdx, strand, filter, ratings, setRating }: StrandSectionProps) {
+function StrandSection({
+  childId,
+  aIdx,
+  sIdx,
+  strand,
+  filter,
+  ratings,
+  setRating,
+  open,
+  onOpenChange,
+}: StrandSectionProps) {
   const counts = useMemo(
     () => countStrand(childId, aIdx, sIdx, strand, ratings),
     [childId, aIdx, sIdx, strand, ratings],
   );
 
   return (
-    <section className="space-y-3" data-testid={`strand-${aIdx}-${sIdx}`}>
-      <div className="border-b border-border pb-3">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-semibold tracking-tight">{strand.name}</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              {counts.rated} of {counts.total} statements rated
-            </p>
+    <Collapsible
+      open={open}
+      onOpenChange={onOpenChange}
+      className="rounded-xl border border-border bg-card overflow-hidden data-[state=open]:shadow-sm"
+      data-testid={`strand-${aIdx}-${sIdx}`}
+    >
+      <CollapsibleTrigger
+        className="w-full text-left px-4 sm:px-5 py-4 hover:bg-muted/40 data-[state=open]:bg-muted/30 transition-colors"
+        data-testid={`strand-toggle-${aIdx}-${sIdx}`}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start gap-2 min-w-0">
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 mt-1 text-muted-foreground shrink-0 transition-transform",
+                open ? "rotate-0" : "-rotate-90",
+              )}
+            />
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-semibold tracking-tight">{strand.name}</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                {counts.rated} of {counts.total} statements rated · {counts.percentRated}%
+              </p>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5 sm:justify-end pl-6 sm:pl-0">
             <CountChip label="Emerging" value={counts.emerging} variant="emerging" />
             <CountChip label="Developing" value={counts.developing} variant="developing" />
             <CountChip label="Secure" value={counts.secure} variant="secure" />
             <CountChip label="Unset" value={counts.unset} variant="muted" />
           </div>
         </div>
-        <div className="mt-2.5">
+        <div className="mt-3 pl-6">
           <ProgressBar counts={counts} />
         </div>
-      </div>
+      </CollapsibleTrigger>
 
-      <Accordion type="multiple" className="space-y-2">
+      <CollapsibleContent className="px-4 sm:px-5 pb-5 pt-1">
+        <Accordion type="multiple" className="space-y-2">
         {strand.steps.map((step, stIdx) => {
           const sc = countStep(childId, aIdx, sIdx, stIdx, step, ratings);
           return (
@@ -343,8 +380,9 @@ function StrandSection({ childId, aIdx, sIdx, strand, filter, ratings, setRating
             </AccordionItem>
           );
         })}
-      </Accordion>
-    </section>
+        </Accordion>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -434,6 +472,24 @@ export default function ChildJournalPage() {
   const [filter, setFilter] = useState<FilterValue>("all");
   const [editOpen, setEditOpen] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
+
+  // Track which strands are open, keyed as `${areaIdx}::${strandIdx}`.
+  // Default: all collapsed for a clean overview.
+  const [openStrands, setOpenStrands] = useState<Record<string, boolean>>({});
+
+  function toggleStrand(aIdx: number, sIdx: number, open: boolean) {
+    setOpenStrands((prev) => ({ ...prev, [`${aIdx}::${sIdx}`]: open }));
+  }
+
+  function setAllStrandsInArea(aIdx: number, open: boolean) {
+    setOpenStrands((prev) => {
+      const next = { ...prev };
+      JOURNAL[aIdx].strands.forEach((_, sIdx) => {
+        next[`${aIdx}::${sIdx}`] = open;
+      });
+      return next;
+    });
+  }
 
   const overall = useMemo(
     () => (childId ? countAll(childId, state.ratings) : countAll("", {})),
@@ -660,25 +716,47 @@ export default function ChildJournalPage() {
             {areaCounts.rated} of {areaCounts.total} statements rated
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select value={filter} onValueChange={(v) => setFilter(v as FilterValue)}>
-            <SelectTrigger className="w-[180px]" data-testid="select-filter">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Show all items</SelectItem>
-              <SelectItem value="rated">Rated only</SelectItem>
-              <SelectItem value="unrated">Not yet rated</SelectItem>
-              <SelectItem value="emerging">{STATUS_LABELS.emerging}</SelectItem>
-              <SelectItem value="developing">{STATUS_LABELS.developing}</SelectItem>
-              <SelectItem value="secure">{STATUS_LABELS.secure}</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setAllStrandsInArea(areaIdx, true)}
+              data-testid="button-expand-all"
+            >
+              <ChevronsUpDown className="h-3.5 w-3.5" /> Expand all
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setAllStrandsInArea(areaIdx, false)}
+              data-testid="button-collapse-all"
+            >
+              <ChevronsDownUp className="h-3.5 w-3.5" /> Collapse all
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={filter} onValueChange={(v) => setFilter(v as FilterValue)}>
+              <SelectTrigger className="w-[180px]" data-testid="select-filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Show all items</SelectItem>
+                <SelectItem value="rated">Rated only</SelectItem>
+                <SelectItem value="unrated">Not yet rated</SelectItem>
+                <SelectItem value="emerging">{STATUS_LABELS.emerging}</SelectItem>
+                <SelectItem value="developing">{STATUS_LABELS.developing}</SelectItem>
+                <SelectItem value="secure">{STATUS_LABELS.secure}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-3">
         {area.strands.map((strand, sIdx) => (
           <StrandSection
             key={sIdx}
@@ -689,6 +767,8 @@ export default function ChildJournalPage() {
             filter={filter}
             ratings={state.ratings}
             setRating={setRating}
+            open={openStrands[`${areaIdx}::${sIdx}`] ?? false}
+            onOpenChange={(open) => toggleStrand(areaIdx, sIdx, open)}
           />
         ))}
       </div>
