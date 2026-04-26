@@ -19,6 +19,7 @@ import { Plus, ChevronRight, Calendar, Sparkles, BookText, Upload } from "lucide
 import { importJournalJSON } from "../lib/export";
 import { useToast } from "../hooks/use-toast";
 import { useRef } from "react";
+import { formatAge } from "../lib/age";
 
 function formatDate(d: string) {
   if (!d) return "";
@@ -31,26 +32,6 @@ function formatDate(d: string) {
   } catch {
     return d;
   }
-}
-
-function ageInMonths(dob: string) {
-  if (!dob) return null;
-  const d = new Date(dob);
-  if (isNaN(d.getTime())) return null;
-  const now = new Date();
-  let months = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
-  if (now.getDate() < d.getDate()) months -= 1;
-  return Math.max(0, months);
-}
-
-function formatAge(dob: string) {
-  const m = ageInMonths(dob);
-  if (m === null) return "";
-  const years = Math.floor(m / 12);
-  const months = m % 12;
-  if (years === 0) return `${months} mo`;
-  if (months === 0) return `${years} yr`;
-  return `${years} yr ${months} mo`;
 }
 
 function AddChildDialog() {

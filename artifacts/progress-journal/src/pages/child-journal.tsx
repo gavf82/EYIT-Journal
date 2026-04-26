@@ -79,6 +79,8 @@ import {
 } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 import { cn } from "../lib/utils";
+import { ageInMonths, formatAge, stepMatchesAge } from "../lib/age";
+import { Switch } from "@/components/ui/switch";
 
 type FilterValue = "all" | "rated" | "unrated" | "emerging" | "developing" | "secure";
 
@@ -274,6 +276,8 @@ interface StrandSectionProps {
   setRating: ReturnType<typeof useStore>["setRating"];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  childMonths: number | null;
+  ageFilterOn: boolean;
 }
 
 function StrandSection({
@@ -286,11 +290,24 @@ function StrandSection({
   setRating,
   open,
   onOpenChange,
+  childMonths,
+  ageFilterOn,
 }: StrandSectionProps) {
   const counts = useMemo(
     () => countStrand(childId, aIdx, sIdx, strand, ratings),
     [childId, aIdx, sIdx, strand, ratings],
   );
+
+  const visibleSteps = useMemo(() => {
+    if (!ageFilterOn || childMonths === null) {
+      return strand.steps.map((step, stIdx) => ({ step, stIdx }));
+    }
+    return strand.steps
+      .map((step, stIdx) => ({ step, stIdx }))
+      .filter(({ step }) => stepMatchesAge(step.ageRange, childMonths));
+  }, [strand.steps, ageFilterOn, childMonths]);
+
+  const hiddenCount = strand.steps.length - visibleSteps.length;
 
   return (
     <Collapsible
@@ -331,56 +348,68 @@ function StrandSection({
       </CollapsibleTrigger>
 
       <CollapsibleContent className="px-4 sm:px-5 pb-5 pt-1">
-        <Accordion type="multiple" className="space-y-2">
-        {strand.steps.map((step, stIdx) => {
-          const sc = countStep(childId, aIdx, sIdx, stIdx, step, ratings);
-          return (
-            <AccordionItem
-              key={stIdx}
-              value={`s-${stIdx}`}
-              className="border border-border rounded-lg bg-card overflow-hidden data-[state=open]:shadow-sm"
-            >
-              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50 [&[data-state=open]]:bg-muted/40">
-                <div className="flex flex-1 items-center justify-between gap-3 mr-2">
-                  <div className="text-left">
-                    <div className="font-medium text-sm">
-                      Step {step.number}{" "}
-                      <span className="text-muted-foreground font-normal">({step.ageRange})</span>
+        {visibleSteps.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic py-3">
+            No steps in this strand match the current age yet.
+          </p>
+        ) : (
+          <Accordion type="multiple" className="space-y-2">
+            {visibleSteps.map(({ step, stIdx }) => {
+              const sc = countStep(childId, aIdx, sIdx, stIdx, step, ratings);
+              return (
+                <AccordionItem
+                  key={stIdx}
+                  value={`s-${stIdx}`}
+                  className="border border-border rounded-lg bg-card overflow-hidden data-[state=open]:shadow-sm"
+                >
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50 [&[data-state=open]]:bg-muted/40">
+                    <div className="flex flex-1 items-center justify-between gap-3 mr-2">
+                      <div className="text-left">
+                        <div className="font-medium text-sm">
+                          Step {step.number}{" "}
+                          <span className="text-muted-foreground font-normal">({step.ageRange})</span>
+                        </div>
+                        {!step.note && step.items && (
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {sc.rated}/{sc.total} rated
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {!step.note && step.items && (
+                          <div className="hidden sm:block w-28">
+                            <ProgressBar counts={sc} />
+                          </div>
+                        )}
+                        {sc.percentRated === 100 && sc.total > 0 && (
+                          <CheckCircle2 className="h-4 w-4 text-[hsl(var(--status-secure))]" />
+                        )}
+                      </div>
                     </div>
-                    {!step.note && step.items && (
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {sc.rated}/{sc.total} rated
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {!step.note && step.items && (
-                      <div className="hidden sm:block w-28">
-                        <ProgressBar counts={sc} />
-                      </div>
-                    )}
-                    {sc.percentRated === 100 && sc.total > 0 && (
-                      <CheckCircle2 className="h-4 w-4 text-[hsl(var(--status-secure))]" />
-                    )}
-                  </div>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4 pt-1">
-                <StepCard
-                  childId={childId}
-                  aIdx={aIdx}
-                  sIdx={sIdx}
-                  stIdx={stIdx}
-                  step={step}
-                  filter={filter}
-                  ratings={ratings}
-                  setRating={setRating}
-                />
-              </AccordionContent>
-            </AccordionItem>
-          );
-        })}
-        </Accordion>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4 pt-1">
+                    <StepCard
+                      childId={childId}
+                      aIdx={aIdx}
+                      sIdx={sIdx}
+                      stIdx={stIdx}
+                      step={step}
+                      filter={filter}
+                      ratings={ratings}
+                      setRating={setRating}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        )}
+        {hiddenCount > 0 && (
+          <p className="mt-3 text-[11px] text-muted-foreground italic">
+            {hiddenCount} later step{hiddenCount === 1 ? "" : "s"} hidden — turn off the age
+            filter above to view them.
+          </p>
+        )}
       </CollapsibleContent>
     </Collapsible>
   );
@@ -476,6 +505,19 @@ export default function ChildJournalPage() {
   // Track which strands are open, keyed as `${areaIdx}::${strandIdx}`.
   // Default: all collapsed for a clean overview.
   const [openStrands, setOpenStrands] = useState<Record<string, boolean>>({});
+
+  const childMonths = child ? ageInMonths(child.dob) : null;
+  const childAgeLabel = child ? formatAge(child.dob) : "";
+  // Age filter is on by default whenever we know the child's age.
+  const [ageFilterOn, setAgeFilterOn] = useState<boolean>(childMonths !== null);
+
+  // When switching between children (different DOBs), reset the age filter to its default.
+  useEffect(() => {
+    setAgeFilterOn(childMonths !== null);
+    setOpenStrands({});
+    setAreaIdx(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [childId]);
 
   function toggleStrand(aIdx: number, sIdx: number, open: boolean) {
     setOpenStrands((prev) => ({ ...prev, [`${aIdx}::${sIdx}`]: open }));
@@ -714,9 +756,25 @@ export default function ChildJournalPage() {
           <p className="text-xs text-muted-foreground mt-1">
             {area.strands.length} strand{area.strands.length === 1 ? "" : "s"} ·{" "}
             {areaCounts.rated} of {areaCounts.total} statements rated
+            {ageFilterOn && childMonths !== null && (
+              <> · showing steps up to {childAgeLabel}</>
+            )}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {childMonths !== null && (
+            <label
+              className="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs cursor-pointer select-none hover:bg-muted/40"
+              data-testid="toggle-age-filter-label"
+            >
+              <Switch
+                checked={ageFilterOn}
+                onCheckedChange={setAgeFilterOn}
+                data-testid="toggle-age-filter"
+              />
+              <span className="font-medium">Age relevant only</span>
+            </label>
+          )}
           <div className="flex items-center gap-1">
             <Button
               variant="outline"
@@ -769,6 +827,8 @@ export default function ChildJournalPage() {
             setRating={setRating}
             open={openStrands[`${areaIdx}::${sIdx}`] ?? false}
             onOpenChange={(open) => toggleStrand(areaIdx, sIdx, open)}
+            childMonths={childMonths}
+            ageFilterOn={ageFilterOn}
           />
         ))}
       </div>
