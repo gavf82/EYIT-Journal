@@ -11,7 +11,7 @@ import {
 } from "../lib/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Printer, Download } from "lucide-react";
+import { ArrowLeft, Printer, Download, AlertTriangle } from "lucide-react";
 import { exportJournalJSON } from "../lib/export";
 import { cn } from "../lib/utils";
 import { useDirty } from "../hooks/use-dirty";
@@ -191,6 +191,141 @@ function StrandTable({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Stagnation detection — items rated Emerging/Developing with no progress
+// for more than 6 calendar months.
+// ---------------------------------------------------------------------------
+
+interface StagnantItem {
+  areaName: string;
+  strandName: string;
+  stepNumber: number;
+  ageRange: string;
+  itemKey: string;
+  itemText: string;
+  status: "emerging" | "developing";
+  updatedAt: string;
+  monthsStale: number;
+}
+
+function monthsBetween(from: Date, to: Date): number {
+  return (
+    (to.getFullYear() - from.getFullYear()) * 12 +
+    (to.getMonth() - from.getMonth())
+  );
+}
+
+function computeStagnantItems(
+  childId: string,
+  ratings: Record<string, Rating>,
+  visibility: StepVisibility,
+): StagnantItem[] {
+  const now = new Date();
+  const result: StagnantItem[] = [];
+
+  JOURNAL.forEach((area, aIdx) => {
+    area.strands.forEach((strand, sIdx) => {
+      const visibleSet = visibility?.get(`${aIdx}::${sIdx}`) ?? null;
+      strand.steps.forEach((step, stIdx) => {
+        if (!step.items || step.note) return;
+        if (visibleSet && !visibleSet.has(stIdx)) return;
+        step.items.forEach((item) => {
+          const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
+          if (!r || !r.status || r.status === "secure") return;
+          const updated = new Date(r.updatedAt);
+          if (isNaN(updated.getTime())) return;
+          const months = monthsBetween(updated, now);
+          if (months < 6) return;
+          result.push({
+            areaName: area.area,
+            strandName: strand.name,
+            stepNumber: step.number,
+            ageRange: step.ageRange,
+            itemKey: item.key,
+            itemText: item.text,
+            status: r.status as "emerging" | "developing",
+            updatedAt: r.updatedAt,
+            monthsStale: months,
+          });
+        });
+      });
+    });
+  });
+
+  // Sort: longest stale first, then by area/strand/item
+  result.sort((a, b) =>
+    b.monthsStale - a.monthsStale ||
+    a.areaName.localeCompare(b.areaName) ||
+    a.strandName.localeCompare(b.strandName),
+  );
+  return result;
+}
+
+function StagnantItemsSection({ items }: { items: StagnantItem[] }) {
+  if (items.length === 0) return null;
+
+  // Group by area
+  const byArea = new Map<string, StagnantItem[]>();
+  items.forEach((it) => {
+    const list = byArea.get(it.areaName) ?? [];
+    list.push(it);
+    byArea.set(it.areaName, list);
+  });
+
+  return (
+    <section>
+      <div className="flex items-center gap-2 mb-3">
+        <AlertTriangle className="h-4 w-4 text-[hsl(38_88%_45%)]" />
+        <h2 className="text-lg font-semibold">Areas without progression</h2>
+        <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+          {items.length} item{items.length !== 1 ? "s" : ""} · no change for 6+ months
+        </span>
+      </div>
+      <Card className="border-[hsl(38_88%_62%)/40]">
+        <CardContent className="p-0 divide-y divide-border">
+          {Array.from(byArea.entries()).map(([areaName, areaItems]) => (
+            <div key={areaName} className="px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                {areaName}
+              </p>
+              <ul className="space-y-2">
+                {areaItems.map((it) => (
+                  <li
+                    key={`${it.strandName}::${it.stepNumber}::${it.itemKey}`}
+                    className="flex items-start gap-3 text-sm"
+                  >
+                    <span
+                      className={cn(
+                        "mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                        it.status === "emerging"
+                          ? "bg-[hsl(5_72%_66%/20%)] text-[hsl(5_72%_40%)]"
+                          : "bg-[hsl(38_88%_62%/20%)] text-[hsl(38_88%_35%)]",
+                      )}
+                    >
+                      {it.status === "emerging" ? "E" : "D"}
+                    </span>
+                    <span className="flex-1 leading-snug">
+                      <span className="font-medium">{it.strandName}</span>
+                      <span className="text-muted-foreground"> · Step {it.stepNumber} ({it.ageRange}) · {it.itemKey})</span>
+                      <br />
+                      {it.itemText}
+                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+                      {formatEntryDate(it.updatedAt)}
+                      <br />
+                      <span className="text-[hsl(38_88%_45%)]">{it.monthsStale} mo ago</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
 // Short axis labels so the radar stays readable at small sizes.
 const AREA_SHORT: Record<string, string> = {
   "Personal, Social and Emotional Development": "PSED",
@@ -313,6 +448,11 @@ export default function SummaryPage() {
   const overall = useMemo(
     () =>
       childId ? countAll(childId, state.ratings, visibility) : countAll("", {}),
+    [childId, state.ratings, visibility],
+  );
+
+  const stagnantItems = useMemo(
+    () => computeStagnantItems(childId, state.ratings, visibility),
     [childId, state.ratings, visibility],
   );
 
@@ -555,6 +695,8 @@ export default function SummaryPage() {
             })}
           </div>
         </section>
+
+        <StagnantItemsSection items={stagnantItems} />
       </article>
 
       {/* Journal pages — PDF-style tables, shown on screen and printed */}
