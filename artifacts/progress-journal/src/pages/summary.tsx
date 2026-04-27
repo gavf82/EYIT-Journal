@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Printer, Download, AlertTriangle } from "lucide-react";
-import { exportJournalJSON } from "../lib/export";
+import { exportCollectionJSON } from "../lib/export";
 import { cn } from "../lib/utils";
 import { useDirty } from "../hooks/use-dirty";
 import { ageInMonths, formatAge } from "../lib/age";
@@ -534,7 +534,7 @@ export default function SummaryPage() {
           <Button
             variant="outline"
             className={cn("gap-2", isDirty && "border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive")}
-            onClick={() => { exportJournalJSON(childId); markClean(); }}
+            onClick={() => { exportCollectionJSON(); markClean(); }}
           >
             <Download className="h-4 w-4" /> Save JSON
           </Button>

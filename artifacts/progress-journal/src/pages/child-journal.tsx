@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { Link, useParams, useLocation } from "wouter";
 import { JOURNAL, JournalArea, JournalStep, JournalStrand, Status } from "../data/journal";
 import { useStore, getRatingKey } from "../lib/store";
-import { exportJournalCSV, exportJournalJSON, importJournalJSON } from "../lib/export";
+import { exportAllCSV, exportCollectionJSON, importJournalJSON } from "../lib/export";
 import {
   buildStepVisibility,
   countAll,
@@ -648,10 +648,10 @@ export default function ChildJournalPage() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Data</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={() => { exportJournalJSON(childId); markClean(); }}>
+                <DropdownMenuItem onSelect={() => { exportCollectionJSON(); markClean(); }}>
                   <Download className="h-4 w-4 mr-2" /> Save as JSON
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => { exportJournalCSV(childId); markClean(); }}>
+                <DropdownMenuItem onSelect={() => { exportAllCSV(); markClean(); }}>
                   <Download className="h-4 w-4 mr-2" /> Save as CSV
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => importRef.current?.click()}>

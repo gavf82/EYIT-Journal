@@ -19,6 +19,7 @@ import { Trash2, Download, Upload, FlaskConical, X } from "lucide-react";
 import { useDirty } from "../hooks/use-dirty";
 import { useLocation } from "wouter";
 import { seedDemoData, removeDemoData, isDemoLoaded, DEMO_CHILD_ID } from "../lib/seed";
+import { exportCollectionJSON } from "../lib/export";
 
 export default function SettingsPage() {
   const { state, resetAll, importData } = useStore();
@@ -30,13 +31,7 @@ export default function SettingsPage() {
   const [demoLoaded, setDemoLoaded] = useState(isDemoLoaded);
 
   function exportAll() {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `eyit-journal-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    exportCollectionJSON();
     markClean();
   }
 
