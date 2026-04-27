@@ -117,11 +117,11 @@ function CountChip({
 }) {
   const map = {
     emerging:
-      "bg-[hsl(var(--status-emerging)/0.15)] text-[hsl(35_70%_30%)] border-[hsl(var(--status-emerging)/0.4)]",
+      "bg-[hsl(var(--status-emerging)/0.15)] text-[hsl(5_60%_32%)] border-[hsl(var(--status-emerging)/0.4)]",
     developing:
-      "bg-[hsl(var(--status-developing)/0.15)] text-[hsl(175_45%_22%)] border-[hsl(var(--status-developing)/0.4)]",
+      "bg-[hsl(var(--status-developing)/0.18)] text-[hsl(30_70%_28%)] border-[hsl(var(--status-developing)/0.4)]",
     secure:
-      "bg-[hsl(var(--status-secure)/0.18)] text-[hsl(135_45%_22%)] border-[hsl(var(--status-secure)/0.4)]",
+      "bg-[hsl(var(--status-secure)/0.18)] text-[hsl(130_55%_22%)] border-[hsl(var(--status-secure)/0.4)]",
     muted: "bg-muted text-muted-foreground border-border",
   };
   return (

@@ -17,18 +17,18 @@ const baseClasses =
 const styles: Record<Exclude<Status, null>, { active: string; idle: string }> = {
   emerging: {
     active:
-      "border-[hsl(var(--status-emerging))] bg-[hsl(var(--status-emerging)/0.18)] text-[hsl(35_70%_30%)]",
-    idle: "border-border bg-card text-muted-foreground hover:bg-[hsl(var(--status-emerging)/0.08)] hover:text-[hsl(35_70%_30%)] hover:border-[hsl(var(--status-emerging)/0.6)]",
+      "border-[hsl(var(--status-emerging))] bg-[hsl(var(--status-emerging)/0.18)] text-[hsl(5_60%_32%)]",
+    idle: "border-border bg-card text-muted-foreground hover:bg-[hsl(var(--status-emerging)/0.08)] hover:text-[hsl(5_60%_32%)] hover:border-[hsl(var(--status-emerging)/0.6)]",
   },
   developing: {
     active:
-      "border-[hsl(var(--status-developing))] bg-[hsl(var(--status-developing)/0.18)] text-[hsl(175_45%_22%)]",
-    idle: "border-border bg-card text-muted-foreground hover:bg-[hsl(var(--status-developing)/0.08)] hover:text-[hsl(175_45%_22%)] hover:border-[hsl(var(--status-developing)/0.6)]",
+      "border-[hsl(var(--status-developing))] bg-[hsl(var(--status-developing)/0.22)] text-[hsl(30_70%_28%)]",
+    idle: "border-border bg-card text-muted-foreground hover:bg-[hsl(var(--status-developing)/0.10)] hover:text-[hsl(30_70%_28%)] hover:border-[hsl(var(--status-developing)/0.6)]",
   },
   secure: {
     active:
-      "border-[hsl(var(--status-secure))] bg-[hsl(var(--status-secure)/0.2)] text-[hsl(135_45%_22%)]",
-    idle: "border-border bg-card text-muted-foreground hover:bg-[hsl(var(--status-secure)/0.08)] hover:text-[hsl(135_45%_22%)] hover:border-[hsl(var(--status-secure)/0.6)]",
+      "border-[hsl(var(--status-secure))] bg-[hsl(var(--status-secure)/0.2)] text-[hsl(130_55%_22%)]",
+    idle: "border-border bg-card text-muted-foreground hover:bg-[hsl(var(--status-secure)/0.08)] hover:text-[hsl(130_55%_22%)] hover:border-[hsl(var(--status-secure)/0.6)]",
   },
 };
 

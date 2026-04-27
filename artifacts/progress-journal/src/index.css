@@ -109,9 +109,10 @@
   --sidebar-ring: 15 50% 47%;
 
   /* Status Colors */
-  --status-emerging: 35 80% 60%; /* Amber */
-  --status-developing: 175 30% 45%; /* Teal */
-  --status-secure: 135 30% 45%; /* Sage */
+  /* Traffic-light system, soft pastel tones */
+  --status-emerging: 5 72% 66%;   /* Pastel red */
+  --status-developing: 38 88% 62%; /* Pastel amber */
+  --status-secure: 130 45% 55%;   /* Pastel green */
   --status-unset: 40 10% 85%; /* Light Grey */
 
   --app-font-sans: 'Inter', sans-serif;
