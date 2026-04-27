@@ -42,41 +42,58 @@ function collectBlocks(
   childId: string,
   ratings: Record<string, Rating>,
   visibility: StepVisibility,
-  includePrev: boolean,
+  includeIncomplete: boolean,
 ): AssessmentBlock[] {
   const visibleSet = visibility?.get(`${aIdx}::${sIdx}`) ?? null;
-
-  let stepIndices: number[];
-  let currentMax = -1;
+  const blocks: AssessmentBlock[] = [];
 
   if (visibleSet === null) {
-    stepIndices = strand.steps.map((_, i) => i);
+    // No age filter — show all steps with all items
+    strand.steps.forEach((step, stIdx) => {
+      if (!step || !step.items || step.note) return;
+      const items: AssessmentItem[] = step.items.map((item) => {
+        const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
+        return { key: item.key, text: item.text, status: r?.status ?? null };
+      });
+      if (items.length === 0) return;
+      blocks.push({ stepNumber: step.number, ageRange: step.ageRange, items, isPrev: false });
+    });
   } else {
-    currentMax = visibleSet.size > 0 ? Math.max(...Array.from(visibleSet)) : -1;
+    const currentMax = visibleSet.size > 0 ? Math.max(...Array.from(visibleSet)) : -1;
     if (currentMax < 0) return [];
-    stepIndices =
-      includePrev && currentMax > 0
-        ? [currentMax - 1, currentMax]
-        : [currentMax];
+
+    // Previous steps: only include items rated Emerging or Developing (not yet secure)
+    if (includeIncomplete && currentMax > 0) {
+      for (let stIdx = 0; stIdx < currentMax; stIdx++) {
+        const step = strand.steps[stIdx];
+        if (!step || !step.items || step.note) continue;
+        const items: AssessmentItem[] = step.items.flatMap((item) => {
+          const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
+          const s = r?.status ?? null;
+          if (s !== "emerging" && s !== "developing") return [];
+          return [{ key: item.key, text: item.text, status: s }];
+        });
+        if (items.length === 0) continue;
+        blocks.push({ stepNumber: step.number, ageRange: step.ageRange, items, isPrev: true });
+      }
+    }
+
+    // Current step — all items regardless of rating
+    const currentStep = strand.steps[currentMax];
+    if (currentStep && currentStep.items && !currentStep.note) {
+      const items: AssessmentItem[] = currentStep.items.map((item) => {
+        const r = ratings[getRatingKey(childId, aIdx, sIdx, currentMax, item.key)];
+        return { key: item.key, text: item.text, status: r?.status ?? null };
+      });
+      if (items.length > 0) {
+        blocks.push({ stepNumber: currentStep.number, ageRange: currentStep.ageRange, items, isPrev: false });
+      }
+    }
   }
 
-  return stepIndices.flatMap((stIdx) => {
-    const step = strand.steps[stIdx];
-    if (!step || !step.items || step.note) return [];
-    const items: AssessmentItem[] = step.items.map((item) => {
-      const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
-      return { key: item.key, text: item.text, status: r?.status ?? null };
-    });
-    if (items.length === 0) return [];
-    return [
-      {
-        stepNumber: step.number,
-        ageRange: step.ageRange,
-        items,
-        isPrev: currentMax >= 0 && stIdx < currentMax,
-      },
-    ];
-  });
+  // Always ascending by step number
+  blocks.sort((a, b) => a.stepNumber - b.stepNumber);
+  return blocks;
 }
 
 // ── Status indicator (filled dot if rated, hollow ring if not) ───────────────
@@ -179,7 +196,7 @@ export default function AssessmentPage() {
 
   const childMonths = child ? ageInMonths(child.dob) : null;
   const childAgeLabel = child ? formatAge(child.dob) : "";
-  const [includePrev, setIncludePrev] = useState(false);
+  const [includeIncomplete, setIncludeIncomplete] = useState(false);
   const { openDialog, hasData, dialogProps } = useSaveAndClose();
 
   const visibility: StepVisibility = useMemo(
@@ -207,13 +224,13 @@ export default function AssessmentPage() {
           childId,
           state.ratings,
           visibility,
-          includePrev,
+          includeIncomplete,
         );
         if (blocks.length > 0) out.push({ area, strand, blocks });
       });
     });
     return out;
-  }, [childId, state.ratings, visibility, includePrev]);
+  }, [childId, state.ratings, visibility, includeIncomplete]);
 
   if (!child) {
     return (
@@ -250,11 +267,11 @@ export default function AssessmentPage() {
               data-testid="toggle-include-prev-label"
             >
               <Switch
-                checked={includePrev}
-                onCheckedChange={setIncludePrev}
-                data-testid="toggle-include-prev"
+                checked={includeIncomplete}
+                onCheckedChange={setIncludeIncomplete}
+                data-testid="toggle-include-incomplete"
               />
-              <span className="font-medium">Include previous step</span>
+              <span className="font-medium">Include incomplete from earlier steps</span>
             </label>
           )}
           <Button
@@ -333,7 +350,7 @@ export default function AssessmentPage() {
         {childMonths !== null ? (
           <p className="text-sm text-muted-foreground mt-1">
             Age: {childAgeLabel} · Showing age-appropriate step
-            {includePrev ? " and the preceding developmental stage" : ""}
+            {includeIncomplete ? ", plus incomplete items from earlier stages" : ""}
           </p>
         ) : (
           <p className="text-sm text-muted-foreground mt-1">
