@@ -81,6 +81,7 @@ import {
 } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 import { cn } from "../lib/utils";
+import { useDirty } from "../hooks/use-dirty";
 import { ageInMonths, formatAge } from "../lib/age";
 import { Switch } from "@/components/ui/switch";
 
@@ -522,6 +523,7 @@ export default function ChildJournalPage() {
   const { state, deleteChild, setRating } = useStore();
   const child = state.children.find((c) => c.id === childId);
   const { toast } = useToast();
+  const { isDirty, markClean } = useDirty();
 
   const [areaIdx, setAreaIdx] = useState(0);
   const [filter, setFilter] = useState<FilterValue>("all");
@@ -632,8 +634,11 @@ export default function ChildJournalPage() {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" data-testid="button-child-menu">
+                <Button variant="outline" size="icon" data-testid="button-child-menu" className="relative">
                   <MoreVertical className="h-4 w-4" />
+                  {isDirty && (
+                    <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-destructive border-2 border-background" />
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -643,10 +648,10 @@ export default function ChildJournalPage() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Data</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={() => exportJournalJSON(childId)}>
+                <DropdownMenuItem onSelect={() => { exportJournalJSON(childId); markClean(); }}>
                   <Download className="h-4 w-4 mr-2" /> Save as JSON
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => exportJournalCSV(childId)}>
+                <DropdownMenuItem onSelect={() => { exportJournalCSV(childId); markClean(); }}>
                   <Download className="h-4 w-4 mr-2" /> Save as CSV
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => importRef.current?.click()}>

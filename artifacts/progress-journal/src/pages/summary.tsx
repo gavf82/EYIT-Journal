@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Printer, Download } from "lucide-react";
 import { exportJournalJSON } from "../lib/export";
 import { cn } from "../lib/utils";
+import { useDirty } from "../hooks/use-dirty";
 import { ageInMonths, formatAge } from "../lib/age";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -301,6 +302,7 @@ export default function SummaryPage() {
   const childMonths = child ? ageInMonths(child.dob) : null;
   const childAgeLabel = child ? formatAge(child.dob) : "";
   const [ageFilterOn, setAgeFilterOn] = useState<boolean>(childMonths !== null);
+  const { isDirty, markClean } = useDirty();
 
   const visibility: StepVisibility = useMemo(
     () => buildStepVisibility(childId, childMonths, state.ratings, ageFilterOn),
@@ -373,7 +375,11 @@ export default function SummaryPage() {
               <span className="font-medium">Age relevant only</span>
             </label>
           )}
-          <Button variant="outline" className="gap-2" onClick={() => exportJournalJSON(childId)}>
+          <Button
+            variant="outline"
+            className={cn("gap-2", isDirty && "border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive")}
+            onClick={() => { exportJournalJSON(childId); markClean(); }}
+          >
             <Download className="h-4 w-4" /> Save JSON
           </Button>
           <Button className="gap-2" onClick={() => window.print()} data-testid="button-print">

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useStore } from "../lib/store";
+import { cn } from "../lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,11 +16,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "../hooks/use-toast";
 import { Trash2, Download, Upload } from "lucide-react";
+import { useDirty } from "../hooks/use-dirty";
 import { useRef } from "react";
 
 export default function SettingsPage() {
   const { state, resetAll, importData } = useStore();
   const { toast } = useToast();
+  const { isDirty, markClean } = useDirty();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
 
@@ -31,6 +34,7 @@ export default function SettingsPage() {
     a.download = `eyit-journal-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    markClean();
   }
 
   async function importAll(file: File) {
@@ -96,7 +100,12 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <Button onClick={exportAll} className="gap-2" data-testid="button-export-all">
+          <Button
+            onClick={exportAll}
+            className={cn("gap-2", isDirty && "bg-destructive/10 border border-destructive text-destructive hover:bg-destructive/20")}
+            variant={isDirty ? "outline" : "default"}
+            data-testid="button-export-all"
+          >
             <Download className="h-4 w-4" /> Save all data
           </Button>
           <input
