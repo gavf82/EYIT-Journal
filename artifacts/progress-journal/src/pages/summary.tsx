@@ -520,7 +520,7 @@ export default function SummaryPage() {
   }
 
   return (
-    <div className="container max-w-4xl px-4 sm:px-6 lg:px-8 py-8 print:py-0 print:px-0 print:max-w-none">
+    <div className="container max-w-4xl px-4 sm:px-6 lg:px-8 py-8 pb-20 print:py-0 print:px-0 print:max-w-none print:pb-0">
       {/* Toolbar (screen only) */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6 no-print">
         <Link
@@ -570,8 +570,8 @@ export default function SummaryPage() {
         </div>
       </div>
 
-      {/* Quick-jump nav — sticks at viewport top as you scroll (screen only) */}
-      <nav className="no-print sticky top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-background/95 backdrop-blur border-b border-border mb-6">
+      {/* Quick-jump nav — fixed at viewport bottom (screen only) */}
+      <nav className="no-print fixed bottom-0 left-0 right-0 z-20 bg-background/95 backdrop-blur border-t border-border px-4 sm:px-6 lg:px-8">
         <div className="flex gap-0.5 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {SECTIONS.map((s) =>
             s.id === "sec-alerts" && stagnantItems.length === 0 ? null : (
