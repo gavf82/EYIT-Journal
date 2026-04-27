@@ -118,7 +118,7 @@ function collectStrandBlocks(
     const items: RatedItemRow[] = [];
     step.items.forEach((item) => {
       const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
-      if (r && r.status) {
+      if (r && r.status && r.status !== "not_met") {
         items.push({ key: item.key, text: item.text, status: r.status, updatedAt: r.updatedAt });
       }
     });
@@ -238,7 +238,7 @@ function computeStagnantItems(
         if (visibleSet && !visibleSet.has(stIdx)) return;
         step.items.forEach((item) => {
           const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
-          if (!r || !r.status || r.status === "secure") return;
+          if (!r || !r.status || r.status === "secure" || r.status === "not_met") return;
           const updated = new Date(r.updatedAt);
           if (isNaN(updated.getTime())) return;
           const months = monthsBetween(updated, now);

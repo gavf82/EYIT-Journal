@@ -51,6 +51,7 @@
   --color-status-emerging: hsl(var(--status-emerging));
   --color-status-developing: hsl(var(--status-developing));
   --color-status-secure: hsl(var(--status-secure));
+  --color-status-not-met: hsl(var(--status-not-met));
   --color-status-unset: hsl(var(--status-unset));
 
   --font-sans: var(--app-font-sans);
@@ -113,6 +114,7 @@
   --status-emerging: 5 72% 66%;   /* Pastel red */
   --status-developing: 38 88% 62%; /* Pastel amber */
   --status-secure: 130 45% 55%;   /* Pastel green */
+  --status-not-met: 215 18% 62%; /* Muted slate blue */
   --status-unset: 40 10% 85%; /* Light Grey */
 
   --app-font-sans: 'Inter', sans-serif;

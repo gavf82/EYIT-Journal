@@ -104,6 +104,7 @@ export interface ProgressCounts {
   emerging: number;
   developing: number;
   secure: number;
+  not_met: number;
   unset: number;
   rated: number;
   percentRated: number;
@@ -116,6 +117,7 @@ const EMPTY: ProgressCounts = {
   emerging: 0,
   developing: 0,
   secure: 0,
+  not_met: 0,
   unset: 0,
   rated: 0,
   percentRated: 0,
@@ -157,6 +159,7 @@ export function countStep(
     if (r.status === "emerging") c.emerging += 1;
     else if (r.status === "developing") c.developing += 1;
     else if (r.status === "secure") c.secure += 1;
+    else if (r.status === "not_met") c.not_met += 1;
   }
   return finalize(c);
 }
@@ -178,6 +181,7 @@ export function countStrand(
     c.emerging += sc.emerging;
     c.developing += sc.developing;
     c.secure += sc.secure;
+    c.not_met += sc.not_met;
   });
   return finalize(c);
 }
@@ -197,6 +201,7 @@ export function countArea(
     c.emerging += sc.emerging;
     c.developing += sc.developing;
     c.secure += sc.secure;
+    c.not_met += sc.not_met;
   });
   return finalize(c);
 }
@@ -214,6 +219,7 @@ export function countAll(
     c.emerging += ac.emerging;
     c.developing += ac.developing;
     c.secure += ac.secure;
+    c.not_met += ac.not_met;
   });
   return finalize(c);
 }
@@ -222,6 +228,7 @@ export const STATUS_COLORS: Record<Exclude<Status, null> | "unset", string> = {
   emerging: "var(--color-status-emerging)",
   developing: "var(--color-status-developing)",
   secure: "var(--color-status-secure)",
+  not_met: "var(--color-status-not-met)",
   unset: "var(--color-status-unset)",
 };
 
@@ -229,10 +236,12 @@ export const STATUS_LABELS: Record<Exclude<Status, null>, string> = {
   emerging: "Emerging",
   developing: "Developing",
   secure: "Secure",
+  not_met: "Not met",
 };
 
 export const STATUS_DESCRIPTIONS: Record<Exclude<Status, null>, string> = {
   emerging: "Just starting to show signs of this skill",
   developing: "Developing this skill with support",
   secure: "Confidently and consistently demonstrates this skill",
+  not_met: "Assessed but did not meet the criteria",
 };

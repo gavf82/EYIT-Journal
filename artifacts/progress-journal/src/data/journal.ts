@@ -1,7 +1,7 @@
 // Auto-generated from EYIT Development Journal (September 2024)
 // Adapted from Special Educational Needs & Inclusion Team, Learning Inclusion Service, Leeds City Council.
 
-export type Status = null | "emerging" | "developing" | "secure";
+export type Status = null | "emerging" | "developing" | "secure" | "not_met";
 
 export interface JournalItem { key: string; text: string; }
 export interface JournalStep { number: number; ageRange: string; title: string; items: JournalItem[]; description?: string; note?: boolean; }
@@ -5971,4 +5971,5 @@ export const STATUS_OPTIONS = [
   { value: "emerging", label: "Emerging" },
   { value: "developing", label: "Developing" },
   { value: "secure", label: "Secure" },
+  { value: "not_met", label: "Not met" },
 ] as const;
