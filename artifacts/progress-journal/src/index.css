@@ -252,6 +252,32 @@
   }
 }
 
+/* ── Assessment page: compact portrait print overrides ──────────────────────
+   All rules scoped to .assessment-print so summary (landscape) is unaffected.  */
+@media print {
+  /* Portrait cover page — taller than landscape; push content down less aggressively. */
+  .assessment-print .print-cover {
+    min-height: 25cm;
+  }
+  .assessment-print .print-cover-inner .text-center {
+    padding-top: 4rem;
+  }
+
+  /* Slightly narrower status columns to give the statement column more room. */
+  .assessment-print .journal-step-table .journal-col-status { width: 9%; }
+
+  /* Tighter typography — trade off a little legibility for density. */
+  .assessment-print .journal-strand-header { font-size: 9.5pt; padding: 0.18rem 0.5rem; }
+  .assessment-print .journal-step-table { font-size: 8pt; margin-top: 0.2cm; }
+  .assessment-print .journal-step-table:first-of-type { margin-top: 0; }
+  .assessment-print .journal-step-table th,
+  .assessment-print .journal-step-table td { padding: 0.12rem 0.4rem; line-height: 1.2; }
+  .assessment-print .journal-step-table .journal-step-row th { font-size: 8pt; }
+
+  /* Tighter gap between successive step blocks. */
+  .assessment-print .print-pages > .journal-page { margin-bottom: 0.2cm; }
+}
+
 @layer base {
   * {
     @apply border-border;

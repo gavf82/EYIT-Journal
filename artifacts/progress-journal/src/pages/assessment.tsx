@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "wouter";
 import { JOURNAL, type JournalArea, type JournalStrand, type Status } from "../data/journal";
 import { useStore, getRatingKey, type Rating } from "../lib/store";
@@ -204,6 +204,17 @@ export default function AssessmentPage() {
   const [includeIncomplete, setIncludeIncomplete] = useState(false);
   const { openDialog, hasData, dialogProps } = useSaveAndClose();
 
+  // Inject a portrait @page override while this component is mounted so that
+  // printing from the assessment route uses A4 portrait instead of landscape.
+  useEffect(() => {
+    const el = document.createElement("style");
+    el.id = "assessment-print-style";
+    el.textContent =
+      "@media print { @page { size: A4 portrait; margin: 1cm 1.5cm; } }";
+    document.head.appendChild(el);
+    return () => { el.remove(); };
+  }, []);
+
   const visibility: StepVisibility = useMemo(
     () =>
       buildStepVisibility(
@@ -255,7 +266,7 @@ export default function AssessmentPage() {
   });
 
   return (
-    <div className="container max-w-4xl px-4 sm:px-6 lg:px-8 py-8 pb-20 print:py-0 print:px-0 print:max-w-none print:pb-0">
+    <div className="assessment-print container max-w-4xl px-4 sm:px-6 lg:px-8 py-8 pb-20 print:py-0 print:px-0 print:max-w-none print:pb-0">
 
       {/* ── Toolbar (screen only) ── */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6 no-print">
