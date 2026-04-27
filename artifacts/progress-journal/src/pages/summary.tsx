@@ -302,11 +302,12 @@ export default function SummaryPage() {
   const childMonths = child ? ageInMonths(child.dob) : null;
   const childAgeLabel = child ? formatAge(child.dob) : "";
   const [ageFilterOn, setAgeFilterOn] = useState<boolean>(childMonths !== null);
+  const [includeHistory, setIncludeHistory] = useState<boolean>(false);
   const { isDirty, markClean } = useDirty();
 
   const visibility: StepVisibility = useMemo(
-    () => buildStepVisibility(childId, childMonths, state.ratings, ageFilterOn),
-    [childId, childMonths, state.ratings, ageFilterOn],
+    () => buildStepVisibility(childId, childMonths, state.ratings, ageFilterOn, includeHistory),
+    [childId, childMonths, state.ratings, ageFilterOn, includeHistory],
   );
 
   const overall = useMemo(
@@ -369,10 +370,23 @@ export default function SummaryPage() {
             >
               <Switch
                 checked={ageFilterOn}
-                onCheckedChange={setAgeFilterOn}
+                onCheckedChange={(v) => { setAgeFilterOn(v); if (!v) setIncludeHistory(false); }}
                 data-testid="toggle-age-filter-summary"
               />
               <span className="font-medium">Age relevant only</span>
+            </label>
+          )}
+          {childMonths !== null && ageFilterOn && (
+            <label
+              className="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs cursor-pointer select-none hover:bg-muted/40"
+              data-testid="toggle-include-history-label"
+            >
+              <Switch
+                checked={includeHistory}
+                onCheckedChange={setIncludeHistory}
+                data-testid="toggle-include-history"
+              />
+              <span className="font-medium">Include history</span>
             </label>
           )}
           <Button
@@ -419,7 +433,9 @@ export default function SummaryPage() {
               <dd className="flex-1 tabular-nums">
                 {overall.rated} of {overall.total} ({overall.percentRated}%)
                 {ageFilterOn && childMonths !== null
-                  ? ` — current step only (${childAgeLabel})`
+                  ? includeHistory
+                    ? ` — history up to current step (${childAgeLabel})`
+                    : ` — current step only (${childAgeLabel})`
                   : ""}
               </dd>
             </div>
@@ -464,8 +480,10 @@ export default function SummaryPage() {
           </dl>
           {ageFilterOn && childMonths !== null && (
             <p className="mt-3 text-xs text-muted-foreground italic">
-              Age filter on — showing the current step only ({childAgeLabel}). Progress totals
-              and printed pages reflect the current step.
+              {includeHistory
+                ? `Age filter on — showing all entries up to the current step (${childAgeLabel}).`
+                : `Age filter on — showing the current step only (${childAgeLabel}).`}{" "}
+              Progress totals and printed pages reflect this view.
             </p>
           )}
         </header>

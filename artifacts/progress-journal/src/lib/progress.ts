@@ -37,6 +37,7 @@ export function visibleStepIndicesForStrand(
   childMonths: number | null,
   ratings: StoreState["ratings"],
   ageFilterOn: boolean,
+  includeHistory = false,
 ): Set<number> {
   if (!ageFilterOn || childMonths === null) {
     return new Set(strand.steps.map((_, i) => i));
@@ -61,6 +62,11 @@ export function visibleStepIndicesForStrand(
   });
   const focus = Math.max(currentIdx, highestRated);
   if (focus < 0) return new Set();
+  // History mode: expose every step from 0 up to (and including) focus so that
+  // any rated entries from earlier steps appear alongside the current one.
+  if (includeHistory) {
+    return new Set(Array.from({ length: focus + 1 }, (_, i) => i));
+  }
   return new Set([focus]);
 }
 
@@ -69,6 +75,7 @@ export function buildStepVisibility(
   childMonths: number | null,
   ratings: StoreState["ratings"],
   ageFilterOn: boolean,
+  includeHistory = false,
 ): StepVisibility {
   if (!ageFilterOn || childMonths === null) return null;
   const map = new Map<string, Set<number>>();
@@ -84,6 +91,7 @@ export function buildStepVisibility(
           childMonths,
           ratings,
           ageFilterOn,
+          includeHistory,
         ),
       );
     });
