@@ -454,6 +454,7 @@ export default function SummaryPage() {
   const childAgeLabel = child ? formatAge(child.dob) : "";
   const [ageFilterOn, setAgeFilterOn] = useState<boolean>(childMonths !== null);
   const [includeHistory, setIncludeHistory] = useState<boolean>(true);
+  const [radarInfoOpen, setRadarInfoOpen] = useState(false);
   const { openDialog, hasData, dialogProps } = useSaveAndClose();
 
   const [activeSection, setActiveSection] = useState<string>("sec-overview");
@@ -729,9 +730,16 @@ export default function SummaryPage() {
           <div className="flex items-center gap-2 mb-3">
             <h2 className="text-lg font-semibold">Strengths &amp; development areas</h2>
             <TooltipProvider>
-              <UITooltip>
+              <UITooltip open={radarInfoOpen} onOpenChange={setRadarInfoOpen}>
                 <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-muted-foreground cursor-help shrink-0" />
+                  <button
+                    type="button"
+                    aria-label="How is this chart calculated?"
+                    className="rounded-full p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => setRadarInfoOpen((v) => !v)}
+                  >
+                    <Info className="h-4 w-4 shrink-0" />
+                  </button>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="max-w-64 text-xs leading-relaxed">
                   Each area is scored on <strong>rated items only</strong>. Emerging = 1 pt,
