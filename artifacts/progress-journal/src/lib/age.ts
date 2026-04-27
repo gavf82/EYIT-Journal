@@ -58,15 +58,19 @@ export function parseAgeRange(ageRange: string): [number, number] | null {
 }
 
 /**
- * Returns true if a step is age-relevant for a child of the given age in months.
- * "Relevant" = the step's lower bound is at or below the child's age.
- * Steps that start AFTER the child's age are hidden by default.
- * If the age can't be determined, every step is relevant.
+ * Returns true if a step's age range actually contains the child's age.
+ * Both bounds are inclusive; "+" ranges have an upper bound of Infinity.
+ *
+ * This means a strand with a gap in its step ages (e.g. Word Reading jumps
+ * from 0-3 months to 21-25 months) will correctly show *nothing* for a child
+ * aged 4–20 months, rather than falling back to Step 1 (0-3 months).
+ *
+ * If the age range can't be parsed, every step is considered relevant (fail-open).
  */
 export function stepMatchesAge(ageRange: string, childMonths: number | null): boolean {
   if (childMonths === null) return true;
   const parsed = parseAgeRange(ageRange);
   if (!parsed) return true;
-  const [lower] = parsed;
-  return lower <= childMonths;
+  const [lower, upper] = parsed;
+  return lower <= childMonths && childMonths <= upper;
 }
