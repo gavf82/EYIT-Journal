@@ -170,11 +170,10 @@
 }
 
 @media print {
-  /* Landscape A4 with comfortable margins so content never touches the page
-     edge. Slightly tighter top/bottom because landscape pages are short. */
+  /* Tighter margins on landscape A4 to maximise usable area. */
   @page {
     size: A4 landscape;
-    margin: 1.4cm 1.8cm;
+    margin: 0.8cm 1.2cm;
   }
   html, body {
     background: white !important;
@@ -192,12 +191,15 @@
     print-color-adjust: exact;
   }
 
-  .journal-strand-header { font-size: 13pt; padding: 0.5rem 0.75rem; }
-  .journal-step-table { font-size: 11pt; margin-top: 0.7cm; }
+  /* Compact print typography — smaller than screen but still legible. */
+  .journal-strand-header { font-size: 10.5pt; padding: 0.22rem 0.55rem; }
+  /* Keep the strand header attached to whatever follows it. */
+  .journal-strand-header { break-after: avoid; page-break-after: avoid; }
+  .journal-step-table { font-size: 9pt; margin-top: 0.25cm; }
   .journal-step-table:first-of-type { margin-top: 0; }
   .journal-step-table th,
-  .journal-step-table td { padding: 0.45rem 0.65rem; line-height: 1.35; }
-  .journal-step-table .journal-step-row th { font-size: 11pt; }
+  .journal-step-table td { padding: 0.18rem 0.45rem; line-height: 1.2; }
+  .journal-step-table .journal-step-row th { font-size: 9pt; }
 
   /* Cover page — fills one landscape page. */
   .print-cover {
@@ -210,12 +212,13 @@
   }
   .print-cover-inner { flex: 1; }
 
-  /* Strands flow continuously — no forced page break between them.
-     Each step table stays together as a unit; strands try to stay together
-     too but will split across pages if they are too long to fit. */
+  /* Strands flow continuously. Step tables are kept together as units
+     (no mid-table page splits) but can flow across pages between tables.
+     The strand header is kept with the next element so it is never
+     stranded alone at the bottom of a page. */
   .print-pages > .journal-page {
-    break-inside: avoid;
-    margin-bottom: 0.6cm;
+    break-inside: auto;
+    margin-bottom: 0.3cm;
   }
   .journal-step-table {
     break-inside: avoid;
