@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useStore } from "../lib/store";
 import { cn } from "../lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,16 +15,19 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "../hooks/use-toast";
-import { Trash2, Download, Upload } from "lucide-react";
+import { Trash2, Download, Upload, FlaskConical, X } from "lucide-react";
 import { useDirty } from "../hooks/use-dirty";
-import { useRef } from "react";
+import { useLocation } from "wouter";
+import { seedDemoData, removeDemoData, isDemoLoaded, DEMO_CHILD_ID } from "../lib/seed";
 
 export default function SettingsPage() {
   const { state, resetAll, importData } = useStore();
   const { toast } = useToast();
   const { isDirty, markClean } = useDirty();
+  const [, navigate] = useLocation();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [demoLoaded, setDemoLoaded] = useState(isDemoLoaded);
 
   function exportAll() {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
@@ -127,6 +130,53 @@ export default function SettingsPage() {
           >
             <Upload className="h-4 w-4" /> Restore from backup
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Demo data</CardTitle>
+          <CardDescription>
+            Load a sample child — Amelia Thompson, 18 months — with realistic ratings spanning
+            from 8 months old, including stagnant entries to demonstrate the progression alerts.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          {demoLoaded ? (
+            <>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => navigate(`/child/${DEMO_CHILD_ID}/summary`)}
+              >
+                <FlaskConical className="h-4 w-4" /> View Amelia's summary
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-2 text-muted-foreground"
+                onClick={() => {
+                  removeDemoData();
+                  setDemoLoaded(false);
+                  toast({ title: "Demo data removed" });
+                }}
+              >
+                <X className="h-4 w-4" /> Remove demo data
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => {
+                seedDemoData();
+                setDemoLoaded(true);
+                toast({ title: "Demo data loaded", description: "Amelia Thompson added." });
+                navigate(`/child/${DEMO_CHILD_ID}/summary`);
+              }}
+            >
+              <FlaskConical className="h-4 w-4" /> Load demo data
+            </Button>
+          )}
         </CardContent>
       </Card>
 

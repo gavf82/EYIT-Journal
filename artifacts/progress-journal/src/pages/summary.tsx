@@ -451,9 +451,11 @@ export default function SummaryPage() {
     [childId, state.ratings, visibility],
   );
 
+  // Stagnation scanning is independent of the age filter — we always scan
+  // the full rating history so items from earlier steps are never hidden.
   const stagnantItems = useMemo(
-    () => computeStagnantItems(childId, state.ratings, visibility),
-    [childId, state.ratings, visibility],
+    () => computeStagnantItems(childId, state.ratings, null),
+    [childId, state.ratings],
   );
 
   // Build the strand tables once per render — only strands with at least one
