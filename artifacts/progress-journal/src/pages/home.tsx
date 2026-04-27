@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { Link } from "wouter";
-import { useStore } from "../lib/store";
+import { useStore, type StoreState } from "../lib/store";
 import { countAll } from "../lib/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,12 +13,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, ChevronRight, Calendar, Sparkles, BookText, Upload } from "lucide-react";
-import { importJournalJSON } from "../lib/export";
+import { Plus, ChevronRight, Calendar, Sparkles, BookText, Upload, Download } from "lucide-react";
+import { exportCollectionJSON } from "../lib/export";
 import { useToast } from "../hooks/use-toast";
-import { useRef } from "react";
 import { formatAge } from "../lib/age";
 
 function formatDate(d: string) {
@@ -136,9 +145,63 @@ function AddChildDialog() {
   );
 }
 
+/** Handles both single-child journals and full collection backups automatically. */
 function ImportButton() {
   const ref = useRef<HTMLInputElement>(null);
+  const { state, importData } = useStore();
   const { toast } = useToast();
+  const [pending, setPending] = useState<{ data: StoreState; childCount: number; ratingCount: number } | null>(null);
+
+  async function onFile(f: File) {
+    if (ref.current) ref.current.value = "";
+    try {
+      const text = await f.text();
+      const data = JSON.parse(text);
+
+      // Full collection backup: { children: [...], ratings: {...} }
+      if (Array.isArray(data.children) && typeof data.ratings === "object") {
+        setPending({
+          data,
+          childCount: data.children.length,
+          ratingCount: Object.keys(data.ratings).length,
+        });
+        return;
+      }
+
+      // Single-child journal: { child: {...}, ratings: {...} }
+      if (data.child && data.child.id && typeof data.ratings === "object") {
+        const kept = state.children.filter((c) => c.id !== data.child.id);
+        importData({
+          children: [...kept, data.child],
+          ratings: { ...state.ratings, ...data.ratings },
+        });
+        toast({ title: "Journal imported", description: `${data.child.name} added.` });
+        return;
+      }
+
+      throw new Error("Unrecognised file format.");
+    } catch (err: any) {
+      toast({ title: "Import failed", description: err?.message ?? "Unable to read file.", variant: "destructive" });
+    }
+  }
+
+  function confirmCollection() {
+    if (!pending) return;
+    // Merge: keep existing children not in backup; update/add those in backup.
+    const incoming = pending.data;
+    const incomingIds = new Set(incoming.children.map((c) => c.id));
+    const kept = state.children.filter((c) => !incomingIds.has(c.id));
+    importData({
+      children: [...kept, ...incoming.children],
+      ratings: { ...state.ratings, ...incoming.ratings },
+    });
+    toast({
+      title: "Collection imported",
+      description: `${incoming.children.length} child${incoming.children.length === 1 ? "" : "ren"} merged into your collection.`,
+    });
+    setPending(null);
+  }
+
   return (
     <>
       <input
@@ -146,22 +209,8 @@ function ImportButton() {
         type="file"
         accept="application/json,.json"
         className="hidden"
-        onChange={async (e) => {
-          const f = e.target.files?.[0];
-          if (!f) return;
-          try {
-            await importJournalJSON(f);
-            toast({ title: "Journal imported", description: "Child and progress added." });
-          } catch (err: any) {
-            toast({
-              title: "Import failed",
-              description: err?.message ?? "Unable to read file.",
-              variant: "destructive",
-            });
-          } finally {
-            if (ref.current) ref.current.value = "";
-          }
-        }}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }}
+        data-testid="input-import-file"
       />
       <Button
         variant="outline"
@@ -169,9 +218,47 @@ function ImportButton() {
         onClick={() => ref.current?.click()}
         data-testid="button-import-home"
       >
-        <Upload className="h-4 w-4" /> Import journal
+        <Upload className="h-4 w-4" /> Import
       </Button>
+
+      <AlertDialog open={!!pending} onOpenChange={(o) => { if (!o) setPending(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Import collection backup?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This file contains{" "}
+              <strong>{pending?.childCount ?? 0} child{(pending?.childCount ?? 0) === 1 ? "" : "ren"}</strong>{" "}
+              and{" "}
+              <strong>{pending?.ratingCount ?? 0} rating{(pending?.ratingCount ?? 0) === 1 ? "" : "s"}</strong>.
+              They will be merged with your current journals — existing children with
+              matching IDs will be updated, and new ones will be added. No data will be
+              deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCollection}>Import &amp; merge</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
+  );
+}
+
+function ExportCollectionButton() {
+  const { state } = useStore();
+  const total = Object.keys(state.ratings).length;
+  return (
+    <Button
+      variant="outline"
+      className="gap-2"
+      onClick={exportCollectionJSON}
+      disabled={state.children.length === 0}
+      title={state.children.length === 0 ? "No journals to export" : `Export ${state.children.length} child${state.children.length === 1 ? "" : "ren"} and ${total} ratings`}
+      data-testid="button-export-collection"
+    >
+      <Download className="h-4 w-4" /> Export collection
+    </Button>
   );
 }
 
@@ -275,6 +362,7 @@ export default function HomePage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <ExportCollectionButton />
           <ImportButton />
           <AddChildDialog />
         </div>

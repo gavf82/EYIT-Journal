@@ -1,6 +1,19 @@
 import { Child, Rating, StoreState, getStore } from "./store";
 import { JOURNAL } from "../data/journal";
 
+// ── Collection export ──────────────────────────────────────────────────────
+
+export function exportCollectionJSON() {
+  const store = getStore();
+  const blob = new Blob([JSON.stringify(store, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `eyit-collection-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function exportJournalJSON(childId: string) {
   const store = getStore();
   const child = store.children.find(c => c.id === childId);
