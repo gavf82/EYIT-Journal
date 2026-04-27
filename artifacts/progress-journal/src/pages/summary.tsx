@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "wouter";
 import { JOURNAL, type JournalArea, type JournalStrand, type Status } from "../data/journal";
 import { useStore, getRatingKey, type Rating } from "../lib/store";
@@ -428,6 +428,15 @@ function AreaRadarChart({
   );
 }
 
+const SECTIONS = [
+  { id: "sec-overview", label: "Overview" },
+  { id: "sec-progress", label: "Progress" },
+  { id: "sec-radar", label: "Radar" },
+  { id: "sec-by-area", label: "By area" },
+  { id: "sec-alerts", label: "Alerts" },
+  { id: "sec-journal", label: "Journal" },
+] as const;
+
 export default function SummaryPage() {
   const params = useParams<{ id: string }>();
   const childId = params.id ?? "";
@@ -439,6 +448,22 @@ export default function SummaryPage() {
   const [ageFilterOn, setAgeFilterOn] = useState<boolean>(childMonths !== null);
   const [includeHistory, setIncludeHistory] = useState<boolean>(false);
   const { saveAndClose, hasData } = useSaveAndClose();
+
+  const [activeSection, setActiveSection] = useState<string>("sec-overview");
+  useEffect(() => {
+    function onScroll() {
+      let active = SECTIONS[0].id as string;
+      for (const s of SECTIONS) {
+        const el = document.getElementById(s.id);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top <= 56) active = s.id;
+      }
+      setActiveSection(active);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const visibility: StepVisibility = useMemo(
     () => buildStepVisibility(childId, childMonths, state.ratings, ageFilterOn, includeHistory),
@@ -545,6 +570,38 @@ export default function SummaryPage() {
         </div>
       </div>
 
+      {/* Quick-jump nav — sticks at viewport top as you scroll (screen only) */}
+      <nav className="no-print sticky top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-background/95 backdrop-blur border-b border-border mb-6">
+        <div className="flex gap-0.5 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {SECTIONS.map((s) =>
+            s.id === "sec-alerts" && stagnantItems.length === 0 ? null : (
+              <button
+                key={s.id}
+                onClick={() => {
+                  const el = document.getElementById(s.id);
+                  if (!el) return;
+                  const y = el.getBoundingClientRect().top + window.scrollY - 52;
+                  window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+                }}
+                className={cn(
+                  "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
+                  activeSection === s.id
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                )}
+              >
+                {s.label}
+                {s.id === "sec-alerts" && (
+                  <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive/15 px-1 text-[10px] font-semibold tabular-nums text-destructive">
+                    {stagnantItems.length}
+                  </span>
+                )}
+              </button>
+            ),
+          )}
+        </div>
+      </nav>
+
       {/* Print-only cover page (matches PDF cover format) */}
       <section className="hidden print:flex print-cover">
         <div className="print-corner">EYIT September 2024</div>
@@ -592,7 +649,7 @@ export default function SummaryPage() {
 
       {/* Screen-only dashboard */}
       <article className="space-y-8 no-print">
-        <header className="border-b border-border pb-5">
+        <header id="sec-overview" className="border-b border-border pb-5">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">
             EYIT Development Journal — Summary
           </p>
@@ -631,7 +688,7 @@ export default function SummaryPage() {
           )}
         </header>
 
-        <section>
+        <section id="sec-progress">
           <h2 className="text-lg font-semibold mb-3">Overall progress</h2>
           <Card>
             <CardContent className="p-5 space-y-4">
@@ -660,7 +717,7 @@ export default function SummaryPage() {
           </Card>
         </section>
 
-        <section>
+        <section id="sec-radar">
           <h2 className="text-lg font-semibold mb-3">Strengths &amp; development areas</h2>
           <Card>
             <CardContent className="p-5">
@@ -673,7 +730,7 @@ export default function SummaryPage() {
           </Card>
         </section>
 
-        <section>
+        <section id="sec-by-area">
           <h2 className="text-lg font-semibold mb-3">By area</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {JOURNAL.map((area, aIdx) => {
@@ -699,11 +756,11 @@ export default function SummaryPage() {
           </div>
         </section>
 
-        <StagnantItemsSection items={stagnantItems} />
+        <div id="sec-alerts"><StagnantItemsSection items={stagnantItems} /></div>
       </article>
 
       {/* Journal pages — PDF-style tables, shown on screen and printed */}
-      <section className="mt-8 print:mt-0">
+      <section id="sec-journal" className="mt-8 print:mt-0">
         <h2 className="text-lg font-semibold mb-3 no-print">Journal pages (print preview)</h2>
         {strandTables.length === 0 ? (
           <p className="text-sm text-muted-foreground italic no-print">
