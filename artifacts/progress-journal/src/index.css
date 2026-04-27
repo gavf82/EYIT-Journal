@@ -120,92 +120,113 @@
   --radius: 0.5rem;
 }
 
-/* PDF-style journal tables (used on the Summary page). Mirrors the look of
-   the EYIT Development Journal: yellow strand-title strip, paler step header
-   row, and three narrow tick columns for Emerging / Developing / Secure. */
-.journal-table {
+/* PDF-style journal layout (used on the Summary page). Each strand renders as
+   a yellow title bar followed by one table per step (Emerging / Developing /
+   Secure), so we have visible breathing room between step tables and the
+   browser can break pages between them without splitting a single step. */
+.journal-strand-header {
+  background: #f6c344;
+  color: #111;
+  font-size: 15px;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid #444;
+  border-bottom: none;
+}
+.journal-step-table {
   width: 100%;
   border-collapse: collapse;
   border: 1px solid #444;
   font-size: 13px;
   background: white;
   color: #111;
+  margin-top: 0.6rem;
+  table-layout: fixed;
 }
-.journal-table th,
-.journal-table td {
+.journal-step-table:first-of-type {
+  /* The first step table sits flush against the strand-header bar above. */
+  margin-top: 0;
+}
+.journal-step-table th,
+.journal-step-table td {
   border: 1px solid #444;
-  padding: 0.45rem 0.65rem;
+  padding: 0.55rem 0.75rem;
   vertical-align: top;
-  line-height: 1.35;
+  line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
 }
-.journal-table .journal-strand-row th {
-  background: #f6c344;
-  color: #111;
-  font-size: 14px;
-  padding: 0.5rem 0.7rem;
-}
-.journal-table .journal-step-row th {
+.journal-step-table .journal-step-row th {
   background: #fde9a7;
   color: #111;
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: 13px;
 }
-.journal-table .journal-col-text { width: auto; }
-.journal-table .journal-col-status { width: 11%; }
-.journal-table tbody.journal-step-block {
-  break-inside: avoid;
-  page-break-inside: avoid;
-}
+.journal-step-table .journal-col-text { width: auto; }
+.journal-step-table .journal-col-status { width: 9%; }
 
 .journal-page {
-  break-inside: avoid;
+  break-inside: auto;
 }
 
 @media print {
-  @page { margin: 1.4cm 1.2cm; size: A4; }
+  /* Landscape A4 with comfortable margins so content never touches the page
+     edge. Slightly tighter top/bottom because landscape pages are short. */
+  @page {
+    size: A4 landscape;
+    margin: 1.4cm 1.8cm;
+  }
   html, body {
     background: white !important;
     color: black !important;
   }
   .no-print { display: none !important; }
 
-  /* Force background colors for the table strips even when browsers
-     would normally drop them on print. */
-  .journal-table,
-  .journal-table th,
-  .journal-table td,
-  .journal-strand-row th,
+  /* Force background colors for the yellow strips when printing. */
+  .journal-strand-header,
+  .journal-step-table,
+  .journal-step-table th,
+  .journal-step-table td,
   .journal-step-row th {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .journal-table { font-size: 10.5pt; }
-  .journal-table .journal-strand-row th { font-size: 11.5pt; }
-  .journal-table .journal-step-row th { font-size: 10pt; }
 
-  /* Cover page — fills one page and sits before the journal pages. */
+  .journal-strand-header { font-size: 13pt; padding: 0.5rem 0.75rem; }
+  .journal-step-table { font-size: 11pt; margin-top: 0.7cm; }
+  .journal-step-table:first-of-type { margin-top: 0; }
+  .journal-step-table th,
+  .journal-step-table td { padding: 0.45rem 0.65rem; line-height: 1.35; }
+  .journal-step-table .journal-step-row th { font-size: 11pt; }
+
+  /* Cover page — fills one landscape page. */
   .print-cover {
     display: flex !important;
     flex-direction: column;
-    min-height: 95vh;
+    min-height: 18cm;
     page-break-after: always;
     break-after: page;
     position: relative;
   }
   .print-cover-inner { flex: 1; }
 
-  /* Each strand table starts on its own page so the printout reads like the
-     original journal — one strand per spread. */
+  /* Each strand starts on a fresh page; step tables inside flow naturally.
+     A whole step table is kept together on one page; if a strand has more
+     step tables than fit on a page, the next step table starts on a new
+     page (still under the same strand's title since the title repeats). */
   .print-pages > .journal-page {
     page-break-after: always;
     break-after: page;
     position: relative;
-    padding-top: 0.6cm;
-    padding-bottom: 1.2cm;
+    padding-top: 0.4cm;
+    padding-bottom: 1.4cm;
   }
   .print-pages > .journal-page:last-child {
     page-break-after: auto;
     break-after: auto;
+  }
+  .journal-step-table {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .print-corner {

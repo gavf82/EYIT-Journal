@@ -109,57 +109,60 @@ function StrandTable({
   blocks: StepBlock[];
 }) {
   return (
-    <table className="journal-table" data-testid={`strand-table-${strand.name}`}>
-      <colgroup>
-        <col className="journal-col-text" />
-        <col className="journal-col-status" />
-        <col className="journal-col-status" />
-        <col className="journal-col-status" />
-      </colgroup>
-      <thead>
-        <tr className="journal-strand-row">
-          <th colSpan={4} className="text-left">
-            <span className="font-semibold">{area.area}: </span>
-            <span className="uppercase tracking-wide">{strand.name}</span>
-          </th>
-        </tr>
-      </thead>
+    <section
+      className="journal-strand"
+      data-testid={`strand-table-${strand.name}`}
+    >
+      <div className="journal-strand-header">
+        <span className="font-semibold">{area.area}: </span>
+        <span className="uppercase tracking-wide">{strand.name}</span>
+      </div>
       {blocks.map((block) => (
-        <tbody key={block.stepNumber} className="journal-step-block">
-          <tr className="journal-step-row">
-            <th scope="col" className="text-left">
-              Step {block.stepNumber} ({block.ageRange})
-            </th>
-            <th scope="col" className="text-center">
-              Emerging
-            </th>
-            <th scope="col" className="text-center">
-              Developing
-            </th>
-            <th scope="col" className="text-center">
-              Secure
-            </th>
-          </tr>
-          {block.items.map((it) => (
-            <tr key={it.key}>
-              <td>
-                <span className="font-semibold mr-1">{it.key})</span>
-                {it.text}
-              </td>
-              <td className="text-center">
-                {it.status === "emerging" ? <span aria-label="Emerging">✓</span> : null}
-              </td>
-              <td className="text-center">
-                {it.status === "developing" ? <span aria-label="Developing">✓</span> : null}
-              </td>
-              <td className="text-center">
-                {it.status === "secure" ? <span aria-label="Secure">✓</span> : null}
-              </td>
+        <table key={block.stepNumber} className="journal-step-table">
+          <colgroup>
+            <col className="journal-col-text" />
+            <col className="journal-col-status" />
+            <col className="journal-col-status" />
+            <col className="journal-col-status" />
+          </colgroup>
+          <thead>
+            <tr className="journal-step-row">
+              <th scope="col" className="text-left">
+                Step {block.stepNumber} ({block.ageRange})
+              </th>
+              <th scope="col" className="text-center">
+                Emerging
+              </th>
+              <th scope="col" className="text-center">
+                Developing
+              </th>
+              <th scope="col" className="text-center">
+                Secure
+              </th>
             </tr>
-          ))}
-        </tbody>
+          </thead>
+          <tbody>
+            {block.items.map((it) => (
+              <tr key={it.key}>
+                <td>
+                  <span className="font-semibold mr-1">{it.key})</span>
+                  {it.text}
+                </td>
+                <td className="text-center">
+                  {it.status === "emerging" ? <span aria-label="Emerging">✓</span> : null}
+                </td>
+                <td className="text-center">
+                  {it.status === "developing" ? <span aria-label="Developing">✓</span> : null}
+                </td>
+                <td className="text-center">
+                  {it.status === "secure" ? <span aria-label="Secure">✓</span> : null}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       ))}
-    </table>
+    </section>
   );
 }
 
