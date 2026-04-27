@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, ChevronRight, Calendar, Sparkles, BookText, Upload, Download } from "lucide-react";
+import { Plus, ChevronRight, Calendar, Sparkles, BookText, Upload, Download, Search, X } from "lucide-react";
 import { exportCollectionJSON } from "../lib/export";
 import { useToast } from "../hooks/use-toast";
 import { formatAge } from "../lib/age";
@@ -344,14 +344,24 @@ function ChildCard({ childId, name, dob, startDate, updatedAt, ratings }: ChildC
 
 export default function HomePage() {
   const { state } = useStore();
+  const [query, setQuery] = useState("");
+
   const sorted = useMemo(
     () => [...state.children].sort((a, b) => a.name.localeCompare(b.name)),
     [state.children],
   );
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return sorted;
+    return sorted.filter((c) => c.name.toLowerCase().includes(q));
+  }, [sorted, query]);
+
+  const hasChildren = sorted.length > 0;
+
   return (
     <div className="container max-w-screen-2xl px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
             Children
@@ -368,7 +378,29 @@ export default function HomePage() {
         </div>
       </div>
 
-      {sorted.length === 0 ? (
+      {hasChildren && (
+        <div className="relative mb-6 max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search journals by name…"
+            className="pl-8 pr-8"
+            data-testid="input-search"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Clear search"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {!hasChildren ? (
         <Card className="border-dashed">
           <CardContent className="py-12 text-center">
             <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4">
@@ -384,9 +416,22 @@ export default function HomePage() {
             </div>
           </CardContent>
         </Card>
+      ) : filtered.length === 0 ? (
+        <div className="py-12 text-center text-muted-foreground">
+          <Search className="mx-auto h-8 w-8 mb-3 opacity-30" />
+          <p className="text-sm">
+            No journals match <span className="font-medium text-foreground">"{query}"</span>
+          </p>
+          <button
+            onClick={() => setQuery("")}
+            className="mt-2 text-xs underline underline-offset-2 hover:text-foreground"
+          >
+            Clear search
+          </button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sorted.map((c) => (
+          {filtered.map((c) => (
             <ChildCard
               key={c.id}
               childId={c.id}
