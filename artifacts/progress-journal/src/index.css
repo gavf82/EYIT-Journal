@@ -163,7 +163,7 @@
   font-size: 13px;
 }
 .journal-step-table .journal-col-text { width: auto; }
-.journal-step-table .journal-col-status { width: 9%; }
+.journal-step-table .journal-col-status { width: 11%; }
 
 .journal-page {
   break-inside: auto;

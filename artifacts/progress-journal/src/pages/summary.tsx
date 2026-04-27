@@ -56,10 +56,25 @@ function formatDate(d: string) {
   }
 }
 
+// Compact date for table cells: "27/04/25" — fits narrow columns.
+function formatEntryDate(iso: string) {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yy = String(d.getFullYear()).slice(2);
+    return `${dd}/${mm}/${yy}`;
+  } catch {
+    return "";
+  }
+}
+
 interface RatedItemRow {
   key: string;
   text: string;
   status: Exclude<Status, null>;
+  updatedAt: string;
 }
 
 interface StepBlock {
@@ -87,7 +102,7 @@ function collectStrandBlocks(
     step.items.forEach((item) => {
       const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
       if (r && r.status) {
-        items.push({ key: item.key, text: item.text, status: r.status });
+        items.push({ key: item.key, text: item.text, status: r.status, updatedAt: r.updatedAt });
       }
     });
     if (items.length === 0) return;
@@ -148,14 +163,14 @@ function StrandTable({
                   <span className="font-semibold mr-1">{it.key})</span>
                   {it.text}
                 </td>
-                <td className="text-center">
-                  {it.status === "emerging" ? <span aria-label="Emerging">✓</span> : null}
+                <td className="text-center text-xs tabular-nums">
+                  {it.status === "emerging" ? formatEntryDate(it.updatedAt) : null}
                 </td>
-                <td className="text-center">
-                  {it.status === "developing" ? <span aria-label="Developing">✓</span> : null}
+                <td className="text-center text-xs tabular-nums">
+                  {it.status === "developing" ? formatEntryDate(it.updatedAt) : null}
                 </td>
-                <td className="text-center">
-                  {it.status === "secure" ? <span aria-label="Secure">✓</span> : null}
+                <td className="text-center text-xs tabular-nums">
+                  {it.status === "secure" ? formatEntryDate(it.updatedAt) : null}
                 </td>
               </tr>
             ))}
