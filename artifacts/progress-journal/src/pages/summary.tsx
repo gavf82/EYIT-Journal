@@ -2,13 +2,20 @@ import { useMemo, useState } from "react";
 import { Link, useParams } from "wouter";
 import { JOURNAL } from "../data/journal";
 import { useStore, getRatingKey } from "../lib/store";
-import { countAll, countArea, countStrand, STATUS_LABELS } from "../lib/progress";
+import {
+  buildStepVisibility,
+  countAll,
+  countArea,
+  countStrand,
+  STATUS_LABELS,
+  type StepVisibility,
+} from "../lib/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Printer, Download } from "lucide-react";
 import { exportJournalJSON } from "../lib/export";
 import { cn } from "../lib/utils";
-import { ageInMonths, formatAge, stepMatchesAge } from "../lib/age";
+import { ageInMonths, formatAge } from "../lib/age";
 import { Switch } from "@/components/ui/switch";
 
 function ProgressBar({
@@ -64,14 +71,22 @@ export default function SummaryPage() {
   const { state } = useStore();
   const child = state.children.find((c) => c.id === childId);
 
-  const overall = useMemo(
-    () => (childId ? countAll(childId, state.ratings) : countAll("", {})),
-    [childId, state.ratings],
-  );
-
   const childMonths = child ? ageInMonths(child.dob) : null;
   const childAgeLabel = child ? formatAge(child.dob) : "";
   const [ageFilterOn, setAgeFilterOn] = useState<boolean>(childMonths !== null);
+
+  const visibility: StepVisibility = useMemo(
+    () => buildStepVisibility(childId, childMonths, state.ratings, ageFilterOn),
+    [childId, childMonths, state.ratings, ageFilterOn],
+  );
+
+  const overall = useMemo(
+    () =>
+      childId
+        ? countAll(childId, state.ratings, visibility)
+        : countAll("", {}),
+    [childId, state.ratings, visibility],
+  );
 
   if (!child) {
     return (
@@ -148,7 +163,8 @@ export default function SummaryPage() {
           </dl>
           {ageFilterOn && childMonths !== null && (
             <p className="mt-3 text-xs text-muted-foreground italic">
-              Age filter on — showing steps up to {childAgeLabel}.
+              Age filter on — showing the current step only ({childAgeLabel}). Progress totals
+              reflect the current step.
             </p>
           )}
         </header>
@@ -188,7 +204,7 @@ export default function SummaryPage() {
           <h2 className="text-lg font-semibold mb-3">By area</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {JOURNAL.map((area, aIdx) => {
-              const ac = countArea(childId, aIdx, area, state.ratings);
+              const ac = countArea(childId, aIdx, area, state.ratings, visibility);
               return (
                 <Card key={aIdx} className="break-inside-avoid">
                   <CardContent className="p-4">
@@ -214,7 +230,7 @@ export default function SummaryPage() {
           <h2 className="text-lg font-semibold mb-3">Detailed breakdown</h2>
           <div className="space-y-6">
             {JOURNAL.map((area, aIdx) => {
-              const ac = countArea(childId, aIdx, area, state.ratings);
+              const ac = countArea(childId, aIdx, area, state.ratings, visibility);
               return (
                 <div key={aIdx} className="break-inside-avoid">
                   <div className="flex flex-wrap items-end justify-between gap-2 mb-2 pb-1.5 border-b border-border">
@@ -225,7 +241,16 @@ export default function SummaryPage() {
                   </div>
                   <div className="space-y-3">
                     {area.strands.map((strand, sIdx) => {
-                      const sc = countStrand(childId, aIdx, sIdx, strand, state.ratings);
+                      const sc = countStrand(
+                        childId,
+                        aIdx,
+                        sIdx,
+                        strand,
+                        state.ratings,
+                        visibility,
+                      );
+                      const visibleSet =
+                        visibility?.get(`${aIdx}::${sIdx}`) ?? null;
                       const ratedItems: {
                         step: number;
                         ageRange: string;
@@ -237,8 +262,7 @@ export default function SummaryPage() {
                       const seenHiddenSteps = new Set<number>();
                       strand.steps.forEach((step, stIdx) => {
                         if (!step.items || step.note) return;
-                        const inAgeRange =
-                          !ageFilterOn || stepMatchesAge(step.ageRange, childMonths);
+                        const inAgeRange = visibleSet ? visibleSet.has(stIdx) : true;
                         step.items.forEach((item) => {
                           const key = getRatingKey(childId, aIdx, sIdx, stIdx, item.key);
                           const r = state.ratings[key];
@@ -258,6 +282,10 @@ export default function SummaryPage() {
                           }
                         });
                       });
+                      // Highest step first so the latest age sits at the top.
+                      ratedItems.sort(
+                        (a, b) => b.step - a.step || a.itemKey.localeCompare(b.itemKey),
+                      );
 
                       return (
                         <div key={sIdx} className="break-inside-avoid">
@@ -272,7 +300,7 @@ export default function SummaryPage() {
                           {ratedItems.length === 0 ? (
                             <p className="text-xs text-muted-foreground italic">
                               {ageFilterOn && hiddenRatedSteps > 0
-                                ? "No ratings within current age range."
+                                ? "No ratings within current step."
                                 : "No ratings yet."}
                             </p>
                           ) : (
@@ -301,8 +329,8 @@ export default function SummaryPage() {
                             </ul>
                           )}
                           {ageFilterOn && hiddenRatedSteps > 0 && (
-                            <p className="mt-1.5 text-[11px] text-muted-foreground italic">
-                              {hiddenRatedSteps} later step
+                            <p className="mt-1.5 text-[11px] text-muted-foreground italic" data-testid={`hidden-note-${aIdx}-${sIdx}`}>
+                              {hiddenRatedSteps} other step
                               {hiddenRatedSteps === 1 ? "" : "s"} with ratings hidden by age
                               filter.
                             </p>

@@ -4,11 +4,13 @@ import { JOURNAL, JournalArea, JournalStep, JournalStrand, Status } from "../dat
 import { useStore, getRatingKey } from "../lib/store";
 import { exportJournalCSV, exportJournalJSON, importJournalJSON } from "../lib/export";
 import {
+  buildStepVisibility,
   countAll,
   countArea,
   countStep,
   countStrand,
   STATUS_LABELS,
+  type StepVisibility,
 } from "../lib/progress";
 import { StatusSelector } from "../components/status-selector";
 import { Button } from "@/components/ui/button";
@@ -79,7 +81,7 @@ import {
 } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 import { cn } from "../lib/utils";
-import { ageInMonths, formatAge, stepMatchesAge } from "../lib/age";
+import { ageInMonths, formatAge } from "../lib/age";
 import { Switch } from "@/components/ui/switch";
 
 type FilterValue = "all" | "rated" | "unrated" | "emerging" | "developing" | "secure";
@@ -278,6 +280,7 @@ interface StrandSectionProps {
   onOpenChange: (open: boolean) => void;
   childMonths: number | null;
   ageFilterOn: boolean;
+  visibility: StepVisibility;
 }
 
 function StrandSection({
@@ -292,20 +295,22 @@ function StrandSection({
   onOpenChange,
   childMonths,
   ageFilterOn,
+  visibility,
 }: StrandSectionProps) {
   const counts = useMemo(
-    () => countStrand(childId, aIdx, sIdx, strand, ratings),
-    [childId, aIdx, sIdx, strand, ratings],
+    () => countStrand(childId, aIdx, sIdx, strand, ratings, visibility),
+    [childId, aIdx, sIdx, strand, ratings, visibility],
   );
 
+  // Visible steps for this strand, sorted highest → lowest by step.number so
+  // the most age-relevant content sits at the top for ergonomic access.
   const visibleSteps = useMemo(() => {
-    if (!ageFilterOn || childMonths === null) {
-      return strand.steps.map((step, stIdx) => ({ step, stIdx }));
-    }
+    const visibleSet = visibility?.get(`${aIdx}::${sIdx}`) ?? null;
     return strand.steps
       .map((step, stIdx) => ({ step, stIdx }))
-      .filter(({ step }) => stepMatchesAge(step.ageRange, childMonths));
-  }, [strand.steps, ageFilterOn, childMonths]);
+      .filter(({ stIdx }) => (visibleSet ? visibleSet.has(stIdx) : true))
+      .sort((a, b) => b.step.number - a.step.number);
+  }, [strand.steps, visibility, aIdx, sIdx]);
 
   const hiddenCount = strand.steps.length - visibleSteps.length;
 
@@ -350,7 +355,8 @@ function StrandSection({
       <CollapsibleContent className="px-4 sm:px-5 pb-5 pt-1">
         {visibleSteps.length === 0 ? (
           <p className="text-xs text-muted-foreground italic py-3">
-            No steps in this strand match the current age yet.
+            No steps in this strand match the current age yet — turn off the age filter to see
+            all steps.
           </p>
         ) : (
           <Accordion type="multiple" className="space-y-2">
@@ -406,8 +412,8 @@ function StrandSection({
         )}
         {hiddenCount > 0 && (
           <p className="mt-3 text-[11px] text-muted-foreground italic">
-            {hiddenCount} later step{hiddenCount === 1 ? "" : "s"} hidden — turn off the age
-            filter above to view them.
+            {hiddenCount} other step{hiddenCount === 1 ? "" : "s"} hidden — turn off the age
+            filter above to view full history.
           </p>
         )}
       </CollapsibleContent>
@@ -553,9 +559,17 @@ export default function ChildJournalPage() {
     });
   }
 
+  const visibility: StepVisibility = useMemo(
+    () => buildStepVisibility(childId, childMonths, state.ratings, ageFilterOn),
+    [childId, childMonths, state.ratings, ageFilterOn],
+  );
+
   const overall = useMemo(
-    () => (childId ? countAll(childId, state.ratings) : countAll("", {})),
-    [childId, state.ratings],
+    () =>
+      childId
+        ? countAll(childId, state.ratings, visibility)
+        : countAll("", {}),
+    [childId, state.ratings, visibility],
   );
 
   if (!child) {
@@ -573,7 +587,7 @@ export default function ChildJournalPage() {
   }
 
   const area: JournalArea = JOURNAL[areaIdx];
-  const areaCounts = countArea(childId, areaIdx, area, state.ratings);
+  const areaCounts = countArea(childId, areaIdx, area, state.ratings, visibility);
 
   function clearChildRatings() {
     Object.keys(state.ratings)
@@ -760,7 +774,7 @@ export default function ChildJournalPage() {
       {/* Area tabs */}
       <div className="flex flex-wrap gap-1.5 mb-5 border-b border-border pb-3">
         {JOURNAL.map((a, idx) => {
-          const ac = countArea(childId, idx, a, state.ratings);
+          const ac = countArea(childId, idx, a, state.ratings, visibility);
           const active = idx === areaIdx;
           return (
             <button
@@ -797,7 +811,7 @@ export default function ChildJournalPage() {
             {area.strands.length} strand{area.strands.length === 1 ? "" : "s"} ·{" "}
             {areaCounts.rated} of {areaCounts.total} statements rated
             {ageFilterOn && childMonths !== null && (
-              <> · showing steps up to {childAgeLabel}</>
+              <> · current step only ({childAgeLabel})</>
             )}
           </p>
         </div>
@@ -869,6 +883,7 @@ export default function ChildJournalPage() {
             onOpenChange={(open) => toggleStrand(areaIdx, sIdx, open)}
             childMonths={childMonths}
             ageFilterOn={ageFilterOn}
+            visibility={visibility}
           />
         ))}
       </div>

@@ -38,7 +38,8 @@ Each statement can be marked **Emerging**, **Developing**, or **Secure**, or lef
 - **Routing**: `wouter` (`/`, `/child/:id`, `/child/:id/summary`, `/settings`).
 - **State**: localStorage via `src/lib/store.ts`. Shape: `{ children: Child[]; ratings: Record<string, Rating> }`. Rating key format: `${childId}::${areaIdx}::${strandIdx}::${stepIdx}::${itemKey}`.
 - **Curriculum data**: `src/data/journal.ts` (~236 KB, generated from the source PDF). 7 areas → 18 strands → ~120 steps → 1058 statements. Steps with `note: true` are informational only.
-- **Progress**: `src/lib/progress.ts` rolls up counts at step / strand / area / overall level.
+- **Progress**: `src/lib/progress.ts` rolls up counts at step / strand / area / overall level. Optional `StepVisibility` map (built by `buildStepVisibility` in the same module) constrains counts to a subset of step indices per `${areaIdx}::${strandIdx}` key.
+- **Age filter**: When on, each strand collapses to exactly one "current" step — the higher of (a) the highest step whose `ageRange` covers the child's age in months, or (b) the highest step that already has any rating. Steps within each strand render highest→lowest. All counts (overall / area / strand / step pills) reflect only the visible steps.
 - **Export/import**: per-child JSON & CSV from journal page; full backup JSON from Settings.
 - **Print**: `/child/:id/summary` is print-styled (`.no-print` hides controls).
 - **No backend**: no API calls, no auth, no DB.
