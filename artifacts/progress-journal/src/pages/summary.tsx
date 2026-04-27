@@ -11,7 +11,13 @@ import {
 } from "../lib/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Printer, LogOut, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Printer, LogOut, AlertTriangle, Info } from "lucide-react";
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useSaveAndClose } from "../hooks/use-save-and-close";
 import { SaveAndCloseDialog } from "../components/save-and-close-dialog";
 import { cn } from "../lib/utils";
@@ -720,7 +726,23 @@ export default function SummaryPage() {
         </section>
 
         <section id="sec-radar">
-          <h2 className="text-lg font-semibold mb-3">Strengths &amp; development areas</h2>
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-lg font-semibold">Strengths &amp; development areas</h2>
+            <TooltipProvider>
+              <UITooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help shrink-0" />
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-64 text-xs leading-relaxed">
+                  Each area is scored on <strong>rated items only</strong>. Emerging = 1 pt,
+                  Developing = 2 pts, Secure = 3 pts. The score is
+                  (total points ÷ rated items × 3) × 100, so 100% means all rated items are
+                  Secure. Areas with no ratings are hidden. At least 3 areas must have ratings
+                  for the chart to appear.
+                </TooltipContent>
+              </UITooltip>
+            </TooltipProvider>
+          </div>
           <Card>
             <CardContent className="p-5">
               <AreaRadarChart
