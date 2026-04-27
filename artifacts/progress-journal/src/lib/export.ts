@@ -1,4 +1,4 @@
-import { StoreState, getStore, setStore } from "./store";
+import { getStore } from "./store";
 import { JOURNAL } from "../data/journal";
 
 // ── Shared helpers ──────────────────────────────────────────────────────────
@@ -42,18 +42,6 @@ export async function saveBlob(
   }
   fallbackDownload(blob, filename);
   return true;
-}
-
-// ── Full-store JSON export (used by every Save button) ──────────────────────
-
-export async function exportCollectionJSON(): Promise<boolean> {
-  const store = getStore();
-  const blob = new Blob([JSON.stringify(store, null, 2)], {
-    type: "application/json",
-  });
-  return saveBlob(blob, `eyit-backup-${todaySlug()}.json`, [
-    { description: "JSON backup", accept: { "application/json": [".json"] } },
-  ]);
 }
 
 // ── Full-store CSV export ───────────────────────────────────────────────────
@@ -110,64 +98,3 @@ export async function exportAllCSV(): Promise<boolean> {
   ]);
 }
 
-// ── Import (unchanged) ──────────────────────────────────────────────────────
-
-export async function importJournalJSON(file: File): Promise<boolean> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const content = e.target?.result as string;
-        const data = JSON.parse(content) as StoreState & {
-          child?: unknown;
-          ratings?: unknown;
-        };
-
-        // Support both full-store format {children, ratings}
-        // and legacy single-child format {child, ratings}
-        const currentStore = getStore();
-
-        if (data.children && Array.isArray(data.children)) {
-          // Full store format — merge children and ratings
-          const childMap = new Map(
-            currentStore.children.map((c) => [c.id, c]),
-          );
-          (data.children as StoreState["children"]).forEach((c) => {
-            childMap.set(c.id, c);
-          });
-          const newRatings = {
-            ...currentStore.ratings,
-            ...(data.ratings as StoreState["ratings"]),
-          };
-          setStore({ children: [...childMap.values()], ratings: newRatings });
-          resolve(true);
-        } else if (
-          data.child &&
-          typeof data.child === "object" &&
-          data.ratings
-        ) {
-          // Legacy single-child format
-          const child = data.child as StoreState["children"][0];
-          if (!child.id) throw new Error("Invalid journal file format");
-          const idx = currentStore.children.findIndex((c) => c.id === child.id);
-          const newChildren = [...currentStore.children];
-          if (idx >= 0) newChildren[idx] = child;
-          else newChildren.push(child);
-          const newRatings = {
-            ...currentStore.ratings,
-            ...(data.ratings as StoreState["ratings"]),
-          };
-          setStore({ children: newChildren, ratings: newRatings });
-          resolve(true);
-        } else {
-          throw new Error("Invalid file format");
-        }
-      } catch (err) {
-        console.error("Failed to parse JSON file", err);
-        reject(err);
-      }
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsText(file);
-  });
-}

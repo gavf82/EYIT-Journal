@@ -101,13 +101,18 @@ export async function exportSQLite(): Promise<boolean> {
 
 // ── Import ───────────────────────────────────────────────────────────────────
 
-export async function importSQLite(file: File): Promise<void> {
+/**
+ * Open a .db file and return its children + ratings without touching the store.
+ * Useful for showing a confirmation preview before committing the import.
+ */
+export async function parseSQLite(
+  file: File,
+): Promise<Pick<StoreState, "children" | "ratings">> {
   const SQL = await getSQLite();
 
   const buffer = await file.arrayBuffer();
   const db = new SQL.Database(new Uint8Array(buffer));
 
-  // Verify expected tables exist
   const tables = db
     .exec(
       `SELECT name FROM sqlite_master
@@ -156,6 +161,14 @@ export async function importSQLite(file: File): Promise<void> {
   }
 
   db.close();
+  return { children, ratings };
+}
+
+/**
+ * Parse a .db file and merge it into the current store.
+ */
+export async function importSQLite(file: File): Promise<void> {
+  const { children, ratings } = await parseSQLite(file);
 
   const current = getStore();
   const childMap = new Map(current.children.map((c) => [c.id, c]));

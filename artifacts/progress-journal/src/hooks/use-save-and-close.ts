@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { exportCollectionJSON } from "../lib/export";
+import { exportSQLite } from "../lib/sqlite";
 import { useStore } from "../lib/store";
 import { useToast } from "./use-toast";
 
@@ -16,7 +16,7 @@ export function useSaveAndClose() {
 
   async function handleSaveAndClose() {
     setDialogOpen(false);
-    const saved = await exportCollectionJSON();
+    const saved = await exportSQLite();
     if (!saved) return;
     resetAll();
     window.close();
@@ -29,7 +29,7 @@ export function useSaveAndClose() {
 
   async function handleSaveOnly() {
     setDialogOpen(false);
-    await exportCollectionJSON();
+    await exportSQLite();
   }
 
   return {

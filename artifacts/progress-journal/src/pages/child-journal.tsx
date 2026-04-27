@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { Link, useParams, useLocation } from "wouter";
 import { JOURNAL, JournalArea, JournalStep, JournalStrand, Status } from "../data/journal";
 import { useStore, getRatingKey } from "../lib/store";
-import { importJournalJSON } from "../lib/export";
+import { importSQLite } from "../lib/sqlite";
 import { useSaveAndClose } from "../hooks/use-save-and-close";
 import { SaveAndCloseDialog } from "../components/save-and-close-dialog";
 import {
@@ -720,13 +720,13 @@ export default function ChildJournalPage() {
             <input
               ref={importRef}
               type="file"
-              accept="application/json,.json"
+              accept=".db,application/octet-stream"
               className="hidden"
               onChange={async (e) => {
                 const f = e.target.files?.[0];
                 if (!f) return;
                 try {
-                  await importJournalJSON(f);
+                  await importSQLite(f);
                   toast({ title: "Journal imported" });
                 } catch (err: any) {
                   toast({

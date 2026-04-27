@@ -24,36 +24,13 @@ import { SaveAndCloseDialog } from "../components/save-and-close-dialog";
 import { exportSQLite, importSQLite } from "../lib/sqlite";
 
 export default function SettingsPage() {
-  const { state, resetAll, importData } = useStore();
+  const { state, resetAll } = useStore();
   const { toast } = useToast();
   const { openDialog, hasData, dialogProps } = useSaveAndClose();
   const [, navigate] = useLocation();
-  const fileRef = useRef<HTMLInputElement>(null);
   const sqliteFileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [demoLoaded, setDemoLoaded] = useState(isDemoLoaded);
-
-  async function importAll(file: File) {
-    setBusy(true);
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      if (!data || !Array.isArray(data.children) || typeof data.ratings !== "object") {
-        throw new Error("File does not look like a journal backup.");
-      }
-      importData({ children: data.children, ratings: data.ratings });
-      toast({ title: "Backup restored", description: "Your journals have been imported." });
-    } catch (e: any) {
-      toast({
-        title: "Import failed",
-        description: e?.message ?? "Could not read backup file.",
-        variant: "destructive",
-      });
-    } finally {
-      setBusy(false);
-      if (fileRef.current) fileRef.current.value = "";
-    }
-  }
 
   async function handleExportSQLite() {
     setBusy(true);
@@ -128,6 +105,9 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Files open in DB Browser for SQLite, Python, Excel, and more.
+          </p>
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
@@ -139,61 +119,34 @@ export default function SettingsPage() {
               <LogOut className="h-4 w-4" /> Save and close
             </Button>
             <SaveAndCloseDialog {...dialogProps} />
+            <Button
+              variant="outline"
+              className="gap-2"
+              disabled={busy || !hasData}
+              onClick={handleExportSQLite}
+              data-testid="button-export-sqlite"
+            >
+              <Database className="h-4 w-4" /> Export as SQLite (.db)
+            </Button>
             <input
-              ref={fileRef}
+              ref={sqliteFileRef}
               type="file"
-              accept="application/json,.json"
+              accept=".db,application/octet-stream"
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) importAll(f);
+                if (f) handleImportSQLite(f);
               }}
             />
             <Button
               variant="outline"
               className="gap-2"
               disabled={busy}
-              onClick={() => fileRef.current?.click()}
-              data-testid="button-import-all"
+              onClick={() => sqliteFileRef.current?.click()}
+              data-testid="button-import-sqlite"
             >
-              <Upload className="h-4 w-4" /> Restore from JSON backup
+              <Upload className="h-4 w-4" /> Restore from backup (.db)
             </Button>
-          </div>
-
-          <div className="border-t pt-4">
-            <p className="text-xs text-muted-foreground mb-2">
-              SQLite format — opens in DB Browser for SQLite, Python, Excel, and more.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                className="gap-2"
-                disabled={busy || !hasData}
-                onClick={handleExportSQLite}
-                data-testid="button-export-sqlite"
-              >
-                <Database className="h-4 w-4" /> Export as SQLite (.db)
-              </Button>
-              <input
-                ref={sqliteFileRef}
-                type="file"
-                accept=".db,application/octet-stream"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleImportSQLite(f);
-                }}
-              />
-              <Button
-                variant="outline"
-                className="gap-2"
-                disabled={busy}
-                onClick={() => sqliteFileRef.current?.click()}
-                data-testid="button-import-sqlite"
-              >
-                <Upload className="h-4 w-4" /> Import from SQLite (.db)
-              </Button>
-            </div>
           </div>
         </CardContent>
       </Card>

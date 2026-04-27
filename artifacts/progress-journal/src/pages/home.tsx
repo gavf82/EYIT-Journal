@@ -1,6 +1,7 @@
 import { useMemo, useState, useRef } from "react";
 import { Link } from "wouter";
-import { useStore, type StoreState } from "../lib/store";
+import { useStore } from "../lib/store";
+import { parseSQLite } from "../lib/sqlite";
 import { countAll } from "../lib/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -153,36 +154,16 @@ function ImportButton() {
   const ref = useRef<HTMLInputElement>(null);
   const { state, importData } = useStore();
   const { toast } = useToast();
-  const [pending, setPending] = useState<{ data: StoreState; childCount: number; ratingCount: number } | null>(null);
+  const [pending, setPending] = useState<{
+    children: ReturnType<typeof useStore>["state"]["children"];
+    ratings: ReturnType<typeof useStore>["state"]["ratings"];
+  } | null>(null);
 
   async function onFile(f: File) {
     if (ref.current) ref.current.value = "";
     try {
-      const text = await f.text();
-      const data = JSON.parse(text);
-
-      // Full collection backup: { children: [...], ratings: {...} }
-      if (Array.isArray(data.children) && typeof data.ratings === "object") {
-        setPending({
-          data,
-          childCount: data.children.length,
-          ratingCount: Object.keys(data.ratings).length,
-        });
-        return;
-      }
-
-      // Single-child journal: { child: {...}, ratings: {...} }
-      if (data.child && data.child.id && typeof data.ratings === "object") {
-        const kept = state.children.filter((c) => c.id !== data.child.id);
-        importData({
-          children: [...kept, data.child],
-          ratings: { ...state.ratings, ...data.ratings },
-        });
-        toast({ title: "Journal imported", description: `${data.child.name} added.` });
-        return;
-      }
-
-      throw new Error("Unrecognised file format.");
+      const data = await parseSQLite(f);
+      setPending(data);
     } catch (err: any) {
       toast({ title: "Import failed", description: err?.message ?? "Unable to read file.", variant: "destructive" });
     }
@@ -190,17 +171,15 @@ function ImportButton() {
 
   function confirmCollection() {
     if (!pending) return;
-    // Merge: keep existing children not in backup; update/add those in backup.
-    const incoming = pending.data;
-    const incomingIds = new Set(incoming.children.map((c) => c.id));
+    const incomingIds = new Set(pending.children.map((c) => c.id));
     const kept = state.children.filter((c) => !incomingIds.has(c.id));
     importData({
-      children: [...kept, ...incoming.children],
-      ratings: { ...state.ratings, ...incoming.ratings },
+      children: [...kept, ...pending.children],
+      ratings: { ...state.ratings, ...pending.ratings },
     });
     toast({
-      title: "Collection imported",
-      description: `${incoming.children.length} child${incoming.children.length === 1 ? "" : "ren"} merged into your collection.`,
+      title: "Backup restored",
+      description: `${pending.children.length} child${pending.children.length === 1 ? "" : "ren"} merged into your collection.`,
     });
     setPending(null);
   }
@@ -210,7 +189,7 @@ function ImportButton() {
       <input
         ref={ref}
         type="file"
-        accept="application/json,.json"
+        accept=".db,application/octet-stream"
         className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }}
         data-testid="input-import-file"
@@ -227,12 +206,12 @@ function ImportButton() {
       <AlertDialog open={!!pending} onOpenChange={(o) => { if (!o) setPending(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Import collection backup?</AlertDialogTitle>
+            <AlertDialogTitle>Import backup?</AlertDialogTitle>
             <AlertDialogDescription>
               This file contains{" "}
-              <strong>{pending?.childCount ?? 0} child{(pending?.childCount ?? 0) === 1 ? "" : "ren"}</strong>{" "}
+              <strong>{pending?.children.length ?? 0} child{(pending?.children.length ?? 0) === 1 ? "" : "ren"}</strong>{" "}
               and{" "}
-              <strong>{pending?.ratingCount ?? 0} rating{(pending?.ratingCount ?? 0) === 1 ? "" : "s"}</strong>.
+              <strong>{Object.keys(pending?.ratings ?? {}).length} rating{Object.keys(pending?.ratings ?? {}).length === 1 ? "" : "s"}</strong>.
               They will be merged with your current journals — existing children with
               matching IDs will be updated, and new ones will be added. No data will be
               deleted.
