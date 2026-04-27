@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "wouter";
-import { JOURNAL, type JournalArea, type JournalStrand, type Status } from "../data/journal";
+import { JOURNAL, AREA_COLORS, type JournalArea, type JournalStrand, type Status } from "../data/journal";
 import { useStore, getRatingKey, type Rating } from "../lib/store";
 import {
   buildStepVisibility,
@@ -145,7 +145,10 @@ function StrandTable({
       className="journal-strand"
       data-testid={`strand-table-${strand.name}`}
     >
-      <div className="journal-strand-header">
+      <div
+        className="journal-strand-header"
+        style={{ background: AREA_COLORS[area.area] ?? "#f6c344", color: "#111" }}
+      >
         <span className="font-semibold">{area.area}: </span>
         <span className="uppercase tracking-wide">{strand.name}</span>
       </div>
@@ -768,7 +771,7 @@ export default function SummaryPage() {
             {JOURNAL.map((area, aIdx) => {
               const ac = countArea(childId, aIdx, area, state.ratings, visibility);
               return (
-                <Card key={aIdx}>
+                <Card key={aIdx} style={{ borderLeft: `4px solid ${AREA_COLORS[area.area] ?? "transparent"}` }}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <h3 className="font-medium text-sm leading-snug">{area.area}</h3>

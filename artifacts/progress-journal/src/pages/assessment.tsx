@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "wouter";
-import { JOURNAL, type JournalArea, type JournalStrand, type Status } from "../data/journal";
+import { JOURNAL, AREA_COLORS, type JournalArea, type JournalStrand, type Status } from "../data/journal";
 import { useStore, getRatingKey, type Rating } from "../lib/store";
 import { buildStepVisibility, type StepVisibility } from "../lib/progress";
 import { Button } from "@/components/ui/button";
@@ -137,7 +137,10 @@ function AssessmentTable({
 }) {
   return (
     <section className="journal-strand">
-      <div className={cn("journal-strand-header flex flex-wrap items-baseline gap-x-1", block.isPrev && "opacity-70")}>
+      <div
+        className={cn("journal-strand-header flex flex-wrap items-baseline gap-x-1", block.isPrev && "opacity-70")}
+        style={{ background: AREA_COLORS[area.area] ?? "#f6c344", color: "#111" }}
+      >
         {block.isPrev && (
           <span className="text-[10px] font-normal mr-1 opacity-80 tracking-normal normal-case">[previous step]</span>
         )}

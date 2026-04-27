@@ -8,6 +8,18 @@ export interface JournalStep { number: number; ageRange: string; title: string; 
 export interface JournalStrand { name: string; steps: JournalStep[]; }
 export interface JournalArea { area: string; strands: JournalStrand[]; }
 
+// Colours taken directly from the EYIT Development Journal (September 2024)
+// .docx shading fills — one per area, in JOURNAL order.
+export const AREA_COLORS: Record<string, string> = {
+  "Personal, Social and Emotional Development": "#FBD4B4",
+  "Communication and Language":                 "#B6DDE8",
+  "Physical Development":                        "#CCC0D9",
+  "Literacy":                                    "#D6E3BC",
+  "Mathematics":                                 "#E5B8B7",
+  "Understanding the World":                     "#B8CCE4",
+  "Expressive Arts and Design":                  "#C4BC96",
+};
+
 export const JOURNAL: JournalArea[] = [
   {
     "area": "Personal, Social and Emotional Development",

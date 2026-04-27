@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import { Link, useParams, useLocation } from "wouter";
-import { JOURNAL, JournalArea, JournalStep, JournalStrand, Status } from "../data/journal";
+import { JOURNAL, AREA_COLORS, JournalArea, JournalStep, JournalStrand, Status } from "../data/journal";
 import { useStore, getRatingKey } from "../lib/store";
 import { importSQLite } from "../lib/sqlite";
 import { useSaveAndClose } from "../hooks/use-save-and-close";
@@ -799,10 +799,11 @@ export default function ChildJournalPage() {
               key={idx}
               type="button"
               onClick={() => setAreaIdx(idx)}
+              style={active ? { backgroundColor: AREA_COLORS[a.area] ?? undefined, borderColor: AREA_COLORS[a.area] ?? undefined, color: "#111" } : undefined}
               className={cn(
                 "rounded-md px-3 py-1.5 text-xs md:text-sm font-medium transition-colors border",
                 active
-                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                  ? "shadow-sm"
                   : "bg-card text-muted-foreground border-border hover:text-foreground hover:border-primary/40",
               )}
               data-testid={`tab-area-${idx}`}
@@ -811,7 +812,7 @@ export default function ChildJournalPage() {
               <span
                 className={cn(
                   "ml-2 inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] tabular-nums",
-                  active ? "bg-primary-foreground/20" : "bg-muted",
+                  active ? "bg-black/10" : "bg-muted",
                 )}
               >
                 {ac.percentRated}%
