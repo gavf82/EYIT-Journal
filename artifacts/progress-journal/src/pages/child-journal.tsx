@@ -644,10 +644,10 @@ export default function ChildJournalPage() {
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Data</DropdownMenuLabel>
                 <DropdownMenuItem onSelect={() => exportJournalJSON(childId)}>
-                  <Download className="h-4 w-4 mr-2" /> Export as JSON
+                  <Download className="h-4 w-4 mr-2" /> Save as JSON
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => exportJournalCSV(childId)}>
-                  <Download className="h-4 w-4 mr-2" /> Export as CSV
+                  <Download className="h-4 w-4 mr-2" /> Save as CSV
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => importRef.current?.click()}>
                   <Upload className="h-4 w-4 mr-2" /> Import JSON

@@ -97,7 +97,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Button onClick={exportAll} className="gap-2" data-testid="button-export-all">
-            <Download className="h-4 w-4" /> Export all data
+            <Download className="h-4 w-4" /> Save all data
           </Button>
           <input
             ref={fileRef}
@@ -142,7 +142,7 @@ export default function SettingsPage() {
                 <AlertDialogDescription>
                   This will permanently remove all {state.children.length} child
                   {state.children.length === 1 ? "" : "ren"} and {totalRatings} rating
-                  {totalRatings === 1 ? "" : "s"} from this browser. Consider exporting a
+                  {totalRatings === 1 ? "" : "s"} from this browser. Consider saving a
                   backup first.
                 </AlertDialogDescription>
               </AlertDialogHeader>

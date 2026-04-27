@@ -263,7 +263,7 @@ export default function SummaryPage() {
             </label>
           )}
           <Button variant="outline" className="gap-2" onClick={() => exportJournalJSON(childId)}>
-            <Download className="h-4 w-4" /> Export JSON
+            <Download className="h-4 w-4" /> Save JSON
           </Button>
           <Button className="gap-2" onClick={() => window.print()} data-testid="button-print">
             <Printer className="h-4 w-4" /> Print summary

@@ -254,10 +254,10 @@ function ExportCollectionButton() {
       className="gap-2"
       onClick={exportCollectionJSON}
       disabled={state.children.length === 0}
-      title={state.children.length === 0 ? "No journals to export" : `Export ${state.children.length} child${state.children.length === 1 ? "" : "ren"} and ${total} ratings`}
+      title={state.children.length === 0 ? "No journals to save" : `Save ${state.children.length} child${state.children.length === 1 ? "" : "ren"} and ${total} ratings`}
       data-testid="button-export-collection"
     >
-      <Download className="h-4 w-4" /> Export collection
+      <Download className="h-4 w-4" /> Save collection
     </Button>
   );
 }
