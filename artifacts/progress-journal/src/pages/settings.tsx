@@ -15,12 +15,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "../hooks/use-toast";
-import { Trash2, Download, Upload, FlaskConical, X, LogOut } from "lucide-react";
+import { Trash2, Download, Upload, FlaskConical, X, LogOut, Database } from "lucide-react";
 import { useDirty } from "../hooks/use-dirty";
 import { useLocation } from "wouter";
 import { seedDemoData, removeDemoData, isDemoLoaded, DEMO_CHILD_ID } from "../lib/seed";
 import { useSaveAndClose } from "../hooks/use-save-and-close";
 import { SaveAndCloseDialog } from "../components/save-and-close-dialog";
+import { exportSQLite, importSQLite } from "../lib/sqlite";
 
 export default function SettingsPage() {
   const { state, resetAll, importData } = useStore();
@@ -28,6 +29,7 @@ export default function SettingsPage() {
   const { openDialog, hasData, dialogProps } = useSaveAndClose();
   const [, navigate] = useLocation();
   const fileRef = useRef<HTMLInputElement>(null);
+  const sqliteFileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [demoLoaded, setDemoLoaded] = useState(isDemoLoaded);
 
@@ -50,6 +52,38 @@ export default function SettingsPage() {
     } finally {
       setBusy(false);
       if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function handleExportSQLite() {
+    setBusy(true);
+    try {
+      await exportSQLite();
+    } catch (e: any) {
+      toast({
+        title: "Export failed",
+        description: e?.message ?? "Could not create SQLite file.",
+        variant: "destructive",
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleImportSQLite(file: File) {
+    setBusy(true);
+    try {
+      await importSQLite(file);
+      toast({ title: "SQLite backup restored", description: "Your journals have been imported." });
+    } catch (e: any) {
+      toast({
+        title: "Import failed",
+        description: e?.message ?? "Could not read SQLite file.",
+        variant: "destructive",
+      });
+    } finally {
+      setBusy(false);
+      if (sqliteFileRef.current) sqliteFileRef.current.value = "";
     }
   }
 
@@ -93,36 +127,74 @@ export default function SettingsPage() {
             every session — restore it next time from the same file.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            className="gap-2"
-            disabled={!hasData}
-            onClick={openDialog}
-            data-testid="button-save-and-close"
-          >
-            <LogOut className="h-4 w-4" /> Save and close
-          </Button>
-          <SaveAndCloseDialog {...dialogProps} />
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/json,.json"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) importAll(f);
-            }}
-          />
-          <Button
-            variant="outline"
-            className="gap-2"
-            disabled={busy}
-            onClick={() => fileRef.current?.click()}
-            data-testid="button-import-all"
-          >
-            <Upload className="h-4 w-4" /> Restore from backup
-          </Button>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              className="gap-2"
+              disabled={!hasData}
+              onClick={openDialog}
+              data-testid="button-save-and-close"
+            >
+              <LogOut className="h-4 w-4" /> Save and close
+            </Button>
+            <SaveAndCloseDialog {...dialogProps} />
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) importAll(f);
+              }}
+            />
+            <Button
+              variant="outline"
+              className="gap-2"
+              disabled={busy}
+              onClick={() => fileRef.current?.click()}
+              data-testid="button-import-all"
+            >
+              <Upload className="h-4 w-4" /> Restore from JSON backup
+            </Button>
+          </div>
+
+          <div className="border-t pt-4">
+            <p className="text-xs text-muted-foreground mb-2">
+              SQLite format — opens in DB Browser for SQLite, Python, Excel, and more.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                className="gap-2"
+                disabled={busy || !hasData}
+                onClick={handleExportSQLite}
+                data-testid="button-export-sqlite"
+              >
+                <Database className="h-4 w-4" /> Export as SQLite (.db)
+              </Button>
+              <input
+                ref={sqliteFileRef}
+                type="file"
+                accept=".db,application/octet-stream"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleImportSQLite(f);
+                }}
+              />
+              <Button
+                variant="outline"
+                className="gap-2"
+                disabled={busy}
+                onClick={() => sqliteFileRef.current?.click()}
+                data-testid="button-import-sqlite"
+              >
+                <Upload className="h-4 w-4" /> Import from SQLite (.db)
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

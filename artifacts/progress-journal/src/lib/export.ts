@@ -3,7 +3,7 @@ import { JOURNAL } from "../data/journal";
 
 // ── Shared helpers ──────────────────────────────────────────────────────────
 
-function todaySlug() {
+export function todaySlug() {
   return new Date().toISOString().slice(0, 10);
 }
 
@@ -19,7 +19,7 @@ function fallbackDownload(blob: Blob, filename: string) {
 // Opens the native OS "Save As" dialog when the browser supports it
 // (Chrome / Edge 86+). Falls back to an automatic download on Firefox / Safari.
 // Returns false if the user cancelled the dialog, true on success.
-async function saveBlob(
+export async function saveBlob(
   blob: Blob,
   filename: string,
   types: { description: string; accept: Record<string, string[]> }[],
