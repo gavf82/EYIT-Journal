@@ -1,12 +1,11 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "wouter";
-import { JOURNAL } from "../data/journal";
-import { useStore, getRatingKey } from "../lib/store";
+import { JOURNAL, type JournalArea, type JournalStrand, type Status } from "../data/journal";
+import { useStore, getRatingKey, type Rating } from "../lib/store";
 import {
   buildStepVisibility,
   countAll,
   countArea,
-  countStrand,
   STATUS_LABELS,
   type StepVisibility,
 } from "../lib/progress";
@@ -44,14 +43,6 @@ function ProgressBar({
   );
 }
 
-function statusBadgeClass(status: "emerging" | "developing" | "secure") {
-  if (status === "emerging")
-    return "border-[hsl(var(--status-emerging)/0.5)] bg-[hsl(var(--status-emerging)/0.15)] text-[hsl(35_70%_30%)]";
-  if (status === "developing")
-    return "border-[hsl(var(--status-developing)/0.5)] bg-[hsl(var(--status-developing)/0.15)] text-[hsl(175_45%_22%)]";
-  return "border-[hsl(var(--status-secure)/0.5)] bg-[hsl(var(--status-secure)/0.18)] text-[hsl(135_45%_22%)]";
-}
-
 function formatDate(d: string) {
   if (!d) return "";
   try {
@@ -63,6 +54,113 @@ function formatDate(d: string) {
   } catch {
     return d;
   }
+}
+
+interface RatedItemRow {
+  key: string;
+  text: string;
+  status: Exclude<Status, null>;
+}
+
+interface StepBlock {
+  stepNumber: number;
+  ageRange: string;
+  items: RatedItemRow[];
+}
+
+function collectStrandBlocks(
+  area: JournalArea,
+  aIdx: number,
+  strand: JournalStrand,
+  sIdx: number,
+  childId: string,
+  ratings: Record<string, Rating>,
+  visibility: StepVisibility,
+): StepBlock[] {
+  const visibleSet = visibility?.get(`${aIdx}::${sIdx}`) ?? null;
+  const blocks: StepBlock[] = [];
+  strand.steps.forEach((step, stIdx) => {
+    if (!step.items || step.note) return;
+    const inAgeRange = visibleSet ? visibleSet.has(stIdx) : true;
+    if (!inAgeRange) return;
+    const items: RatedItemRow[] = [];
+    step.items.forEach((item) => {
+      const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
+      if (r && r.status) {
+        items.push({ key: item.key, text: item.text, status: r.status });
+      }
+    });
+    if (items.length === 0) return;
+    items.sort((a, b) => a.key.localeCompare(b.key));
+    blocks.push({ stepNumber: step.number, ageRange: step.ageRange, items });
+  });
+  // Highest step first so latest age sits at the top of each strand.
+  blocks.sort((a, b) => b.stepNumber - a.stepNumber);
+  return blocks;
+}
+
+function StrandTable({
+  area,
+  strand,
+  blocks,
+}: {
+  area: JournalArea;
+  strand: JournalStrand;
+  blocks: StepBlock[];
+}) {
+  return (
+    <table className="journal-table" data-testid={`strand-table-${strand.name}`}>
+      <colgroup>
+        <col className="journal-col-text" />
+        <col className="journal-col-status" />
+        <col className="journal-col-status" />
+        <col className="journal-col-status" />
+      </colgroup>
+      <thead>
+        <tr className="journal-strand-row">
+          <th colSpan={4} className="text-left">
+            <span className="font-semibold">{area.area}: </span>
+            <span className="uppercase tracking-wide">{strand.name}</span>
+          </th>
+        </tr>
+      </thead>
+      {blocks.map((block) => (
+        <tbody key={block.stepNumber} className="journal-step-block">
+          <tr className="journal-step-row">
+            <th scope="col" className="text-left">
+              Step {block.stepNumber} ({block.ageRange})
+            </th>
+            <th scope="col" className="text-center">
+              Emerging
+            </th>
+            <th scope="col" className="text-center">
+              Developing
+            </th>
+            <th scope="col" className="text-center">
+              Secure
+            </th>
+          </tr>
+          {block.items.map((it) => (
+            <tr key={it.key}>
+              <td>
+                <span className="font-semibold mr-1">{it.key})</span>
+                {it.text}
+              </td>
+              <td className="text-center">
+                {it.status === "emerging" ? <span aria-label="Emerging">✓</span> : null}
+              </td>
+              <td className="text-center">
+                {it.status === "developing" ? <span aria-label="Developing">✓</span> : null}
+              </td>
+              <td className="text-center">
+                {it.status === "secure" ? <span aria-label="Secure">✓</span> : null}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      ))}
+    </table>
+  );
 }
 
 export default function SummaryPage() {
@@ -82,11 +180,34 @@ export default function SummaryPage() {
 
   const overall = useMemo(
     () =>
-      childId
-        ? countAll(childId, state.ratings, visibility)
-        : countAll("", {}),
+      childId ? countAll(childId, state.ratings, visibility) : countAll("", {}),
     [childId, state.ratings, visibility],
   );
+
+  // Build the strand tables once per render — only strands with at least one
+  // rated item appear, so the printout matches the PDF format with only the
+  // user's selections.
+  const strandTables = useMemo(() => {
+    if (!childId) return [];
+    const out: { area: JournalArea; strand: JournalStrand; blocks: StepBlock[] }[] = [];
+    JOURNAL.forEach((area, aIdx) => {
+      area.strands.forEach((strand, sIdx) => {
+        const blocks = collectStrandBlocks(
+          area,
+          aIdx,
+          strand,
+          sIdx,
+          childId,
+          state.ratings,
+          visibility,
+        );
+        if (blocks.length > 0) {
+          out.push({ area, strand, blocks });
+        }
+      });
+    });
+    return out;
+  }, [childId, state.ratings, visibility]);
 
   if (!child) {
     return (
@@ -101,6 +222,7 @@ export default function SummaryPage() {
 
   return (
     <div className="container max-w-4xl px-4 sm:px-6 lg:px-8 py-8 print:py-0 print:px-0 print:max-w-none">
+      {/* Toolbar (screen only) */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6 no-print">
         <Link
           href={`/child/${childId}`}
@@ -131,7 +253,51 @@ export default function SummaryPage() {
         </div>
       </div>
 
-      <article className="space-y-8 print:space-y-6">
+      {/* Print-only cover page (matches PDF cover format) */}
+      <section className="hidden print:flex print-cover">
+        <div className="print-corner">EYIT September 2024</div>
+        <div className="print-cover-inner">
+          <div className="text-center pt-24">
+            <h1 className="text-4xl font-semibold tracking-tight">Early Years Inclusion Team</h1>
+            <h2 className="text-3xl font-semibold mt-3">Development Journal</h2>
+          </div>
+          <p className="text-right mt-8 text-sm">September 2024</p>
+          <dl className="mt-20 space-y-10 text-base">
+            <div className="flex items-end gap-6 border-b border-black pb-2">
+              <dt className="font-medium w-48">Child's Name</dt>
+              <dd className="flex-1">{child.name}</dd>
+            </div>
+            <div className="flex items-end gap-6 border-b border-black pb-2">
+              <dt className="font-medium w-48">Date of Birth</dt>
+              <dd className="flex-1">{formatDate(child.dob)}</dd>
+            </div>
+            <div className="flex items-end gap-6 border-b border-black pb-2">
+              <dt className="font-medium w-48">Journal Start-Date</dt>
+              <dd className="flex-1">{formatDate(child.startDate)}</dd>
+            </div>
+            <div className="flex items-end gap-6 border-b border-black pb-2">
+              <dt className="font-medium w-48">Summary generated</dt>
+              <dd className="flex-1">{formatDate(new Date().toISOString())}</dd>
+            </div>
+            <div className="flex items-end gap-6 border-b border-black pb-2">
+              <dt className="font-medium w-48">Statements rated</dt>
+              <dd className="flex-1 tabular-nums">
+                {overall.rated} of {overall.total} ({overall.percentRated}%)
+                {ageFilterOn && childMonths !== null
+                  ? ` — current step only (${childAgeLabel})`
+                  : ""}
+              </dd>
+            </div>
+          </dl>
+        </div>
+        <p className="print-footnote">
+          Early Years Inclusion Team adapted from Special Educational Needs &amp; Inclusion Team,
+          Learning Inclusion Service, Leeds City Council.
+        </p>
+      </section>
+
+      {/* Screen-only dashboard */}
+      <article className="space-y-8 no-print">
         <header className="border-b border-border pb-5">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">
             EYIT Development Journal — Summary
@@ -164,7 +330,7 @@ export default function SummaryPage() {
           {ageFilterOn && childMonths !== null && (
             <p className="mt-3 text-xs text-muted-foreground italic">
               Age filter on — showing the current step only ({childAgeLabel}). Progress totals
-              reflect the current step.
+              and printed pages reflect the current step.
             </p>
           )}
         </header>
@@ -173,27 +339,25 @@ export default function SummaryPage() {
           <h2 className="text-lg font-semibold mb-3">Overall progress</h2>
           <Card>
             <CardContent className="p-5 space-y-4">
-              <div>
-                <ProgressBar counts={overall} height="h-3" />
-                <div className="grid grid-cols-3 gap-3 mt-4 text-sm">
-                  <div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                      {STATUS_LABELS.emerging}
-                    </div>
-                    <div className="font-semibold text-2xl tabular-nums">{overall.emerging}</div>
+              <ProgressBar counts={overall} height="h-3" />
+              <div className="grid grid-cols-3 gap-3 mt-4 text-sm">
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                    {STATUS_LABELS.emerging}
                   </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                      {STATUS_LABELS.developing}
-                    </div>
-                    <div className="font-semibold text-2xl tabular-nums">{overall.developing}</div>
+                  <div className="font-semibold text-2xl tabular-nums">{overall.emerging}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                    {STATUS_LABELS.developing}
                   </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                      {STATUS_LABELS.secure}
-                    </div>
-                    <div className="font-semibold text-2xl tabular-nums">{overall.secure}</div>
+                  <div className="font-semibold text-2xl tabular-nums">{overall.developing}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                    {STATUS_LABELS.secure}
                   </div>
+                  <div className="font-semibold text-2xl tabular-nums">{overall.secure}</div>
                 </div>
               </div>
             </CardContent>
@@ -206,7 +370,7 @@ export default function SummaryPage() {
             {JOURNAL.map((area, aIdx) => {
               const ac = countArea(childId, aIdx, area, state.ratings, visibility);
               return (
-                <Card key={aIdx} className="break-inside-avoid">
+                <Card key={aIdx}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <h3 className="font-medium text-sm leading-snug">{area.area}</h3>
@@ -225,131 +389,40 @@ export default function SummaryPage() {
             })}
           </div>
         </section>
-
-        <section>
-          <h2 className="text-lg font-semibold mb-3">Detailed breakdown</h2>
-          <div className="space-y-6">
-            {JOURNAL.map((area, aIdx) => {
-              const ac = countArea(childId, aIdx, area, state.ratings, visibility);
-              return (
-                <div key={aIdx} className="break-inside-avoid">
-                  <div className="flex flex-wrap items-end justify-between gap-2 mb-2 pb-1.5 border-b border-border">
-                    <h3 className="font-semibold">{area.area}</h3>
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {ac.rated} / {ac.total} rated
-                    </span>
-                  </div>
-                  <div className="space-y-3">
-                    {area.strands.map((strand, sIdx) => {
-                      const sc = countStrand(
-                        childId,
-                        aIdx,
-                        sIdx,
-                        strand,
-                        state.ratings,
-                        visibility,
-                      );
-                      const visibleSet =
-                        visibility?.get(`${aIdx}::${sIdx}`) ?? null;
-                      const ratedItems: {
-                        step: number;
-                        ageRange: string;
-                        itemKey: string;
-                        text: string;
-                        status: "emerging" | "developing" | "secure";
-                      }[] = [];
-                      let hiddenRatedSteps = 0;
-                      const seenHiddenSteps = new Set<number>();
-                      strand.steps.forEach((step, stIdx) => {
-                        if (!step.items || step.note) return;
-                        const inAgeRange = visibleSet ? visibleSet.has(stIdx) : true;
-                        step.items.forEach((item) => {
-                          const key = getRatingKey(childId, aIdx, sIdx, stIdx, item.key);
-                          const r = state.ratings[key];
-                          if (r && r.status) {
-                            if (inAgeRange) {
-                              ratedItems.push({
-                                step: step.number,
-                                ageRange: step.ageRange,
-                                itemKey: item.key,
-                                text: item.text,
-                                status: r.status,
-                              });
-                            } else if (!seenHiddenSteps.has(stIdx)) {
-                              seenHiddenSteps.add(stIdx);
-                              hiddenRatedSteps += 1;
-                            }
-                          }
-                        });
-                      });
-                      // Highest step first so the latest age sits at the top.
-                      ratedItems.sort(
-                        (a, b) => b.step - a.step || a.itemKey.localeCompare(b.itemKey),
-                      );
-
-                      return (
-                        <div key={sIdx} className="break-inside-avoid">
-                          <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
-                            <h4 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-                              {strand.name}
-                            </h4>
-                            <span className="text-[11px] text-muted-foreground tabular-nums">
-                              E {sc.emerging} · D {sc.developing} · S {sc.secure}
-                            </span>
-                          </div>
-                          {ratedItems.length === 0 ? (
-                            <p className="text-xs text-muted-foreground italic">
-                              {ageFilterOn && hiddenRatedSteps > 0
-                                ? "No ratings within current step."
-                                : "No ratings yet."}
-                            </p>
-                          ) : (
-                            <ul className="space-y-1.5">
-                              {ratedItems.map((it, idx) => (
-                                <li
-                                  key={idx}
-                                  className="flex items-start gap-2 text-sm leading-snug"
-                                >
-                                  <span
-                                    className={cn(
-                                      "shrink-0 mt-0.5 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
-                                      statusBadgeClass(it.status),
-                                    )}
-                                  >
-                                    {it.status[0]}
-                                  </span>
-                                  <span>
-                                    <span className="text-muted-foreground text-xs mr-1">
-                                      Step {it.step} ({it.ageRange}) · {it.itemKey}.
-                                    </span>
-                                    {it.text}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                          {ageFilterOn && hiddenRatedSteps > 0 && (
-                            <p className="mt-1.5 text-[11px] text-muted-foreground italic" data-testid={`hidden-note-${aIdx}-${sIdx}`}>
-                              {hiddenRatedSteps} other step
-                              {hiddenRatedSteps === 1 ? "" : "s"} with ratings hidden by age
-                              filter.
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        <footer className="pt-4 border-t border-border text-xs text-muted-foreground">
-          Adapted from EYIT Development Journal, September 2024 — Early Years Inclusion Team,
-          Leeds City Council.
-        </footer>
       </article>
+
+      {/* Journal pages — PDF-style tables, shown on screen and printed */}
+      <section className="mt-8 print:mt-0">
+        <h2 className="text-lg font-semibold mb-3 no-print">Journal pages (print preview)</h2>
+        {strandTables.length === 0 ? (
+          <p className="text-sm text-muted-foreground italic no-print">
+            No statements have been rated yet — go back to the journal and mark some items to see
+            them here.
+          </p>
+        ) : (
+          <div className="print-pages space-y-6 print:space-y-0">
+            {strandTables.map(({ area, strand, blocks }, idx) => (
+              <div
+                key={`${area.area}::${strand.name}`}
+                className="journal-page"
+                data-testid={`journal-page-${idx}`}
+              >
+                <div className="hidden print:block print-corner">EYIT September 2024</div>
+                <StrandTable area={area} strand={strand} blocks={blocks} />
+                <p className="hidden print:block print-footnote">
+                  Early Years Inclusion Team adapted from Special Educational Needs &amp;
+                  Inclusion Team, Learning Inclusion Service, Leeds City Council.
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <footer className="pt-4 mt-8 border-t border-border text-xs text-muted-foreground no-print">
+        Adapted from EYIT Development Journal, September 2024 — Early Years Inclusion Team,
+        Leeds City Council.
+      </footer>
     </div>
   );
 }

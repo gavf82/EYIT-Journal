@@ -41,7 +41,7 @@ Each statement can be marked **Emerging**, **Developing**, or **Secure**, or lef
 - **Progress**: `src/lib/progress.ts` rolls up counts at step / strand / area / overall level. Optional `StepVisibility` map (built by `buildStepVisibility` in the same module) constrains counts to a subset of step indices per `${areaIdx}::${strandIdx}` key.
 - **Age filter**: When on, each strand collapses to exactly one "current" step — the higher of (a) the highest step whose `ageRange` covers the child's age in months, or (b) the highest step that already has any rating. Steps within each strand render highest→lowest. All counts (overall / area / strand / step pills) reflect only the visible steps.
 - **Export/import**: per-child JSON & CSV from journal page; full backup JSON from Settings.
-- **Print**: `/child/:id/summary` is print-styled (`.no-print` hides controls).
+- **Print**: `/child/:id/summary` mimics the original PDF layout — a print-only cover page with child name / DOB / journal start date, then one printable page per strand. Each strand renders as a `.journal-table` (`src/index.css`) with the yellow `.journal-strand-row` title strip ("Area: STRAND"), a `.journal-step-row` sub-header per step ("Step N (age) | Emerging | Developing | Secure"), and a row per **rated** item (lettered, with a ✓ in the appropriate column). Unrated items and steps with no ratings are omitted, so the printout shows only the user's selections. Screen view also shows summary stats and a "by area" grid (both `no-print`).
 - **No backend**: no API calls, no auth, no DB.
 - **Source PDF**: `attached_assets/EYIT_Development_Journal_2024_*.pdf` (parser at `/tmp/eyit/parse.mjs`, intermediate JSON at `/tmp/eyit/eyit.json`).
 

@@ -120,13 +120,111 @@
   --radius: 0.5rem;
 }
 
+/* PDF-style journal tables (used on the Summary page). Mirrors the look of
+   the EYIT Development Journal: yellow strand-title strip, paler step header
+   row, and three narrow tick columns for Emerging / Developing / Secure. */
+.journal-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #444;
+  font-size: 13px;
+  background: white;
+  color: #111;
+}
+.journal-table th,
+.journal-table td {
+  border: 1px solid #444;
+  padding: 0.45rem 0.65rem;
+  vertical-align: top;
+  line-height: 1.35;
+}
+.journal-table .journal-strand-row th {
+  background: #f6c344;
+  color: #111;
+  font-size: 14px;
+  padding: 0.5rem 0.7rem;
+}
+.journal-table .journal-step-row th {
+  background: #fde9a7;
+  color: #111;
+  font-weight: 600;
+  font-size: 12.5px;
+}
+.journal-table .journal-col-text { width: auto; }
+.journal-table .journal-col-status { width: 11%; }
+.journal-table tbody.journal-step-block {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.journal-page {
+  break-inside: avoid;
+}
+
 @media print {
-  @page { margin: 1cm; }
-  body { 
+  @page { margin: 1.4cm 1.2cm; size: A4; }
+  html, body {
     background: white !important;
     color: black !important;
   }
   .no-print { display: none !important; }
+
+  /* Force background colors for the table strips even when browsers
+     would normally drop them on print. */
+  .journal-table,
+  .journal-table th,
+  .journal-table td,
+  .journal-strand-row th,
+  .journal-step-row th {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .journal-table { font-size: 10.5pt; }
+  .journal-table .journal-strand-row th { font-size: 11.5pt; }
+  .journal-table .journal-step-row th { font-size: 10pt; }
+
+  /* Cover page — fills one page and sits before the journal pages. */
+  .print-cover {
+    display: flex !important;
+    flex-direction: column;
+    min-height: 95vh;
+    page-break-after: always;
+    break-after: page;
+    position: relative;
+  }
+  .print-cover-inner { flex: 1; }
+
+  /* Each strand table starts on its own page so the printout reads like the
+     original journal — one strand per spread. */
+  .print-pages > .journal-page {
+    page-break-after: always;
+    break-after: page;
+    position: relative;
+    padding-top: 0.6cm;
+    padding-bottom: 1.2cm;
+  }
+  .print-pages > .journal-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .print-corner {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 9pt;
+    color: #444;
+  }
+  .print-footnote {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 8.5pt;
+    color: #444;
+    font-style: italic;
+  }
 }
 
 @layer base {
