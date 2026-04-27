@@ -447,7 +447,7 @@ export default function SummaryPage() {
   const childMonths = child ? ageInMonths(child.dob) : null;
   const childAgeLabel = child ? formatAge(child.dob) : "";
   const [ageFilterOn, setAgeFilterOn] = useState<boolean>(childMonths !== null);
-  const [includeHistory, setIncludeHistory] = useState<boolean>(false);
+  const [includeHistory, setIncludeHistory] = useState<boolean>(true);
   const { openDialog, hasData, dialogProps } = useSaveAndClose();
 
   const [activeSection, setActiveSection] = useState<string>("sec-overview");
