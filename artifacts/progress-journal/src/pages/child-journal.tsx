@@ -70,6 +70,7 @@ import {
   LogOut,
   MoreVertical,
   Printer,
+  ClipboardList,
   Trash2,
   Upload,
   RotateCcw,
@@ -640,6 +641,11 @@ export default function ChildJournalPage() {
             <Button asChild variant="outline" className="gap-2">
               <Link href={`/child/${childId}/summary`} data-testid="link-summary">
                 <Printer className="h-4 w-4" /> Summary
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="gap-2">
+              <Link href={`/child/${childId}/assessment`} data-testid="link-assessment">
+                <ClipboardList className="h-4 w-4" /> Assessment
               </Link>
             </Button>
             <DropdownMenu>

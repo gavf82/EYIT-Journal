@@ -9,6 +9,7 @@ import { Layout } from "@/components/layout";
 import HomePage from "@/pages/home";
 import ChildJournal from "@/pages/child-journal";
 import SummaryPage from "@/pages/summary";
+import AssessmentPage from "@/pages/assessment";
 import SettingsPage from "@/pages/settings";
 
 const queryClient = new QueryClient();
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/" component={HomePage} />
       <Route path="/child/:id" component={ChildJournal} />
       <Route path="/child/:id/summary" component={SummaryPage} />
+      <Route path="/child/:id/assessment" component={AssessmentPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route component={NotFound} />
     </Switch>
