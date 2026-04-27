@@ -32,7 +32,7 @@ export function seedDemoData(): void {
     sIdx: number,
     stIdx: number,
     itemKey: string,
-    status: "emerging" | "developing" | "secure",
+    status: "emerging" | "developing" | "secure" | "not_met",
     date: string,
   ) {
     ratings[getRatingKey(DEMO_CHILD_ID, aIdx, sIdx, stIdx, itemKey)] = {
@@ -166,6 +166,69 @@ export function seedDemoData(): void {
       delete ratings[getRatingKey(DEMO_CHILD_ID, 3, 1, stIdx, item.key)];
     });
   });
+
+  // ── "Not met" overrides — areas where Amelia was assessed but didn't meet ──
+  // These come from formal assessment observations during Sept–Oct 2025.
+
+  // Physical / Gross Motor Skills (aIdx 2, sIdx 0): Step 5 (9-13m) — last items
+  // Amelia was observed but couldn't consistently demonstrate these yet.
+  const grossMotor = JOURNAL[2]?.strands[0];
+  if (grossMotor) {
+    const s4 = grossMotor.steps[4];
+    if (s4?.items && !s4.note) {
+      const items = s4.items;
+      const n = items.length;
+      for (let i = Math.floor(n * 0.80); i < n; i++) {
+        rate(2, 0, 4, items[i].key, "not_met", iso(2025, 9, 15));
+      }
+    }
+  }
+
+  // Physical / Fine Motor Skills (aIdx 2, sIdx 1): Step 5 (9-13m) — last item
+  const fineMotor = JOURNAL[2]?.strands[1];
+  if (fineMotor) {
+    const s4 = fineMotor.steps[4];
+    if (s4?.items && !s4.note) {
+      const items = s4.items;
+      const n = items.length;
+      if (n >= 2) rate(2, 1, 4, items[n - 1].key, "not_met", iso(2025, 10, 3));
+    }
+  }
+
+  // Communication / Speaking (aIdx 1, sIdx 2): Step 5 (9-13m) — last two items
+  // Assessed during speech observation but criteria not met at that point.
+  const speaking = JOURNAL[1]?.strands[2];
+  if (speaking) {
+    const s4 = speaking.steps[4];
+    if (s4?.items && !s4.note) {
+      const items = s4.items;
+      const n = items.length;
+      if (n >= 1) rate(1, 2, 4, items[n - 1].key, "not_met", iso(2025, 10, 10));
+      if (n >= 2) rate(1, 2, 4, items[n - 2].key, "not_met", iso(2025, 10, 10));
+    }
+  }
+
+  // PSED / Self-Regulation (aIdx 0, sIdx 0): Step 5 (9-13m) — one item
+  const selfReg = JOURNAL[0]?.strands[0];
+  if (selfReg) {
+    const s4 = selfReg.steps[4];
+    if (s4?.items && !s4.note) {
+      const items = s4.items;
+      const n = items.length;
+      if (n >= 1) rate(0, 0, 4, items[n - 1].key, "not_met", iso(2025, 11, 5));
+    }
+  }
+
+  // Understanding the World / The Natural World (aIdx 5, sIdx 1): Step 6 (12-16m) — one item
+  const naturalWorld = JOURNAL[5]?.strands[1];
+  if (naturalWorld) {
+    const s5 = naturalWorld.steps[5];
+    if (s5?.items && !s5.note) {
+      const items = s5.items;
+      const n = items.length;
+      if (n >= 1) rate(5, 1, 5, items[n - 1].key, "not_met", iso(2026, 1, 22));
+    }
+  }
 
   setStore({
     children: [
