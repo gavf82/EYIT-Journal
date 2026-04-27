@@ -648,10 +648,10 @@ export default function ChildJournalPage() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Data</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={() => { exportCollectionJSON(); markClean(); }}>
+                <DropdownMenuItem onSelect={async () => { if (await exportCollectionJSON()) markClean(); }}>
                   <Download className="h-4 w-4 mr-2" /> Save as JSON
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => { exportAllCSV(); markClean(); }}>
+                <DropdownMenuItem onSelect={async () => { if (await exportAllCSV()) markClean(); }}>
                   <Download className="h-4 w-4 mr-2" /> Save as CSV
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => importRef.current?.click()}>

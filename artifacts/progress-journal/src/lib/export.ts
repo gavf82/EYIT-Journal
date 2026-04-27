@@ -1,9 +1,13 @@
 import { StoreState, getStore, setStore } from "./store";
 import { JOURNAL } from "../data/journal";
 
-// ── Shared helper ───────────────────────────────────────────────────────────
+// ── Shared helpers ──────────────────────────────────────────────────────────
 
-function triggerDownload(blob: Blob, filename: string) {
+function todaySlug() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function fallbackDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -12,25 +16,51 @@ function triggerDownload(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-function todaySlug() {
-  return new Date().toISOString().slice(0, 10);
+// Opens the native OS "Save As" dialog when the browser supports it
+// (Chrome / Edge 86+). Falls back to an automatic download on Firefox / Safari.
+// Returns false if the user cancelled the dialog, true on success.
+async function saveBlob(
+  blob: Blob,
+  filename: string,
+  types: { description: string; accept: Record<string, string[]> }[],
+): Promise<boolean> {
+  if ("showSaveFilePicker" in window) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: filename,
+        types,
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return true;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return false;
+      // Unexpected error — fall through to the download fallback
+    }
+  }
+  fallbackDownload(blob, filename);
+  return true;
 }
 
 // ── Full-store JSON export (used by every Save button) ──────────────────────
 
-export function exportCollectionJSON() {
+export async function exportCollectionJSON(): Promise<boolean> {
   const store = getStore();
   const blob = new Blob([JSON.stringify(store, null, 2)], {
     type: "application/json",
   });
-  triggerDownload(blob, `eyit-backup-${todaySlug()}.json`);
+  return saveBlob(blob, `eyit-backup-${todaySlug()}.json`, [
+    { description: "JSON backup", accept: { "application/json": [".json"] } },
+  ]);
 }
 
 // ── Full-store CSV export ───────────────────────────────────────────────────
 // One row per rated item, with Child Name as the first column so data from
 // multiple children can be filtered in a spreadsheet.
 
-export function exportAllCSV() {
+export async function exportAllCSV(): Promise<boolean> {
   const store = getStore();
 
   const rows: string[][] = [
@@ -75,7 +105,9 @@ export function exportAllCSV() {
 
   const csvContent = rows.map((r) => r.join(",")).join("\n");
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  triggerDownload(blob, `eyit-backup-${todaySlug()}.csv`);
+  return saveBlob(blob, `eyit-backup-${todaySlug()}.csv`, [
+    { description: "CSV spreadsheet", accept: { "text/csv": [".csv"] } },
+  ]);
 }
 
 // ── Import (unchanged) ──────────────────────────────────────────────────────

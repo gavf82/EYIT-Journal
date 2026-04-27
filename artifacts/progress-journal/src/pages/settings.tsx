@@ -30,9 +30,8 @@ export default function SettingsPage() {
   const [busy, setBusy] = useState(false);
   const [demoLoaded, setDemoLoaded] = useState(isDemoLoaded);
 
-  function exportAll() {
-    exportCollectionJSON();
-    markClean();
+  async function exportAll() {
+    if (await exportCollectionJSON()) markClean();
   }
 
   async function importAll(file: File) {

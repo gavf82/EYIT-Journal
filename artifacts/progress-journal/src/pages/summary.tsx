@@ -534,7 +534,7 @@ export default function SummaryPage() {
           <Button
             variant="outline"
             className={cn("gap-2", isDirty && "border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive")}
-            onClick={() => { exportCollectionJSON(); markClean(); }}
+            onClick={async () => { if (await exportCollectionJSON()) markClean(); }}
           >
             <Download className="h-4 w-4" /> Save JSON
           </Button>

@@ -254,7 +254,7 @@ function ExportCollectionButton({ isDirty, markClean }: { isDirty: boolean; mark
     <Button
       variant="outline"
       className={cn("gap-2", isDirty && "border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive")}
-      onClick={() => { exportCollectionJSON(); markClean(); }}
+      onClick={async () => { if (await exportCollectionJSON()) markClean(); }}
       disabled={state.children.length === 0}
       title={state.children.length === 0 ? "No journals to save" : `Save ${state.children.length} child${state.children.length === 1 ? "" : "ren"} and ${total} ratings`}
       data-testid="button-export-collection"
