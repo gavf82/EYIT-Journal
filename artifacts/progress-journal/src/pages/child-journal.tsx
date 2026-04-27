@@ -2,7 +2,8 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { Link, useParams, useLocation } from "wouter";
 import { JOURNAL, JournalArea, JournalStep, JournalStrand, Status } from "../data/journal";
 import { useStore, getRatingKey } from "../lib/store";
-import { exportAllCSV, exportCollectionJSON, importJournalJSON } from "../lib/export";
+import { importJournalJSON } from "../lib/export";
+import { useSaveAndClose } from "../hooks/use-save-and-close";
 import {
   buildStepVisibility,
   countAll,
@@ -64,8 +65,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   ArrowLeft,
-  Download,
   Filter,
+  LogOut,
   MoreVertical,
   Printer,
   Trash2,
@@ -523,7 +524,8 @@ export default function ChildJournalPage() {
   const { state, deleteChild, setRating } = useStore();
   const child = state.children.find((c) => c.id === childId);
   const { toast } = useToast();
-  const { isDirty, markClean } = useDirty();
+  const { isDirty } = useDirty();
+  const { saveAndClose } = useSaveAndClose();
 
   const [areaIdx, setAreaIdx] = useState(0);
   const [filter, setFilter] = useState<FilterValue>("all");
@@ -648,11 +650,8 @@ export default function ChildJournalPage() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Data</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={async () => { if (await exportCollectionJSON()) markClean(); }}>
-                  <Download className="h-4 w-4 mr-2" /> Save as JSON
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={async () => { if (await exportAllCSV()) markClean(); }}>
-                  <Download className="h-4 w-4 mr-2" /> Save as CSV
+                <DropdownMenuItem onSelect={saveAndClose}>
+                  <LogOut className="h-4 w-4 mr-2" /> Save and close
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => importRef.current?.click()}>
                   <Upload className="h-4 w-4 mr-2" /> Import JSON

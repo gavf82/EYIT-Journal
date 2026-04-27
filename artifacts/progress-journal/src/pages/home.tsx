@@ -25,10 +25,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, ChevronRight, Calendar, Sparkles, BookText, Upload, Download, Search, X } from "lucide-react";
-import { exportCollectionJSON } from "../lib/export";
+import { Plus, ChevronRight, Calendar, Sparkles, BookText, Upload, LogOut, Search, X } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useToast } from "../hooks/use-toast";
+import { useSaveAndClose } from "../hooks/use-save-and-close";
 import { formatAge } from "../lib/age";
 import { useDirty } from "../hooks/use-dirty";
 
@@ -247,22 +247,6 @@ function ImportButton() {
   );
 }
 
-function ExportCollectionButton({ isDirty, markClean }: { isDirty: boolean; markClean: () => void }) {
-  const { state } = useStore();
-  const total = Object.keys(state.ratings).length;
-  return (
-    <Button
-      variant="outline"
-      className={cn("gap-2", isDirty && "border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive")}
-      onClick={async () => { if (await exportCollectionJSON()) markClean(); }}
-      disabled={state.children.length === 0}
-      title={state.children.length === 0 ? "No journals to save" : `Save ${state.children.length} child${state.children.length === 1 ? "" : "ren"} and ${total} ratings`}
-      data-testid="button-export-collection"
-    >
-      <Download className="h-4 w-4" /> Save collection
-    </Button>
-  );
-}
 
 interface ChildCardProps {
   childId: string;
@@ -346,7 +330,7 @@ function ChildCard({ childId, name, dob, startDate, updatedAt, ratings }: ChildC
 
 export default function HomePage() {
   const { state } = useStore();
-  const { isDirty, markClean } = useDirty();
+  const { saveAndClose, hasData } = useSaveAndClose();
   const [query, setQuery] = useState("");
 
   const sorted = useMemo(
@@ -375,7 +359,15 @@ export default function HomePage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <ExportCollectionButton isDirty={isDirty} markClean={markClean} />
+          <Button
+            variant="outline"
+            className="gap-2"
+            disabled={!hasData}
+            onClick={saveAndClose}
+            data-testid="button-save-and-close"
+          >
+            <LogOut className="h-4 w-4" /> Save and close
+          </Button>
           <ImportButton />
           <AddChildDialog />
         </div>

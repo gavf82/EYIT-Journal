@@ -19,33 +19,16 @@ import { Trash2, Download, Upload, FlaskConical, X, LogOut } from "lucide-react"
 import { useDirty } from "../hooks/use-dirty";
 import { useLocation } from "wouter";
 import { seedDemoData, removeDemoData, isDemoLoaded, DEMO_CHILD_ID } from "../lib/seed";
-import { exportCollectionJSON } from "../lib/export";
+import { useSaveAndClose } from "../hooks/use-save-and-close";
 
 export default function SettingsPage() {
   const { state, resetAll, importData } = useStore();
   const { toast } = useToast();
-  const { isDirty, markClean } = useDirty();
+  const { saveAndClose, hasData } = useSaveAndClose();
   const [, navigate] = useLocation();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [demoLoaded, setDemoLoaded] = useState(isDemoLoaded);
-
-  async function exportAll() {
-    if (await exportCollectionJSON()) markClean();
-  }
-
-  async function saveAndClose() {
-    const saved = await exportCollectionJSON();
-    if (!saved) return; // user cancelled the file picker
-    resetAll();
-    window.close();
-    // window.close() only works when the tab was opened programmatically.
-    // If the browser ignores it, let the user know the data has been cleared.
-    toast({
-      title: "Session ended",
-      description: "Your backup is saved and all local data has been cleared. You can close this tab.",
-    });
-  }
 
   async function importAll(file: File) {
     setBusy(true);
@@ -105,18 +88,19 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Backup</CardTitle>
           <CardDescription>
-            Download a JSON file containing every child and every rating. Keep it safe —
-            anyone with the file can restore your data.
+            Save your data to a file and clear it from this browser. Use this at the end of
+            every session — restore it next time from the same file.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Button
-            onClick={exportAll}
-            className={cn("gap-2", isDirty && "bg-destructive/10 border border-destructive text-destructive hover:bg-destructive/20")}
-            variant={isDirty ? "outline" : "default"}
-            data-testid="button-export-all"
+            variant="outline"
+            className="gap-2"
+            disabled={!hasData}
+            onClick={saveAndClose}
+            data-testid="button-save-and-close"
           >
-            <Download className="h-4 w-4" /> Save all data
+            <LogOut className="h-4 w-4" /> Save and close
           </Button>
           <input
             ref={fileRef}
@@ -137,33 +121,6 @@ export default function SettingsPage() {
           >
             <Upload className="h-4 w-4" /> Restore from backup
           </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>End session</CardTitle>
-          <CardDescription>
-            Save a backup of all your data, clear everything from this browser, then close the
-            tab. Use this at the end of each working session to ensure no personal data
-            remains on the device.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button
-            variant="outline"
-            className="gap-2"
-            disabled={state.children.length === 0}
-            onClick={saveAndClose}
-            data-testid="button-save-and-close"
-          >
-            <LogOut className="h-4 w-4" /> Save and close
-          </Button>
-          {state.children.length === 0 && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              No data to save — add a child first.
-            </p>
-          )}
         </CardContent>
       </Card>
 

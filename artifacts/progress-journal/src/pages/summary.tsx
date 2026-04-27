@@ -11,8 +11,8 @@ import {
 } from "../lib/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Printer, Download, AlertTriangle } from "lucide-react";
-import { exportCollectionJSON } from "../lib/export";
+import { ArrowLeft, Printer, LogOut, AlertTriangle } from "lucide-react";
+import { useSaveAndClose } from "../hooks/use-save-and-close";
 import { cn } from "../lib/utils";
 import { useDirty } from "../hooks/use-dirty";
 import { ageInMonths, formatAge } from "../lib/age";
@@ -438,7 +438,7 @@ export default function SummaryPage() {
   const childAgeLabel = child ? formatAge(child.dob) : "";
   const [ageFilterOn, setAgeFilterOn] = useState<boolean>(childMonths !== null);
   const [includeHistory, setIncludeHistory] = useState<boolean>(false);
-  const { isDirty, markClean } = useDirty();
+  const { saveAndClose, hasData } = useSaveAndClose();
 
   const visibility: StepVisibility = useMemo(
     () => buildStepVisibility(childId, childMonths, state.ratings, ageFilterOn, includeHistory),
@@ -533,10 +533,11 @@ export default function SummaryPage() {
           )}
           <Button
             variant="outline"
-            className={cn("gap-2", isDirty && "border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive")}
-            onClick={async () => { if (await exportCollectionJSON()) markClean(); }}
+            className="gap-2"
+            disabled={!hasData}
+            onClick={saveAndClose}
           >
-            <Download className="h-4 w-4" /> Save JSON
+            <LogOut className="h-4 w-4" /> Save and close
           </Button>
           <Button className="gap-2" onClick={() => window.print()} data-testid="button-print">
             <Printer className="h-4 w-4" /> Print summary
