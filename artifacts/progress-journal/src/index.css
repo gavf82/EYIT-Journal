@@ -210,24 +210,22 @@
   }
   .print-cover-inner { flex: 1; }
 
-  /* Each strand starts on a fresh page; step tables inside flow naturally.
-     A whole step table is kept together on one page; if a strand has more
-     step tables than fit on a page, the next step table starts on a new
-     page (still under the same strand's title since the title repeats). */
+  /* Strands flow continuously — no forced page break between them.
+     Each step table stays together as a unit; strands try to stay together
+     too but will split across pages if they are too long to fit. */
   .print-pages > .journal-page {
-    page-break-after: always;
-    break-after: page;
-    position: relative;
-    padding-top: 0.4cm;
-    padding-bottom: 1.4cm;
-  }
-  .print-pages > .journal-page:last-child {
-    page-break-after: auto;
-    break-after: auto;
+    break-inside: avoid;
+    margin-bottom: 0.6cm;
   }
   .journal-step-table {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+  /* Corner label and footnote are only meaningful in the one-page-per-strand
+     layout; hide them when strands flow freely. */
+  .print-pages .journal-page .print-corner,
+  .print-pages .journal-page .print-footnote {
+    display: none !important;
   }
 
   .print-corner {
