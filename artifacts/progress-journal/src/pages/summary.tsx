@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Printer, LogOut, AlertTriangle } from "lucide-react";
 import { useSaveAndClose } from "../hooks/use-save-and-close";
+import { SaveAndCloseDialog } from "../components/save-and-close-dialog";
 import { cn } from "../lib/utils";
 import { useDirty } from "../hooks/use-dirty";
 import { ageInMonths, formatAge } from "../lib/age";
@@ -447,7 +448,7 @@ export default function SummaryPage() {
   const childAgeLabel = child ? formatAge(child.dob) : "";
   const [ageFilterOn, setAgeFilterOn] = useState<boolean>(childMonths !== null);
   const [includeHistory, setIncludeHistory] = useState<boolean>(false);
-  const { saveAndClose, hasData } = useSaveAndClose();
+  const { openDialog, hasData, dialogProps } = useSaveAndClose();
 
   const [activeSection, setActiveSection] = useState<string>("sec-overview");
   useEffect(() => {
@@ -560,10 +561,11 @@ export default function SummaryPage() {
             variant="outline"
             className="gap-2"
             disabled={!hasData}
-            onClick={saveAndClose}
+            onClick={openDialog}
           >
             <LogOut className="h-4 w-4" /> Save and close
           </Button>
+          <SaveAndCloseDialog {...dialogProps} />
           <Button className="gap-2" onClick={() => window.print()} data-testid="button-print">
             <Printer className="h-4 w-4" /> Print summary
           </Button>

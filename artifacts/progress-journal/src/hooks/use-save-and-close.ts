@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { exportCollectionJSON } from "../lib/export";
 import { useStore } from "../lib/store";
 import { useToast } from "./use-toast";
@@ -5,10 +6,16 @@ import { useToast } from "./use-toast";
 export function useSaveAndClose() {
   const { resetAll, state } = useStore();
   const { toast } = useToast();
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const hasData = state.children.length > 0;
 
-  async function saveAndClose() {
+  function openDialog() {
+    if (hasData) setDialogOpen(true);
+  }
+
+  async function handleSaveAndClose() {
+    setDialogOpen(false);
     const saved = await exportCollectionJSON();
     if (!saved) return;
     resetAll();
@@ -20,5 +27,19 @@ export function useSaveAndClose() {
     });
   }
 
-  return { saveAndClose, hasData };
+  async function handleSaveOnly() {
+    setDialogOpen(false);
+    await exportCollectionJSON();
+  }
+
+  return {
+    openDialog,
+    hasData,
+    dialogProps: {
+      open: dialogOpen,
+      onOpenChange: setDialogOpen,
+      onSaveAndClose: handleSaveAndClose,
+      onSaveOnly: handleSaveOnly,
+    },
+  };
 }

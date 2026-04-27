@@ -29,6 +29,7 @@ import { Plus, ChevronRight, Calendar, Sparkles, BookText, Upload, LogOut, Searc
 import { cn } from "../lib/utils";
 import { useToast } from "../hooks/use-toast";
 import { useSaveAndClose } from "../hooks/use-save-and-close";
+import { SaveAndCloseDialog } from "../components/save-and-close-dialog";
 import { formatAge } from "../lib/age";
 import { useDirty } from "../hooks/use-dirty";
 
@@ -330,7 +331,7 @@ function ChildCard({ childId, name, dob, startDate, updatedAt, ratings }: ChildC
 
 export default function HomePage() {
   const { state } = useStore();
-  const { saveAndClose, hasData } = useSaveAndClose();
+  const { openDialog, hasData, dialogProps } = useSaveAndClose();
   const [query, setQuery] = useState("");
 
   const sorted = useMemo(
@@ -363,11 +364,12 @@ export default function HomePage() {
             variant="outline"
             className="gap-2"
             disabled={!hasData}
-            onClick={saveAndClose}
+            onClick={openDialog}
             data-testid="button-save-and-close"
           >
             <LogOut className="h-4 w-4" /> Save and close
           </Button>
+          <SaveAndCloseDialog {...dialogProps} />
           <ImportButton />
           <AddChildDialog />
         </div>

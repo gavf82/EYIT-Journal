@@ -20,11 +20,12 @@ import { useDirty } from "../hooks/use-dirty";
 import { useLocation } from "wouter";
 import { seedDemoData, removeDemoData, isDemoLoaded, DEMO_CHILD_ID } from "../lib/seed";
 import { useSaveAndClose } from "../hooks/use-save-and-close";
+import { SaveAndCloseDialog } from "../components/save-and-close-dialog";
 
 export default function SettingsPage() {
   const { state, resetAll, importData } = useStore();
   const { toast } = useToast();
-  const { saveAndClose, hasData } = useSaveAndClose();
+  const { openDialog, hasData, dialogProps } = useSaveAndClose();
   const [, navigate] = useLocation();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -97,11 +98,12 @@ export default function SettingsPage() {
             variant="outline"
             className="gap-2"
             disabled={!hasData}
-            onClick={saveAndClose}
+            onClick={openDialog}
             data-testid="button-save-and-close"
           >
             <LogOut className="h-4 w-4" /> Save and close
           </Button>
+          <SaveAndCloseDialog {...dialogProps} />
           <input
             ref={fileRef}
             type="file"

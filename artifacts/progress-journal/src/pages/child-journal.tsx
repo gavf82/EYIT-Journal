@@ -4,6 +4,7 @@ import { JOURNAL, JournalArea, JournalStep, JournalStrand, Status } from "../dat
 import { useStore, getRatingKey } from "../lib/store";
 import { importJournalJSON } from "../lib/export";
 import { useSaveAndClose } from "../hooks/use-save-and-close";
+import { SaveAndCloseDialog } from "../components/save-and-close-dialog";
 import {
   buildStepVisibility,
   countAll,
@@ -525,7 +526,7 @@ export default function ChildJournalPage() {
   const child = state.children.find((c) => c.id === childId);
   const { toast } = useToast();
   const { isDirty } = useDirty();
-  const { saveAndClose } = useSaveAndClose();
+  const { openDialog, dialogProps } = useSaveAndClose();
 
   const [areaIdx, setAreaIdx] = useState(0);
   const [filter, setFilter] = useState<FilterValue>("all");
@@ -650,7 +651,7 @@ export default function ChildJournalPage() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Data</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={saveAndClose}>
+                <DropdownMenuItem onSelect={openDialog}>
                   <LogOut className="h-4 w-4 mr-2" /> Save and close
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => importRef.current?.click()}>
@@ -898,6 +899,7 @@ export default function ChildJournalPage() {
         open={editOpen}
         onOpenChange={setEditOpen}
       />
+      <SaveAndCloseDialog {...dialogProps} />
     </div>
   );
 }
