@@ -111,7 +111,9 @@ function collectStrandBlocks(
   visibility: StepVisibility,
 ): StepBlock[] {
   const visibleSet = visibility?.get(`${aIdx}::${sIdx}`) ?? null;
-  const blocks: StepBlock[] = [];
+
+  // Collect every visible step (rated or not) so we can fill gaps later.
+  const allBlocks: StepBlock[] = [];
   strand.steps.forEach((step, stIdx) => {
     if (!step.items || step.note) return;
     const inAgeRange = visibleSet ? visibleSet.has(stIdx) : true;
@@ -124,13 +126,21 @@ function collectStrandBlocks(
         items.push({ key: item.key, text: item.text, status: s, updatedAt: r!.updatedAt, history: r!.history });
       }
     });
-    if (items.length === 0) return;
     items.sort((a, b) => a.key.localeCompare(b.key));
-    blocks.push({ stepNumber: step.number, ageRange: step.ageRange, items });
+    allBlocks.push({ stepNumber: step.number, ageRange: step.ageRange, items });
   });
+
   // Ascending step order so the earliest step sits at the top.
-  blocks.sort((a, b) => a.stepNumber - b.stepNumber);
-  return blocks;
+  allBlocks.sort((a, b) => a.stepNumber - b.stepNumber);
+
+  // Find the first and last steps that actually have rated items.
+  const withItems = allBlocks.filter((b) => b.items.length > 0);
+  if (withItems.length === 0) return [];
+
+  // Include every step in the range, even if empty, so gaps are visible in print.
+  const first = withItems[0].stepNumber;
+  const last = withItems[withItems.length - 1].stepNumber;
+  return allBlocks.filter((b) => b.stepNumber >= first && b.stepNumber <= last);
 }
 
 function StrandTable({
@@ -703,26 +713,6 @@ export default function SummaryPage() {
           </div>
         </dl>
 
-        {/* Flexible spacer pushes areas to the bottom */}
-        <div style={{ flex: 1 }} />
-
-        {/* Seven coloured area boxes — Arial, exact area colours from the document */}
-        <div className="eyit-cover-areas">
-          {JOURNAL.map((area) => (
-            <div
-              key={area.area}
-              className="eyit-cover-area"
-              style={{ backgroundColor: AREA_COLORS[area.area] ?? "#ddd" }}
-            >
-              {area.area}
-            </div>
-          ))}
-        </div>
-
-        <p className="print-footnote">
-          Early Years Inclusion Team adapted from Special Educational Needs &amp; Inclusion Team,
-          Learning Inclusion Service, Leeds City Council.
-        </p>
       </section>
 
       {/* Print-only: Areas without progression — page 2 of the printout */}
