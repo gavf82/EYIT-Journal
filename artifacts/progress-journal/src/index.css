@@ -235,17 +235,19 @@
 
   .eyit-cover-logo-row {
     margin-bottom: 0.5cm;
+    text-align: center;
   }
   .eyit-cover-logo {
     /* Native: 550 × 95 px — display as a wide banner ~8 cm */
     width: 8cm;
     height: auto;
-    display: block;
+    display: inline-block;
   }
 
   .eyit-cover-titles {
     margin-bottom: 0.8cm;
     flex-shrink: 0;
+    text-align: center;
   }
   .eyit-cover-h1 {
     font-family: 'Gill Sans MT', 'Gill Sans', Optima, Calibri, sans-serif;
