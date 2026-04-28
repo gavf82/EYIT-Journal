@@ -153,10 +153,9 @@ export function countStep(
     const key = getRatingKey(childId, aIdx, sIdx, stIdx, item.key);
     const r = ratings[key];
     if (!r) continue;
-    c.rated += 1;
-    if (r.status === "emerging") c.emerging += 1;
-    else if (r.status === "developing") c.developing += 1;
-    else if (r.status === "secure") c.secure += 1;
+    if (r.status === "emerging") { c.rated += 1; c.emerging += 1; }
+    else if (r.status === "developing") { c.rated += 1; c.developing += 1; }
+    else if (r.status === "secure") { c.rated += 1; c.secure += 1; }
   }
   return finalize(c);
 }

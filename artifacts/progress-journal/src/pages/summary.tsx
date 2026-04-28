@@ -118,8 +118,9 @@ function collectStrandBlocks(
     const items: RatedItemRow[] = [];
     step.items.forEach((item) => {
       const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
-      if (r && r.status) {
-        items.push({ key: item.key, text: item.text, status: r.status, updatedAt: r.updatedAt });
+      const s = r?.status;
+      if (s === "emerging" || s === "developing" || s === "secure") {
+        items.push({ key: item.key, text: item.text, status: s, updatedAt: r!.updatedAt });
       }
     });
     if (items.length === 0) return;
@@ -363,10 +364,13 @@ function AreaRadarChart({
   const data: RadarPoint[] = useMemo(() => {
     return JOURNAL.flatMap((area, aIdx) => {
       const ac = countArea(childId, aIdx, area, ratings, visibility);
-      if (ac.rated === 0) return [];
+      // Use only recognised statuses as the denominator so stale/unknown
+      // entries don't artificially deflate the score.
+      const recognised = ac.emerging + ac.developing + ac.secure;
+      if (recognised === 0) return [];
       // Weighted score: Emerging=1, Developing=2, Secure=3 out of max 3 per item.
       const raw = ac.emerging * 1 + ac.developing * 2 + ac.secure * 3;
-      const score = Math.round((raw / (ac.rated * 3)) * 100);
+      const score = Math.round((raw / (recognised * 3)) * 100);
       return [{ area: AREA_SHORT[area.area] ?? area.area, fullLabel: area.area, score }];
     });
   }, [childId, ratings, visibility]);
