@@ -231,10 +231,11 @@
        Areas:  Arial, 14pt, filled with exact area background colours        */
   .eyit-cover {
     font-family: 'Gill Sans MT', 'Gill Sans', Optima, Calibri, sans-serif;
+    justify-content: center;
+    gap: 1.2cm;
   }
 
   .eyit-cover-logo-row {
-    margin-bottom: 0.5cm;
     text-align: center;
   }
   .eyit-cover-logo {
@@ -245,7 +246,6 @@
   }
 
   .eyit-cover-titles {
-    margin-bottom: 0.8cm;
     flex-shrink: 0;
     text-align: center;
   }
@@ -272,7 +272,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.55cm;
-    margin: 0.6cm 0 0 0;
+    margin: 0;
     flex-shrink: 0;
   }
   .eyit-cover-field {
@@ -337,9 +337,9 @@
   .print-corner {
     position: absolute;
     top: 0;
-    right: 0;
+    left: 0;
     font-size: 9pt;
-    color: #444;
+    color: #008264;
   }
   .print-footnote {
     position: absolute;
@@ -348,7 +348,7 @@
     right: 0;
     text-align: center;
     font-size: 8.5pt;
-    color: #444;
+    color: #008264;
     font-style: italic;
   }
 }
