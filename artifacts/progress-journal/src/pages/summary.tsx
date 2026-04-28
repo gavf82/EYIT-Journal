@@ -30,13 +30,6 @@ import {
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Cell,
-  LabelList,
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
@@ -503,19 +496,31 @@ function AreaRadarChart({
   );
 }
 
-// ── Best-fit step chart ──────────────────────────────────────────────────────
+// ── Best-fit step table ──────────────────────────────────────────────────────
 // Shown only when the age-relevant filter is active.
 // "Best-fit step" = the weighted-average step number across all rated items in
-// the visible (age-relevant) range for each strand.
-//   Emerging=1 · Developing=2 · Secure=3 — heavier weight on more-advanced status.
-// A strand with no ratings in the visible range has bestFit=null (bar not drawn).
+// the visible (age-relevant) range for each strand, rounded to the nearest
+// whole step.  Emerging=1 · Developing=2 · Secure=3.
+
+interface StepBreakdown {
+  stepNumber: number;
+  ageRange: string;
+  emerging: number;
+  developing: number;
+  secure: number;
+  stepWeight: number;       // E×1 + D×2 + S×3 for this step
+  stepContribution: number; // stepNumber × stepWeight
+}
 
 interface StrandBestFitRow {
-  label: string;     // title-cased strand name shown on Y-axis
-  fullLabel: string; // original ALL-CAPS name for tooltip
+  label: string;
   areaName: string;
   areaColor: string;
-  bestFit: number | null;
+  bestFit: number | null;   // rounded to nearest whole step
+  raw: number | null;       // unrounded, for display in breakdown
+  totalWeight: number;
+  weightedSum: number;
+  steps: StepBreakdown[];   // only steps with ≥1 rated item
 }
 
 function toTitleCase(s: string): string {
@@ -537,31 +542,106 @@ function computeBestFitData(
       const visibleSet = visibility?.get(`${aIdx}::${sIdx}`) ?? null;
       let weightedSum = 0;
       let totalWeight = 0;
+      const steps: StepBreakdown[] = [];
+
       strand.steps.forEach((step, stIdx) => {
         if (!step.items || step.note) return;
         const inRange = visibleSet ? visibleSet.has(stIdx) : true;
         if (!inRange) return;
+
+        let e = 0, d = 0, sc = 0;
         step.items.forEach((item) => {
           const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
-          const s = r?.status;
-          const w = s === "emerging" ? 1 : s === "developing" ? 2 : s === "secure" ? 3 : 0;
-          if (w > 0) {
-            weightedSum += step.number * w;
-            totalWeight += w;
-          }
+          const st = r?.status;
+          if (st === "emerging") e++;
+          else if (st === "developing") d++;
+          else if (st === "secure") sc++;
         });
+
+        const stepWeight = e * 1 + d * 2 + sc * 3;
+        if (stepWeight > 0) {
+          const stepContribution = step.number * stepWeight;
+          weightedSum += stepContribution;
+          totalWeight += stepWeight;
+          steps.push({
+            stepNumber: step.number,
+            ageRange: step.ageRange,
+            emerging: e,
+            developing: d,
+            secure: sc,
+            stepWeight,
+            stepContribution,
+          });
+        }
       });
+
       const raw = totalWeight > 0 ? weightedSum / totalWeight : null;
       rows.push({
         label: toTitleCase(strand.name),
-        fullLabel: strand.name,
         areaName: area.area,
         areaColor,
-        bestFit: raw !== null ? Math.round(raw * 10) / 10 : null,
+        bestFit: raw !== null ? Math.round(raw) : null,
+        raw,
+        totalWeight,
+        weightedSum,
+        steps,
       });
     });
   });
   return rows;
+}
+
+function BestFitBreakdownTip({ row }: { row: StrandBestFitRow }) {
+  return (
+    <div className="text-left space-y-2 min-w-[260px]">
+      <p className="font-semibold text-[11px] uppercase tracking-wide border-b border-border/60 pb-1 mb-1">
+        Calculation breakdown
+      </p>
+      <table className="w-full text-[11px] leading-snug border-collapse">
+        <thead>
+          <tr className="text-muted-foreground">
+            <th className="text-left pr-3 pb-0.5 font-medium">Step</th>
+            <th className="text-center px-1 pb-0.5 font-medium">E</th>
+            <th className="text-center px-1 pb-0.5 font-medium">D</th>
+            <th className="text-center px-1 pb-0.5 font-medium">S</th>
+            <th className="text-right pl-2 pb-0.5 font-medium">Pts</th>
+            <th className="text-right pl-2 pb-0.5 font-medium">Contribution</th>
+          </tr>
+        </thead>
+        <tbody>
+          {row.steps.map((s) => (
+            <tr key={s.stepNumber} className="border-t border-border/30">
+              <td className="pr-3 py-0.5 whitespace-nowrap">
+                Step {s.stepNumber}
+                <span className="text-muted-foreground ml-1 text-[10px]">({s.ageRange})</span>
+              </td>
+              <td className="text-center px-1 py-0.5">{s.emerging || "–"}</td>
+              <td className="text-center px-1 py-0.5">{s.developing || "–"}</td>
+              <td className="text-center px-1 py-0.5">{s.secure || "–"}</td>
+              <td className="text-right pl-2 py-0.5 tabular-nums">{s.stepWeight}</td>
+              <td className="text-right pl-2 py-0.5 tabular-nums">
+                {s.stepNumber} × {s.stepWeight} = {s.stepContribution}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="border-t border-border/60 font-semibold">
+            <td colSpan={4} className="pr-3 pt-1 text-muted-foreground text-[10px]">Totals</td>
+            <td className="text-right pl-2 pt-1 tabular-nums">{row.totalWeight} pts</td>
+            <td className="text-right pl-2 pt-1 tabular-nums">÷ {row.totalWeight} = {row.raw?.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td colSpan={6} className="pt-1 text-[11px]">
+              <span className="font-semibold">{row.raw?.toFixed(2)}</span>
+              <span className="text-muted-foreground"> → rounded to </span>
+              <span className="font-semibold">Step {row.bestFit}</span>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
 }
 
 function BestFitStepChart({
@@ -583,93 +663,92 @@ function BestFitStepChart({
   if (!hasAnyData) {
     return (
       <p className="text-sm text-muted-foreground italic py-6 text-center">
-        Rate statements in the age-relevant steps to see the best-fit chart.
+        Rate statements in the age-relevant steps to see best-fit steps.
       </p>
     );
   }
 
+  // Group rows by area, preserving JOURNAL order.
+  const byArea = JOURNAL.map((area) => ({
+    area,
+    rows: data.filter((r) => r.areaName === area.area),
+  })).filter(({ rows }) => rows.some((r) => r.bestFit !== null));
+
   return (
-    <div className="space-y-4">
-      <ResponsiveContainer width="100%" height={580}>
-        <BarChart
-          data={data}
-          layout="vertical"
-          margin={{ top: 4, right: 52, bottom: 24, left: 4 }}
-        >
-          <CartesianGrid
-            strokeDasharray="3 3"
-            horizontal={false}
-            stroke="hsl(var(--border))"
-          />
-          <XAxis
-            type="number"
-            domain={[0, 14]}
-            ticks={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]}
-            tickFormatter={(v: number) => `S${v}`}
-            tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-            label={{
-              value: "Best-fit step →",
-              position: "insideBottom",
-              offset: -14,
-              fontSize: 10,
-              fill: "hsl(var(--muted-foreground))",
-            }}
-          />
-          <YAxis
-            type="category"
-            dataKey="label"
-            width={196}
-            tick={{ fontSize: 10, fill: "hsl(var(--foreground))" }}
-          />
-          <Tooltip
-            formatter={(_v: number, _n: string, entry: { payload?: StrandBestFitRow }) => {
-              const row = entry.payload;
-              if (!row?.bestFit) return ["No ratings in age range", row?.areaName ?? ""];
-              return [`Step ${row.bestFit.toFixed(1)}`, row.areaName];
-            }}
-            contentStyle={{
-              fontSize: 12,
-              borderRadius: 6,
-              border: "1px solid hsl(var(--border))",
-              backgroundColor: "hsl(var(--card))",
-              color: "hsl(var(--card-foreground))",
-            }}
-          />
-          <Bar dataKey="bestFit" radius={[0, 3, 3, 0]} minPointSize={0}>
-            {data.map((row, idx) => (
-              <Cell
-                key={`cell-${idx}`}
-                fill={row.bestFit !== null ? row.areaColor : "transparent"}
-                fillOpacity={0.85}
-              />
-            ))}
-            <LabelList
-              dataKey="bestFit"
-              position="right"
-              formatter={(v: number | null) => (v != null ? `S${v.toFixed(1)}` : "")}
-              style={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-            />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-
-      {/* Area colour legend */}
-      <div className="flex flex-wrap gap-x-5 gap-y-1.5 justify-center text-xs text-muted-foreground">
-        {JOURNAL.map((area) => (
-          <span key={area.area} className="flex items-center gap-1.5">
-            <span
-              className="inline-block w-3 h-3 rounded-sm shrink-0"
-              style={{ backgroundColor: AREA_COLORS[area.area] ?? "#ccc", opacity: 0.85 }}
-            />
-            {area.area}
-          </span>
-        ))}
-      </div>
-
-      <p className="text-xs text-center text-muted-foreground leading-relaxed">
-        Best-fit step = weighted average of rated items within the age-relevant range
-        (Emerging × 1 · Developing × 2 · Secure × 3).
-        Strands with no ratings in range are not shown.
+    <div className="space-y-2">
+      <table className="w-full text-sm border-collapse">
+        <thead>
+          <tr className="text-xs text-muted-foreground uppercase tracking-wide">
+            <th className="text-left py-1.5 px-3 font-medium w-[55%]">Strand</th>
+            <th className="text-center py-1.5 px-3 font-medium">Best-fit Step</th>
+            <th className="text-left py-1.5 px-3 font-medium text-muted-foreground/60 hidden sm:table-cell">
+              Age range
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {byArea.map(({ area, rows }) => (
+            <>
+              {/* Area header row */}
+              <tr key={`area-${area.area}`}>
+                <td
+                  colSpan={3}
+                  className="py-1 px-3 text-xs font-semibold uppercase tracking-wide"
+                  style={{ backgroundColor: AREA_COLORS[area.area] ?? "#eee" }}
+                >
+                  {area.area}
+                </td>
+              </tr>
+              {/* Strand rows */}
+              {rows.map((row) => (
+                <tr
+                  key={row.label}
+                  className="border-b border-border/40 hover:bg-muted/30 transition-colors"
+                >
+                  <td className="py-1.5 px-3">{row.label}</td>
+                  <td className="py-1.5 px-3 text-center">
+                    {row.bestFit !== null ? (
+                      <TooltipProvider>
+                        <UITooltip>
+                          <TooltipTrigger asChild>
+                            <span
+                              className="inline-flex items-center justify-center min-w-[2.8rem] rounded-md px-2 py-0.5 font-semibold tabular-nums cursor-help text-sm border border-border/50 hover:border-border transition-colors"
+                              style={{
+                                backgroundColor: row.areaColor,
+                                opacity: 0.92,
+                              }}
+                            >
+                              Step {row.bestFit}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side="right"
+                            className="max-w-sm p-3"
+                            sideOffset={8}
+                          >
+                            <BestFitBreakdownTip row={row} />
+                          </TooltipContent>
+                        </UITooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <span className="text-muted-foreground text-xs italic">—</span>
+                    )}
+                  </td>
+                  <td className="py-1.5 px-3 text-xs text-muted-foreground hidden sm:table-cell">
+                    {row.steps.length > 0
+                      ? row.steps.map((s) => `Step ${s.stepNumber} (${s.ageRange})`).join(", ")
+                      : "—"}
+                  </td>
+                </tr>
+              ))}
+            </>
+          ))}
+        </tbody>
+      </table>
+      <p className="text-xs text-muted-foreground pt-1 leading-relaxed">
+        Best-fit step = weighted average of rated items (E×1 · D×2 · S×3), rounded to nearest
+        whole step. Hover any step badge to see the full calculation. Strands with no ratings in
+        range are omitted.
       </p>
     </div>
   );
