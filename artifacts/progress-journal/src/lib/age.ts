@@ -19,11 +19,7 @@ export function ageInMonths(dob: string): number | null {
 export function formatAge(dob: string): string {
   const m = ageInMonths(dob);
   if (m === null) return "";
-  const years = Math.floor(m / 12);
-  const months = m % 12;
-  if (years === 0) return `${months} mo`;
-  if (months === 0) return `${years} yr`;
-  return `${years} yr ${months} mo`;
+  return `${m} months`;
 }
 
 /**

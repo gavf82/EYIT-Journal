@@ -967,6 +967,12 @@ export default function SummaryPage() {
             <dt>Date of Birth</dt>
             <dd>{formatDate(child.dob)}</dd>
           </div>
+          {childMonths !== null && (
+            <div className="eyit-cover-field">
+              <dt>Age</dt>
+              <dd>{childAgeLabel}</dd>
+            </div>
+          )}
           <div className="eyit-cover-field">
             <dt>Journal Start-Date</dt>
             <dd>{formatDate(child.startDate)}</dd>
@@ -1065,7 +1071,14 @@ export default function SummaryPage() {
           <p className="text-xs uppercase tracking-wide text-muted-foreground">
             EYIT Development Journal — Summary
           </p>
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mt-1">{child.name}</h1>
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mt-1">
+            {child.name}
+            {childAgeLabel && (
+              <span className="ml-3 text-xl md:text-2xl font-normal text-muted-foreground">
+                {childAgeLabel}
+              </span>
+            )}
+          </h1>
           <dl className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
             {child.dob && (
               <div>

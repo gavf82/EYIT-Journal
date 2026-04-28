@@ -694,6 +694,11 @@ export default function ChildJournalPage() {
           <div>
             <h1 className="text-2xl md:text-3xl font-semibold tracking-tight" data-testid="text-child-name">
               {child.name}
+              {childAgeLabel && (
+                <span className="ml-2.5 text-lg md:text-xl font-normal text-muted-foreground">
+                  {childAgeLabel}
+                </span>
+              )}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               {overall.rated} of {overall.total} statements rated · {overall.percentRated}% complete

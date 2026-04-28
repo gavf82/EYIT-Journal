@@ -360,10 +360,15 @@ export default function AssessmentPage() {
       <div className="no-print mb-6">
         <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
           {child.name} — Assessment
+          {childAgeLabel && (
+            <span className="ml-2.5 text-lg md:text-xl font-normal text-muted-foreground">
+              {childAgeLabel}
+            </span>
+          )}
         </h1>
         {childMonths !== null ? (
           <p className="text-sm text-muted-foreground mt-1">
-            Age: {childAgeLabel} · Showing age-appropriate step
+            Showing age-appropriate step
             {includeIncomplete ? ", plus incomplete items from earlier stages" : ""}
           </p>
         ) : (
