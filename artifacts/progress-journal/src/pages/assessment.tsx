@@ -4,7 +4,7 @@ import { JOURNAL, AREA_COLORS, type JournalArea, type JournalStrand, type Status
 import { useStore, getRatingKey, type Rating } from "../lib/store";
 import { buildStepVisibility, type StepVisibility } from "../lib/progress";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Printer, LogOut, CheckSquare, Square } from "lucide-react";
+import { ArrowLeft, Printer, LogOut, CheckSquare, Square, Layers } from "lucide-react";
 import { useSaveAndClose } from "../hooks/use-save-and-close";
 import { SaveAndCloseDialog } from "../components/save-and-close-dialog";
 import { ageInMonths, formatAge } from "../lib/age";
@@ -28,6 +28,7 @@ interface AssessmentBlock {
   items: AssessmentItem[];
   isPrev: boolean;
   hasStagnation: boolean;
+  isAgeStep?: boolean;
 }
 
 interface AssessmentStrandEntry {
@@ -47,6 +48,7 @@ function collectBlocks(
   ratings: Record<string, Rating>,
   visibility: StepVisibility,
   includeIncomplete: boolean,
+  baselineSearch = false,
 ): AssessmentBlock[] {
   const visibleSet = visibility?.get(`${aIdx}::${sIdx}`) ?? null;
   const blocks: AssessmentBlock[] = [];
@@ -56,6 +58,33 @@ function collectBlocks(
       r?.history && r.history.length > 0 &&
       (s === "emerging" || s === "developing")
     );
+  }
+
+  if (baselineSearch) {
+    // Baseline search: show ALL steps from the age-appropriate step downward to
+    // Step 1, ordered highest → lowest, every item shown regardless of rating.
+    if (!visibleSet || visibleSet.size === 0) return [];
+    const focusIdx = Math.max(...Array.from(visibleSet));
+    for (let stIdx = focusIdx; stIdx >= 0; stIdx--) {
+      const step = strand.steps[stIdx];
+      if (!step || !step.items || step.note) continue;
+      const items: AssessmentItem[] = step.items.map((item) => {
+        const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
+        const s = r?.status ?? null;
+        return { key: item.key, text: item.text, status: s, isStagnant: stagnant(r, s) };
+      });
+      if (items.length === 0) continue;
+      const hasStagnation = items.some((i) => i.isStagnant);
+      blocks.push({
+        stepNumber: step.number,
+        ageRange: step.ageRange,
+        items,
+        isPrev: false,
+        hasStagnation,
+        isAgeStep: stIdx === focusIdx,
+      });
+    }
+    return blocks;
   }
 
   if (visibleSet === null) {
@@ -172,9 +201,14 @@ function AssessmentTable({
             — Step {block.stepNumber} ({block.ageRange})
           </span>
         </div>
-        {block.hasStagnation && (
-          <span className="stagnation-badge shrink-0">⚑ No recent progress</span>
-        )}
+        <div className="flex shrink-0 gap-1.5">
+          {block.isAgeStep && (
+            <span className="age-step-badge">● Chronological age</span>
+          )}
+          {block.hasStagnation && (
+            <span className="stagnation-badge">⚑ No recent progress</span>
+          )}
+        </div>
       </div>
       <table className="journal-step-table w-full">
         <colgroup>
@@ -227,6 +261,7 @@ export default function AssessmentPage() {
   const childAgeLabel = child ? formatAge(child.dob) : "";
   const [includeIncomplete, setIncludeIncomplete] = useState(false);
   const [selectedAreas, setSelectedAreas] = useState<Set<string>>(() => new Set(ALL_AREA_NAMES));
+  const [baselineSearch, setBaselineSearch] = useState(false);
   const { openDialog, hasData, dialogProps } = useSaveAndClose();
 
   const allSelected = selectedAreas.size === ALL_AREA_NAMES.length;
@@ -271,9 +306,19 @@ export default function AssessmentPage() {
     [childId, childMonths, state.ratings],
   );
 
+  // Baseline search needs all steps from 0 → chronological age step included.
+  const baselineVisibility: StepVisibility = useMemo(
+    () =>
+      baselineSearch && childMonths !== null
+        ? buildStepVisibility(childId, childMonths, state.ratings, true, true)
+        : null,
+    [childId, childMonths, state.ratings, baselineSearch],
+  );
+
   const strands = useMemo((): AssessmentStrandEntry[] => {
     if (!childId) return [];
     const out: AssessmentStrandEntry[] = [];
+    const vis = baselineSearch ? baselineVisibility : visibility;
     JOURNAL.forEach((area, aIdx) => {
       if (!selectedAreas.has(area.area)) return;
       area.strands.forEach((strand, sIdx) => {
@@ -284,14 +329,15 @@ export default function AssessmentPage() {
           sIdx,
           childId,
           state.ratings,
-          visibility,
+          vis,
           includeIncomplete,
+          baselineSearch,
         );
         if (blocks.length > 0) out.push({ area, strand, blocks });
       });
     });
     return out;
-  }, [childId, state.ratings, visibility, includeIncomplete, selectedAreas]);
+  }, [childId, state.ratings, visibility, baselineVisibility, includeIncomplete, selectedAreas, baselineSearch]);
 
   if (!child) {
     return (
@@ -324,17 +370,33 @@ export default function AssessmentPage() {
           </Link>
           <div className="flex flex-wrap items-center gap-2">
             {childMonths !== null && (
-              <label
-                className="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs cursor-pointer select-none hover:bg-muted/40"
-                data-testid="toggle-include-prev-label"
-              >
-                <Switch
-                  checked={includeIncomplete}
-                  onCheckedChange={setIncludeIncomplete}
-                  data-testid="toggle-include-incomplete"
-                />
-                <span className="font-medium">Include incomplete from earlier steps</span>
-              </label>
+              <>
+                <label
+                  className="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs cursor-pointer select-none hover:bg-muted/40"
+                  data-testid="toggle-baseline-label"
+                >
+                  <Switch
+                    checked={baselineSearch}
+                    onCheckedChange={setBaselineSearch}
+                    data-testid="toggle-baseline-search"
+                  />
+                  <Layers className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="font-medium">Find baseline</span>
+                </label>
+                {!baselineSearch && (
+                  <label
+                    className="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs cursor-pointer select-none hover:bg-muted/40"
+                    data-testid="toggle-include-prev-label"
+                  >
+                    <Switch
+                      checked={includeIncomplete}
+                      onCheckedChange={setIncludeIncomplete}
+                      data-testid="toggle-include-incomplete"
+                    />
+                    <span className="font-medium">Include incomplete from earlier steps</span>
+                  </label>
+                )}
+              </>
             )}
             <Button
               variant="outline"
@@ -415,7 +477,14 @@ export default function AssessmentPage() {
             <h1 className="text-4xl font-semibold tracking-tight">
               Early Years Inclusion Team
             </h1>
-            <h2 className="text-3xl font-semibold mt-3">Assessment Sheet</h2>
+            <h2 className="text-3xl font-semibold mt-3">
+              {baselineSearch ? "Baseline Assessment" : "Assessment Sheet"}
+            </h2>
+            {baselineSearch && (
+              <p className="mt-2 text-sm text-gray-600">
+                All steps from chronological age downward — rate items to locate the developmental baseline.
+              </p>
+            )}
           </div>
           <p className="text-right mt-8 text-sm">September 2024</p>
           <dl className="mt-20 space-y-10 text-base">
@@ -476,8 +545,9 @@ export default function AssessmentPage() {
         </h1>
         {childMonths !== null ? (
           <p className="text-sm text-muted-foreground mt-1">
-            Showing age-appropriate step
-            {includeIncomplete ? ", plus incomplete items from earlier stages" : ""}
+            {baselineSearch
+              ? `Baseline search — all steps from the age-appropriate step (${childAgeLabel}) downward. Work top to bottom to find the child's developmental level.`
+              : `Showing age-appropriate step${includeIncomplete ? ", plus incomplete items from earlier stages" : ""}`}
           </p>
         ) : (
           <p className="text-sm text-muted-foreground mt-1">
