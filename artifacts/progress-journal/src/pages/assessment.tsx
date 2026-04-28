@@ -19,6 +19,7 @@ interface AssessmentItem {
   key: string;
   text: string;
   status: Status;
+  isStagnant: boolean;
 }
 
 interface AssessmentBlock {
@@ -26,6 +27,7 @@ interface AssessmentBlock {
   ageRange: string;
   items: AssessmentItem[];
   isPrev: boolean;
+  hasStagnation: boolean;
 }
 
 interface AssessmentStrandEntry {
@@ -49,16 +51,25 @@ function collectBlocks(
   const visibleSet = visibility?.get(`${aIdx}::${sIdx}`) ?? null;
   const blocks: AssessmentBlock[] = [];
 
+  function stagnant(r: Rating | undefined, s: Status): boolean {
+    return !!(
+      r?.history && r.history.length > 0 &&
+      (s === "emerging" || s === "developing")
+    );
+  }
+
   if (visibleSet === null) {
     // No age filter — show all steps with all items
     strand.steps.forEach((step, stIdx) => {
       if (!step || !step.items || step.note) return;
       const items: AssessmentItem[] = step.items.map((item) => {
         const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
-        return { key: item.key, text: item.text, status: r?.status ?? null };
+        const s = r?.status ?? null;
+        return { key: item.key, text: item.text, status: s, isStagnant: stagnant(r, s) };
       });
       if (items.length === 0) return;
-      blocks.push({ stepNumber: step.number, ageRange: step.ageRange, items, isPrev: false });
+      const hasStagnation = items.some((i) => i.isStagnant);
+      blocks.push({ stepNumber: step.number, ageRange: step.ageRange, items, isPrev: false, hasStagnation });
     });
   } else {
     const currentMax = visibleSet.size > 0 ? Math.max(...Array.from(visibleSet)) : -1;
@@ -73,10 +84,11 @@ function collectBlocks(
           const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
           const s = r?.status ?? null;
           if (s !== "emerging" && s !== "developing") return [];
-          return [{ key: item.key, text: item.text, status: s }];
+          return [{ key: item.key, text: item.text, status: s, isStagnant: stagnant(r, s) }];
         });
         if (items.length === 0) continue;
-        blocks.push({ stepNumber: step.number, ageRange: step.ageRange, items, isPrev: true });
+        const hasStagnation = items.some((i) => i.isStagnant);
+        blocks.push({ stepNumber: step.number, ageRange: step.ageRange, items, isPrev: true, hasStagnation });
       }
     }
 
@@ -85,10 +97,12 @@ function collectBlocks(
     if (currentStep && currentStep.items && !currentStep.note) {
       const items: AssessmentItem[] = currentStep.items.map((item) => {
         const r = ratings[getRatingKey(childId, aIdx, sIdx, currentMax, item.key)];
-        return { key: item.key, text: item.text, status: r?.status ?? null };
+        const s = r?.status ?? null;
+        return { key: item.key, text: item.text, status: s, isStagnant: stagnant(r, s) };
       });
       if (items.length > 0) {
-        blocks.push({ stepNumber: currentStep.number, ageRange: currentStep.ageRange, items, isPrev: false });
+        const hasStagnation = items.some((i) => i.isStagnant);
+        blocks.push({ stepNumber: currentStep.number, ageRange: currentStep.ageRange, items, isPrev: false, hasStagnation });
       }
     }
   }
@@ -142,15 +156,25 @@ function AssessmentTable({
       className="journal-strand"
       style={{ "--area-color": AREA_COLORS[area.area] ?? "#f6c344" } as React.CSSProperties}
     >
-      <div className={cn("journal-strand-header flex flex-wrap items-baseline gap-x-1", block.isPrev && "opacity-70")}>
-        {block.isPrev && (
-          <span className="text-[10px] font-normal mr-1 opacity-80 tracking-normal normal-case">[previous step]</span>
+      <div
+        className={cn(
+          "journal-strand-header flex items-center justify-between gap-2",
+          block.isPrev && "opacity-70",
         )}
-        <span className="font-semibold">{area.area}:</span>
-        <span className="uppercase tracking-wide">{strand.name}</span>
-        <span className="ml-1 font-normal normal-case tracking-normal">
-          — Step {block.stepNumber} ({block.ageRange})
-        </span>
+      >
+        <div className="flex flex-wrap items-baseline gap-x-1 min-w-0">
+          {block.isPrev && (
+            <span className="text-[10px] font-normal mr-1 opacity-80 tracking-normal normal-case">[previous step]</span>
+          )}
+          <span className="font-semibold">{area.area}:</span>
+          <span className="uppercase tracking-wide">{strand.name}</span>
+          <span className="ml-1 font-normal normal-case tracking-normal">
+            — Step {block.stepNumber} ({block.ageRange})
+          </span>
+        </div>
+        {block.hasStagnation && (
+          <span className="stagnation-badge shrink-0">⚑ No recent progress</span>
+        )}
       </div>
       <table className="journal-step-table w-full">
         <colgroup>
@@ -169,7 +193,7 @@ function AssessmentTable({
         </thead>
         <tbody>
           {block.items.map((item) => (
-            <tr key={item.key}>
+            <tr key={item.key} className={cn(item.isStagnant && "stagnation-row")}>
               <td>
                 <span className="font-semibold mr-1">{item.key})</span>
                 {item.text}

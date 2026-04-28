@@ -179,6 +179,29 @@
   padding: 0 3px;
 }
 
+/* ── Stagnation highlighting ───────────────────────────────────────────────── */
+
+/* Row tint — shown on items that were re-assessed but haven't progressed. */
+.stagnation-row > td {
+  background-color: #fff3cd;
+}
+
+/* Badge on the strand header when the block contains stagnant items. */
+.stagnation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  background: #d97706;
+  color: #fff;
+  border-radius: 3px;
+  padding: 2px 7px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  text-transform: none;
+}
+
 @media print {
   /* Tighter margins on landscape A4 to maximise usable area. */
   @page {
@@ -197,7 +220,9 @@
   .journal-step-table th,
   .journal-step-table td,
   .journal-step-row th,
-  .stagnant-date {
+  .stagnant-date,
+  .stagnation-row > td,
+  .stagnation-badge {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
