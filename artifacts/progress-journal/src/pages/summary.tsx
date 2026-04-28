@@ -379,6 +379,12 @@ function AreaRadarChart({
     );
   }
 
+  function dotColor(score: number): string {
+    if (score >= 70) return "hsl(130 45% 40%)";
+    if (score >= 40) return "hsl(38 88% 48%)";
+    return "hsl(5 72% 58%)";
+  }
+
   return (
     <div className="space-y-3">
       <ResponsiveContainer width="100%" height={340}>
@@ -398,10 +404,29 @@ function AreaRadarChart({
           <Radar
             name="Score"
             dataKey="score"
-            stroke="hsl(130 45% 45%)"
-            fill="hsl(130 45% 55%)"
-            fillOpacity={0.35}
-            dot={{ r: 3, fill: "hsl(130 45% 45%)" }}
+            stroke="hsl(var(--border))"
+            fill="hsl(var(--muted))"
+            fillOpacity={0.6}
+            dot={(props: {
+              cx?: number; cy?: number;
+              payload?: RadarPoint;
+              [key: string]: unknown;
+            }) => {
+              const { cx = 0, cy = 0, payload } = props;
+              const score = payload?.score ?? 0;
+              const color = dotColor(score);
+              return (
+                <circle
+                  key={`dot-${cx}-${cy}`}
+                  cx={cx}
+                  cy={cy}
+                  r={5}
+                  fill={color}
+                  stroke="white"
+                  strokeWidth={1.5}
+                />
+              );
+            }}
           />
           <Tooltip
             formatter={(value: number, _name: string, entry: { payload?: RadarPoint }) => [
@@ -420,16 +445,16 @@ function AreaRadarChart({
       </ResponsiveContainer>
       <div className="flex flex-wrap gap-x-6 gap-y-1 justify-center text-xs text-muted-foreground">
         <span>
-          <span className="inline-block w-2 h-2 rounded-full bg-[hsl(5_72%_66%)] mr-1" />
-          Low (mainly Emerging)
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-[hsl(5_72%_58%)] mr-1.5 align-middle" />
+          Low — mainly Emerging (&lt;40%)
         </span>
         <span>
-          <span className="inline-block w-2 h-2 rounded-full bg-[hsl(38_88%_62%)] mr-1" />
-          Mid (mainly Developing)
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-[hsl(38_88%_48%)] mr-1.5 align-middle" />
+          Mid — mainly Developing (40–69%)
         </span>
         <span>
-          <span className="inline-block w-2 h-2 rounded-full bg-[hsl(130_45%_55%)] mr-1" />
-          High (mainly Secure)
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-[hsl(130_45%_40%)] mr-1.5 align-middle" />
+          High — mainly Secure (70%+)
         </span>
       </div>
     </div>

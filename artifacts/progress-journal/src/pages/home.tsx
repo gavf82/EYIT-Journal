@@ -2,7 +2,7 @@ import { useMemo, useState, useRef } from "react";
 import { Link } from "wouter";
 import { useStore } from "../lib/store";
 import { parseSQLite } from "../lib/sqlite";
-import { countAll } from "../lib/progress";
+import { buildStepVisibility, countAll } from "../lib/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -31,7 +31,7 @@ import { cn } from "../lib/utils";
 import { useToast } from "../hooks/use-toast";
 import { useSaveAndClose } from "../hooks/use-save-and-close";
 import { SaveAndCloseDialog } from "../components/save-and-close-dialog";
-import { formatAge } from "../lib/age";
+import { ageInMonths, formatAge } from "../lib/age";
 import { useDirty } from "../hooks/use-dirty";
 
 function formatDate(d: string) {
@@ -238,7 +238,12 @@ interface ChildCardProps {
 }
 
 function ChildCard({ childId, name, dob, startDate, updatedAt, ratings }: ChildCardProps) {
-  const counts = useMemo(() => countAll(childId, ratings), [childId, ratings]);
+  const childMonths = useMemo(() => ageInMonths(dob), [dob]);
+  const visibility = useMemo(
+    () => buildStepVisibility(childId, childMonths, ratings, childMonths !== null, true),
+    [childId, childMonths, ratings],
+  );
+  const counts = useMemo(() => countAll(childId, ratings, visibility), [childId, ratings, visibility]);
   return (
     <Link href={`/child/${childId}`} className="block group" data-testid={`card-child-${childId}`}>
       <Card className="h-full transition-all hover:shadow-md hover:border-primary/40">
