@@ -30,6 +30,13 @@ import {
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Cell,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
@@ -496,10 +503,183 @@ function AreaRadarChart({
   );
 }
 
+// ── Best-fit step chart ──────────────────────────────────────────────────────
+// Shown only when the age-relevant filter is active.
+// "Best-fit step" = the weighted-average step number across all rated items in
+// the visible (age-relevant) range for each strand.
+//   Emerging=1 · Developing=2 · Secure=3 — heavier weight on more-advanced status.
+// A strand with no ratings in the visible range has bestFit=null (bar not drawn).
+
+interface StrandBestFitRow {
+  label: string;     // title-cased strand name shown on Y-axis
+  fullLabel: string; // original ALL-CAPS name for tooltip
+  areaName: string;
+  areaColor: string;
+  bestFit: number | null;
+}
+
+function toTitleCase(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/\b(\w)/g, (c) => c.toUpperCase())
+    .replace(/\((\w)/g, (_m, c) => `(${c.toUpperCase()}`);
+}
+
+function computeBestFitData(
+  childId: string,
+  ratings: Record<string, Rating>,
+  visibility: StepVisibility,
+): StrandBestFitRow[] {
+  const rows: StrandBestFitRow[] = [];
+  JOURNAL.forEach((area, aIdx) => {
+    const areaColor = AREA_COLORS[area.area] ?? "#ccc";
+    area.strands.forEach((strand, sIdx) => {
+      const visibleSet = visibility?.get(`${aIdx}::${sIdx}`) ?? null;
+      let weightedSum = 0;
+      let totalWeight = 0;
+      strand.steps.forEach((step, stIdx) => {
+        if (!step.items || step.note) return;
+        const inRange = visibleSet ? visibleSet.has(stIdx) : true;
+        if (!inRange) return;
+        step.items.forEach((item) => {
+          const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
+          const s = r?.status;
+          const w = s === "emerging" ? 1 : s === "developing" ? 2 : s === "secure" ? 3 : 0;
+          if (w > 0) {
+            weightedSum += step.number * w;
+            totalWeight += w;
+          }
+        });
+      });
+      const raw = totalWeight > 0 ? weightedSum / totalWeight : null;
+      rows.push({
+        label: toTitleCase(strand.name),
+        fullLabel: strand.name,
+        areaName: area.area,
+        areaColor,
+        bestFit: raw !== null ? Math.round(raw * 10) / 10 : null,
+      });
+    });
+  });
+  return rows;
+}
+
+function BestFitStepChart({
+  childId,
+  ratings,
+  visibility,
+}: {
+  childId: string;
+  ratings: ReturnType<typeof useStore>["state"]["ratings"];
+  visibility: StepVisibility;
+}) {
+  const data = useMemo(
+    () => computeBestFitData(childId, ratings, visibility),
+    [childId, ratings, visibility],
+  );
+
+  const hasAnyData = data.some((d) => d.bestFit !== null);
+
+  if (!hasAnyData) {
+    return (
+      <p className="text-sm text-muted-foreground italic py-6 text-center">
+        Rate statements in the age-relevant steps to see the best-fit chart.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <ResponsiveContainer width="100%" height={580}>
+        <BarChart
+          data={data}
+          layout="vertical"
+          margin={{ top: 4, right: 52, bottom: 24, left: 4 }}
+        >
+          <CartesianGrid
+            strokeDasharray="3 3"
+            horizontal={false}
+            stroke="hsl(var(--border))"
+          />
+          <XAxis
+            type="number"
+            domain={[0, 14]}
+            ticks={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]}
+            tickFormatter={(v: number) => `S${v}`}
+            tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+            label={{
+              value: "Best-fit step →",
+              position: "insideBottom",
+              offset: -14,
+              fontSize: 10,
+              fill: "hsl(var(--muted-foreground))",
+            }}
+          />
+          <YAxis
+            type="category"
+            dataKey="label"
+            width={196}
+            tick={{ fontSize: 10, fill: "hsl(var(--foreground))" }}
+          />
+          <Tooltip
+            formatter={(_v: number, _n: string, entry: { payload?: StrandBestFitRow }) => {
+              const row = entry.payload;
+              if (!row?.bestFit) return ["No ratings in age range", row?.areaName ?? ""];
+              return [`Step ${row.bestFit.toFixed(1)}`, row.areaName];
+            }}
+            contentStyle={{
+              fontSize: 12,
+              borderRadius: 6,
+              border: "1px solid hsl(var(--border))",
+              backgroundColor: "hsl(var(--card))",
+              color: "hsl(var(--card-foreground))",
+            }}
+          />
+          <Bar dataKey="bestFit" radius={[0, 3, 3, 0]} minPointSize={0}>
+            {data.map((row, idx) => (
+              <Cell
+                key={`cell-${idx}`}
+                fill={row.bestFit !== null ? row.areaColor : "transparent"}
+                fillOpacity={0.85}
+              />
+            ))}
+            <LabelList
+              dataKey="bestFit"
+              position="right"
+              formatter={(v: number | null) => (v != null ? `S${v.toFixed(1)}` : "")}
+              style={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+            />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+
+      {/* Area colour legend */}
+      <div className="flex flex-wrap gap-x-5 gap-y-1.5 justify-center text-xs text-muted-foreground">
+        {JOURNAL.map((area) => (
+          <span key={area.area} className="flex items-center gap-1.5">
+            <span
+              className="inline-block w-3 h-3 rounded-sm shrink-0"
+              style={{ backgroundColor: AREA_COLORS[area.area] ?? "#ccc", opacity: 0.85 }}
+            />
+            {area.area}
+          </span>
+        ))}
+      </div>
+
+      <p className="text-xs text-center text-muted-foreground leading-relaxed">
+        Best-fit step = weighted average of rated items within the age-relevant range
+        (Emerging × 1 · Developing × 2 · Secure × 3).
+        Strands with no ratings in range are not shown.
+      </p>
+    </div>
+  );
+}
+
 const SECTIONS = [
   { id: "sec-overview", label: "Overview" },
   { id: "sec-progress", label: "Progress" },
   { id: "sec-radar", label: "Radar" },
+  { id: "sec-best-fit", label: "Best-fit" },
   { id: "sec-by-area", label: "By area" },
   { id: "sec-alerts", label: "Alerts" },
   { id: "sec-journal", label: "Journal" },
@@ -651,7 +831,8 @@ export default function SummaryPage() {
       <nav className="no-print fixed bottom-0 left-0 right-0 z-20 bg-background/95 backdrop-blur border-t border-border px-4 sm:px-6 lg:px-8">
         <div className="flex gap-0.5 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {SECTIONS.map((s) =>
-            s.id === "sec-alerts" && stagnantItems.length === 0 ? null : (
+            (s.id === "sec-alerts" && stagnantItems.length === 0) ||
+            (s.id === "sec-best-fit" && !ageFilterOn) ? null : (
               <button
                 key={s.id}
                 onClick={() => {
@@ -904,6 +1085,44 @@ export default function SummaryPage() {
             </CardContent>
           </Card>
         </section>
+
+        {/* Best-fit step chart — only when age filter is active */}
+        {ageFilterOn && (
+          <section id="sec-best-fit">
+            <div className="flex items-center gap-2 mb-3">
+              <h2 className="text-lg font-semibold">Best-fit step by strand</h2>
+              <TooltipProvider>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="How is best-fit step calculated?"
+                      className="rounded-full p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Info className="h-4 w-4 shrink-0" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-72 text-xs leading-relaxed">
+                    For each of the 18 strands, all rated items within the age-relevant
+                    range are combined into a single weighted average step number.
+                    Emerging counts as 1 point, Developing as 2, Secure as 3 — so a
+                    strand where most items are Secure will show a higher step than one
+                    where items are Emerging. Strands with no ratings in range are omitted.
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+            </div>
+            <Card>
+              <CardContent className="p-5">
+                <BestFitStepChart
+                  childId={childId}
+                  ratings={state.ratings}
+                  visibility={visibility}
+                />
+              </CardContent>
+            </Card>
+          </section>
+        )}
 
         <section id="sec-by-area">
           <h2 className="text-lg font-semibold mb-3">By area</h2>
