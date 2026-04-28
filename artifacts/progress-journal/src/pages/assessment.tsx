@@ -4,12 +4,14 @@ import { JOURNAL, AREA_COLORS, type JournalArea, type JournalStrand, type Status
 import { useStore, getRatingKey, type Rating } from "../lib/store";
 import { buildStepVisibility, type StepVisibility } from "../lib/progress";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Printer, LogOut } from "lucide-react";
+import { ArrowLeft, Printer, LogOut, CheckSquare, Square } from "lucide-react";
 import { useSaveAndClose } from "../hooks/use-save-and-close";
 import { SaveAndCloseDialog } from "../components/save-and-close-dialog";
 import { ageInMonths, formatAge } from "../lib/age";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "../lib/utils";
+
+const ALL_AREA_NAMES = JOURNAL.map((a) => a.area);
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -200,7 +202,27 @@ export default function AssessmentPage() {
   const childMonths = child ? ageInMonths(child.dob) : null;
   const childAgeLabel = child ? formatAge(child.dob) : "";
   const [includeIncomplete, setIncludeIncomplete] = useState(false);
+  const [selectedAreas, setSelectedAreas] = useState<Set<string>>(() => new Set(ALL_AREA_NAMES));
   const { openDialog, hasData, dialogProps } = useSaveAndClose();
+
+  const allSelected = selectedAreas.size === ALL_AREA_NAMES.length;
+
+  function toggleArea(area: string) {
+    setSelectedAreas((prev) => {
+      const next = new Set(prev);
+      if (next.has(area)) {
+        if (next.size === 1) return prev; // always keep at least one
+        next.delete(area);
+      } else {
+        next.add(area);
+      }
+      return next;
+    });
+  }
+
+  function selectAll() {
+    setSelectedAreas(new Set(ALL_AREA_NAMES));
+  }
 
   // Inject a portrait @page override while this component is mounted so that
   // printing from the assessment route uses A4 portrait instead of landscape.
@@ -229,6 +251,7 @@ export default function AssessmentPage() {
     if (!childId) return [];
     const out: AssessmentStrandEntry[] = [];
     JOURNAL.forEach((area, aIdx) => {
+      if (!selectedAreas.has(area.area)) return;
       area.strands.forEach((strand, sIdx) => {
         const blocks = collectBlocks(
           area,
@@ -244,7 +267,7 @@ export default function AssessmentPage() {
       });
     });
     return out;
-  }, [childId, state.ratings, visibility, includeIncomplete]);
+  }, [childId, state.ratings, visibility, includeIncomplete, selectedAreas]);
 
   if (!child) {
     return (
@@ -267,43 +290,96 @@ export default function AssessmentPage() {
     <div className="assessment-print container max-w-4xl px-4 sm:px-6 lg:px-8 py-8 pb-20 print:py-0 print:px-0 print:max-w-none print:pb-0">
 
       {/* ── Toolbar (screen only) ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6 no-print">
-        <Link
-          href={`/child/${childId}`}
-          className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to journal
-        </Link>
-        <div className="flex flex-wrap items-center gap-2">
-          {childMonths !== null && (
-            <label
-              className="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs cursor-pointer select-none hover:bg-muted/40"
-              data-testid="toggle-include-prev-label"
+      <div className="no-print space-y-3 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href={`/child/${childId}`}
+            className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to journal
+          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            {childMonths !== null && (
+              <label
+                className="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs cursor-pointer select-none hover:bg-muted/40"
+                data-testid="toggle-include-prev-label"
+              >
+                <Switch
+                  checked={includeIncomplete}
+                  onCheckedChange={setIncludeIncomplete}
+                  data-testid="toggle-include-incomplete"
+                />
+                <span className="font-medium">Include incomplete from earlier steps</span>
+              </label>
+            )}
+            <Button
+              variant="outline"
+              className="gap-2"
+              disabled={!hasData}
+              onClick={openDialog}
             >
-              <Switch
-                checked={includeIncomplete}
-                onCheckedChange={setIncludeIncomplete}
-                data-testid="toggle-include-incomplete"
-              />
-              <span className="font-medium">Include incomplete from earlier steps</span>
-            </label>
+              <LogOut className="h-4 w-4" /> Save and close
+            </Button>
+            <SaveAndCloseDialog {...dialogProps} />
+            <Button
+              className="gap-2"
+              onClick={() => window.print()}
+              data-testid="button-print-assessment"
+            >
+              <Printer className="h-4 w-4" /> Print assessment
+            </Button>
+          </div>
+        </div>
+
+        {/* ── Area filter ── */}
+        <div className="rounded-lg border border-border bg-card p-3" data-testid="area-filter-panel">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground mr-1 shrink-0">
+              Areas to print:
+            </span>
+            <button
+              onClick={selectAll}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border transition-colors",
+                allSelected
+                  ? "bg-foreground text-background border-foreground"
+                  : "bg-transparent text-muted-foreground border-border hover:border-foreground/40",
+              )}
+              data-testid="area-filter-all"
+            >
+              {allSelected ? <CheckSquare className="h-3 w-3" /> : <Square className="h-3 w-3" />}
+              All
+            </button>
+            {JOURNAL.map((area) => {
+              const selected = selectedAreas.has(area.area);
+              const color = AREA_COLORS[area.area] ?? "#e5e5e5";
+              return (
+                <button
+                  key={area.area}
+                  onClick={() => toggleArea(area.area)}
+                  data-testid={`area-filter-${area.area}`}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border transition-all",
+                    selected
+                      ? "border-transparent opacity-100"
+                      : "bg-transparent border-border opacity-40 hover:opacity-60",
+                  )}
+                  style={selected ? { backgroundColor: color, borderColor: color } : undefined}
+                >
+                  {selected ? <CheckSquare className="h-3 w-3" /> : <Square className="h-3 w-3" />}
+                  {area.area}
+                </button>
+              );
+            })}
+          </div>
+          {!allSelected && (
+            <p className="text-[11px] text-muted-foreground mt-2">
+              Printing {selectedAreas.size} of {ALL_AREA_NAMES.length} areas.{" "}
+              <button className="underline hover:text-foreground" onClick={selectAll}>
+                Select all
+              </button>
+            </p>
           )}
-          <Button
-            variant="outline"
-            className="gap-2"
-            disabled={!hasData}
-            onClick={openDialog}
-          >
-            <LogOut className="h-4 w-4" /> Save and close
-          </Button>
-          <SaveAndCloseDialog {...dialogProps} />
-          <Button
-            className="gap-2"
-            onClick={() => window.print()}
-            data-testid="button-print-assessment"
-          >
-            <Printer className="h-4 w-4" /> Print assessment
-          </Button>
         </div>
       </div>
 
@@ -348,6 +424,14 @@ export default function AssessmentPage() {
             <div className="flex items-end gap-6 border-b border-black pb-2">
               <dt className="font-medium w-48">Practitioner</dt>
               <dd className="flex-1"> </dd>
+            </div>
+            <div className="flex items-start gap-6 border-b border-black pb-2">
+              <dt className="font-medium w-48 pt-0.5">Areas assessed</dt>
+              <dd className="flex-1">
+                {allSelected
+                  ? "All areas"
+                  : Array.from(selectedAreas).join(", ")}
+              </dd>
             </div>
           </dl>
         </div>
