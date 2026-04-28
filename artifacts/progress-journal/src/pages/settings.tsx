@@ -189,7 +189,7 @@ export default function SettingsPage() {
                 seedDemoData();
                 setDemoLoaded(true);
                 toast({ title: "Demo data loaded", description: "Amelia Thompson added." });
-                navigate(`/child/${DEMO_CHILD_ID}/summary`);
+                navigate("/");
               }}
             >
               <FlaskConical className="h-4 w-4" /> Load demo data
