@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import { Link, useParams, useLocation } from "wouter";
 import { JOURNAL, AREA_COLORS, JournalArea, JournalStep, JournalStrand, Status } from "../data/journal";
-import { useStore, getRatingKey } from "../lib/store";
+import { useStore, getRatingKey, type Rating } from "../lib/store";
 import { importSQLite } from "../lib/sqlite";
 import { setImportHandle } from "../lib/filehandle-store";
 import { useSaveAndClose } from "../hooks/use-save-and-close";
@@ -150,10 +150,29 @@ interface ItemRowProps {
   itemKey: string;
   text: string;
   value: Status;
+  rating?: Rating;
   onChange: (next: Status) => void;
 }
 
-function ItemRow({ itemKey, text, value, onChange }: Omit<ItemRowProps, "childId" | "aIdx" | "sIdx" | "stIdx">) {
+const STATUS_INITIAL: Record<string, string> = { emerging: "E", developing: "D", secure: "S" };
+const STATUS_TRAIL_CLASS: Record<string, string> = {
+  emerging:   "text-[hsl(5_72%_45%)]",
+  developing: "text-[hsl(38_88%_38%)]",
+  secure:     "text-[hsl(120_35%_38%)]",
+};
+
+function fmtTrailDate(iso: string) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getFullYear()).slice(2)}`;
+}
+
+function ItemRow({ itemKey, text, value, rating, onChange }: Omit<ItemRowProps, "childId" | "aIdx" | "sIdx" | "stIdx">) {
+  // Build full trail: history entries + current
+  const trail = rating
+    ? [...(rating.history ?? []), { status: rating.status, date: rating.updatedAt }]
+    : [];
+
   return (
     <div
       className="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-3 md:gap-6 py-3 border-t border-border first:border-t-0"
@@ -163,7 +182,24 @@ function ItemRow({ itemKey, text, value, onChange }: Omit<ItemRowProps, "childId
         <span className="mt-0.5 inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-muted px-1.5 text-[11px] font-medium text-muted-foreground tabular-nums">
           {itemKey}
         </span>
-        <p className="text-sm leading-relaxed text-foreground">{text}</p>
+        <div>
+          <p className="text-sm leading-relaxed text-foreground">{text}</p>
+          {trail.length > 1 && (
+            <div className="flex items-center gap-1 mt-1 flex-wrap">
+              {trail.map((h, i) => (
+                <span key={i} className="flex items-center gap-1">
+                  {i > 0 && <span className="text-muted-foreground/40 text-[10px]">→</span>}
+                  <span className="text-[10px] tabular-nums text-muted-foreground">
+                    <span className={cn("font-semibold", STATUS_TRAIL_CLASS[h.status ?? ""] ?? "")}>
+                      {STATUS_INITIAL[h.status ?? ""] ?? "?"}
+                    </span>
+                    {" "}{fmtTrailDate(h.date)}
+                  </span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
       <div className="md:pl-2">
         <StatusSelector value={value} onChange={onChange} size="sm" />
@@ -255,13 +291,15 @@ function StepCard({ childId, aIdx, sIdx, stIdx, step, filter, ratings, setRating
           <div>
             {visibleItems.map((item) => {
               const key = getRatingKey(childId, aIdx, sIdx, stIdx, item.key);
-              const status = ratings[key]?.status ?? null;
+              const ratingObj = ratings[key];
+              const status = ratingObj?.status ?? null;
               return (
                 <ItemRow
                   key={item.key}
                   itemKey={item.key}
                   text={item.text}
                   value={status}
+                  rating={ratingObj}
                   onChange={(next) => setRating(key, next)}
                 />
               );

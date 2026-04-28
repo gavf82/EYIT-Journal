@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "wouter";
 import { JOURNAL, AREA_COLORS, type JournalArea, type JournalStrand, type Status } from "../data/journal";
-import { useStore, getRatingKey, type Rating } from "../lib/store";
+import { useStore, getRatingKey, type Rating, type HistoryEntry } from "../lib/store";
 import {
   buildStepVisibility,
   countAll,
@@ -92,6 +92,7 @@ interface RatedItemRow {
   text: string;
   status: Exclude<Status, null>;
   updatedAt: string;
+  history?: HistoryEntry[];
 }
 
 interface StepBlock {
@@ -120,7 +121,7 @@ function collectStrandBlocks(
       const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
       const s = r?.status;
       if (s === "emerging" || s === "developing" || s === "secure") {
-        items.push({ key: item.key, text: item.text, status: s, updatedAt: r!.updatedAt });
+        items.push({ key: item.key, text: item.text, status: s, updatedAt: r!.updatedAt, history: r!.history });
       }
     });
     if (items.length === 0) return;
@@ -175,7 +176,18 @@ function StrandTable({
             {block.items.map((it) => {
               const sk = `${area.area}::${strand.name}::${block.stepNumber}::${it.key}`;
               const isStagnant = stagnantKeys?.has(sk) ?? false;
-              const dateStr = formatEntryDate(it.updatedAt);
+
+              // Resolve the date for each status stage from current or history.
+              function stageDate(s: "emerging" | "developing" | "secure"): string | null {
+                if (it.status === s) return it.updatedAt;
+                const h = it.history?.find((e) => e.status === s);
+                return h?.date ?? null;
+              }
+
+              const eDate = stageDate("emerging");
+              const dDate = stageDate("developing");
+              const sDate = stageDate("secure");
+
               return (
                 <tr key={it.key}>
                   <td>
@@ -183,17 +195,21 @@ function StrandTable({
                     {it.text}
                   </td>
                   <td className="text-center text-xs tabular-nums">
-                    {it.status === "emerging" ? (
-                      <span className={isStagnant ? "stagnant-date" : undefined}>{dateStr}</span>
+                    {eDate ? (
+                      <span className={isStagnant && it.status === "emerging" ? "stagnant-date" : undefined}>
+                        {formatEntryDate(eDate)}
+                      </span>
                     ) : null}
                   </td>
                   <td className="text-center text-xs tabular-nums">
-                    {it.status === "developing" ? (
-                      <span className={isStagnant ? "stagnant-date" : undefined}>{dateStr}</span>
+                    {dDate ? (
+                      <span className={isStagnant && it.status === "developing" ? "stagnant-date" : undefined}>
+                        {formatEntryDate(dDate)}
+                      </span>
                     ) : null}
                   </td>
                   <td className="text-center text-xs tabular-nums">
-                    {it.status === "secure" ? dateStr : null}
+                    {sDate ? formatEntryDate(sDate) : null}
                   </td>
                 </tr>
               );

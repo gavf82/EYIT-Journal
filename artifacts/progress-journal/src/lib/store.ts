@@ -10,9 +10,17 @@ export interface Child {
   updatedAt: string;
 }
 
+export interface HistoryEntry {
+  status: Status;
+  date: string;
+}
+
 export interface Rating {
   status: Status;
   updatedAt: string;
+  /** Prior states in chronological order, oldest first. The current state is
+   *  represented by `status` + `updatedAt`; history holds everything before it. */
+  history?: HistoryEntry[];
 }
 
 export interface StoreState {
@@ -99,13 +107,21 @@ export function useStore() {
   const setRating = (key: string, status: Status) => {
     const current = getStore();
     const newRatings = { ...current.ratings };
-    
+
     if (status === null) {
       delete newRatings[key];
     } else {
+      const existing = newRatings[key];
+      // When the status changes, archive the previous state so the full
+      // progression (e.g. E → D → S) is preserved in history.
+      let history = existing?.history ?? [];
+      if (existing && existing.status && existing.status !== status) {
+        history = [...history, { status: existing.status, date: existing.updatedAt }];
+      }
       newRatings[key] = {
         status,
         updatedAt: new Date().toISOString(),
+        ...(history.length > 0 ? { history } : {}),
       };
     }
     

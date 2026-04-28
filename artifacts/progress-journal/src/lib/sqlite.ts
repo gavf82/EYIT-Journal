@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS ratings (
   item_key    TEXT    NOT NULL,
   status      TEXT    NOT NULL,
   updated_at  TEXT    NOT NULL,
+  history     TEXT,
   PRIMARY KEY (child_id, area_idx, strand_idx, step_idx, item_key)
 );
 `;
@@ -66,8 +67,8 @@ export async function exportSQLite(): Promise<boolean> {
 
   const insertRating = db.prepare(
     `INSERT OR REPLACE INTO ratings
-       (child_id, area_idx, strand_idx, step_idx, item_key, status, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       (child_id, area_idx, strand_idx, step_idx, item_key, status, updated_at, history)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   for (const [key, rating] of Object.entries(store.ratings)) {
     const parts = key.split("::");
@@ -81,6 +82,7 @@ export async function exportSQLite(): Promise<boolean> {
       itemKey,
       rating.status,
       rating.updatedAt,
+      rating.history && rating.history.length > 0 ? JSON.stringify(rating.history) : null,
     ]);
   }
   insertRating.free();
@@ -146,16 +148,27 @@ export async function parseSQLite(
     }
   }
 
+  // Check whether the file has the history column (added in a later schema version).
+  const hasHistoryCol =
+    db
+      .exec(`SELECT 1 FROM pragma_table_info('ratings') WHERE name='history'`)
+      .flatMap((r: initSqlJs.QueryExecResult) => r.values)
+      .length > 0;
+
   const ratings: StoreState["ratings"] = {};
   const ratingRows = db.exec(
-    "SELECT child_id, area_idx, strand_idx, step_idx, item_key, status, updated_at FROM ratings",
+    hasHistoryCol
+      ? "SELECT child_id, area_idx, strand_idx, step_idx, item_key, status, updated_at, history FROM ratings"
+      : "SELECT child_id, area_idx, strand_idx, step_idx, item_key, status, updated_at, NULL FROM ratings",
   );
   if (ratingRows.length > 0) {
     for (const row of ratingRows[0].values) {
       const key = `${row[0]}::${row[1]}::${row[2]}::${row[3]}::${row[4]}`;
+      const historyRaw = row[7] as string | null;
       ratings[key] = {
         status: row[5] as "emerging" | "developing" | "secure",
         updatedAt: row[6] as string,
+        ...(historyRaw ? { history: JSON.parse(historyRaw) } : {}),
       };
     }
   }
