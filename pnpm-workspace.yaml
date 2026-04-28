@@ -164,3 +164,9 @@ overrides:
   "path-to-regexp@8": "^8.4.0"
   # Security: fix code injection vulnerability (GHSA-r5fr-rjxr-66jc) in lodash
   lodash: "^4.18.0"
+  # Security: fix ReDoS vulnerability (GHSA-f886-m6hf-6m8v) in brace-expansion 2.x
+  "brace-expansion@2": "^2.0.3"
+  # Security: fix Stack Overflow vulnerability (GHSA-48c2-rrv3-qjmp) in yaml 2.x
+  "yaml@2": "^2.8.3"
+  # Security: fix XSS vulnerability (GHSA-qx2v-qp2m-jg93) in postcss
+  postcss: "^8.5.10"
