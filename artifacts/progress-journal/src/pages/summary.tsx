@@ -144,11 +144,9 @@ function StrandTable({
     <section
       className="journal-strand"
       data-testid={`strand-table-${strand.name}`}
+      style={{ "--area-color": AREA_COLORS[area.area] ?? "#f6c344" } as React.CSSProperties}
     >
-      <div
-        className="journal-strand-header"
-        style={{ background: AREA_COLORS[area.area] ?? "#f6c344", color: "#111" }}
-      >
+      <div className="journal-strand-header">
         <span className="font-semibold">{area.area}: </span>
         <span className="uppercase tracking-wide">{strand.name}</span>
       </div>

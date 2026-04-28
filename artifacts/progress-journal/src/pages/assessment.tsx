@@ -136,11 +136,11 @@ function AssessmentTable({
   block: AssessmentBlock;
 }) {
   return (
-    <section className="journal-strand">
-      <div
-        className={cn("journal-strand-header flex flex-wrap items-baseline gap-x-1", block.isPrev && "opacity-70")}
-        style={{ background: AREA_COLORS[area.area] ?? "#f6c344", color: "#111" }}
-      >
+    <section
+      className="journal-strand"
+      style={{ "--area-color": AREA_COLORS[area.area] ?? "#f6c344" } as React.CSSProperties}
+    >
+      <div className={cn("journal-strand-header flex flex-wrap items-baseline gap-x-1", block.isPrev && "opacity-70")}>
         {block.isPrev && (
           <span className="text-[10px] font-normal mr-1 opacity-80 tracking-normal normal-case">[previous step]</span>
         )}

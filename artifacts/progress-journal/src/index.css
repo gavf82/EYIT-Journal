@@ -124,11 +124,13 @@
 }
 
 /* PDF-style journal layout (used on the Summary page). Each strand renders as
-   a yellow title bar followed by one table per step (Emerging / Developing /
+   a coloured title bar followed by one table per step (Emerging / Developing /
    Secure), so we have visible breathing room between step tables and the
-   browser can break pages between them without splitting a single step. */
+   browser can break pages between them without splitting a single step.
+   --area-color is set via inline style on the .journal-strand wrapper so both
+   the header and step-row subheaders inherit the same hue family. */
 .journal-strand-header {
-  background: #f6c344;
+  background: var(--area-color, #f6c344);
   color: #111;
   font-size: 15px;
   padding: 0.55rem 0.8rem;
@@ -159,7 +161,7 @@
   overflow-wrap: anywhere;
 }
 .journal-step-table .journal-step-row th {
-  background: #fde9a7;
+  background: color-mix(in srgb, var(--area-color, #f6c344) 35%, white);
   color: #111;
   font-weight: 600;
   font-size: 13px;
