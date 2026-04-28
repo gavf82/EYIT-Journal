@@ -223,17 +223,24 @@
   }
   .print-cover-inner { flex: 1; }
 
-  /* Strands flow continuously. Step tables are kept together as units
-     (no mid-table page splits) but can flow across pages between tables.
-     The strand header is kept with the next element so it is never
-     stranded alone at the bottom of a page. */
+  /* Journal section title — appears once before the strand tables in print. */
+  .print-journal-title {
+    font-size: 13pt;
+    font-weight: 700;
+    margin-bottom: 0.3cm;
+    padding-bottom: 0.12cm;
+    border-bottom: 1.5px solid #333;
+  }
+
+  /* Strands flow continuously with minimal gaps. No forced breaks between
+     strands or step tables — content fills each page naturally. */
   .print-pages > .journal-page {
     break-inside: auto;
-    margin-bottom: 0.3cm;
+    margin-bottom: 0.15cm;
   }
   .journal-step-table {
-    break-inside: avoid;
-    page-break-inside: avoid;
+    break-inside: auto;
+    page-break-inside: auto;
   }
   /* Corner label and footnote are only meaningful in the one-page-per-strand
      layout; hide them when strands flow freely. */

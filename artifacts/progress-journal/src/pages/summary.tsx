@@ -920,6 +920,19 @@ export default function SummaryPage() {
       {/* Journal pages — PDF-style tables, shown on screen and printed */}
       <section id="sec-journal" className="mt-8 print:mt-0">
         <h2 className="text-lg font-semibold mb-3 no-print">Journal pages (print preview)</h2>
+        {/* Print-only section title */}
+        {strandTables.length > 0 && (
+          <div className="hidden print:block print-journal-title">
+            Journal Record — {child.name}
+            <span style={{ fontSize: "9pt", fontWeight: 400, marginLeft: "1cm", color: "#444" }}>
+              {ageFilterOn && childMonths !== null
+                ? includeHistory
+                  ? `History up to current step (${childAgeLabel})`
+                  : `Current step only (${childAgeLabel})`
+                : "All steps"}
+            </span>
+          </div>
+        )}
         {strandTables.length === 0 ? (
           <p className="text-sm text-muted-foreground italic no-print">
             No statements have been rated yet — go back to the journal and mark some items to see
