@@ -2,6 +2,7 @@ import { useMemo, useState, useRef } from "react";
 import { Link } from "wouter";
 import { useStore } from "../lib/store";
 import { parseSQLite } from "../lib/sqlite";
+import { setImportHandle } from "../lib/filehandle-store";
 import { buildStepVisibility, countAll } from "../lib/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -159,14 +160,37 @@ function ImportButton() {
     ratings: ReturnType<typeof useStore>["state"]["ratings"];
   } | null>(null);
 
-  async function onFile(f: File) {
+  async function onFile(f: File, handle?: FileSystemFileHandle) {
     if (ref.current) ref.current.value = "";
     try {
       const data = await parseSQLite(f);
+      // Store the handle so saves can write back to this file.
+      setImportHandle(handle ?? null);
       setPending(data);
     } catch (err: any) {
       toast({ title: "Import failed", description: err?.message ?? "Unable to read file.", variant: "destructive" });
     }
+  }
+
+  async function openPicker() {
+    // Prefer showOpenFilePicker (Chrome/Edge 86+) so we capture a writable
+    // file handle and can save back to the same location without a new dialog.
+    if ("showOpenFilePicker" in window) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const [handle]: FileSystemFileHandle[] = await (window as any).showOpenFilePicker({
+          types: [{ description: "EYIT Journal", accept: { "application/octet-stream": [".db"] } }],
+          multiple: false,
+        });
+        const file = await handle.getFile();
+        onFile(file, handle);
+        return;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") return;
+        // Unexpected error — fall through to the hidden file input.
+      }
+    }
+    ref.current?.click();
   }
 
   function confirmCollection() {
@@ -197,7 +221,7 @@ function ImportButton() {
       <Button
         variant="outline"
         className="gap-2"
-        onClick={() => ref.current?.click()}
+        onClick={openPicker}
         data-testid="button-import-home"
       >
         <Upload className="h-4 w-4" /> Import

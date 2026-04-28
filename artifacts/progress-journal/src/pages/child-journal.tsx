@@ -3,6 +3,7 @@ import { Link, useParams, useLocation } from "wouter";
 import { JOURNAL, AREA_COLORS, JournalArea, JournalStep, JournalStrand, Status } from "../data/journal";
 import { useStore, getRatingKey } from "../lib/store";
 import { importSQLite } from "../lib/sqlite";
+import { setImportHandle } from "../lib/filehandle-store";
 import { useSaveAndClose } from "../hooks/use-save-and-close";
 import { SaveAndCloseDialog } from "../components/save-and-close-dialog";
 import {
@@ -536,6 +537,30 @@ export default function ChildJournalPage() {
   const [editOpen, setEditOpen] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
+  async function openImportPicker() {
+    if ("showOpenFilePicker" in window) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const [handle]: FileSystemFileHandle[] = await (window as any).showOpenFilePicker({
+          types: [{ description: "EYIT Journal", accept: { "application/octet-stream": [".db"] } }],
+          multiple: false,
+        });
+        const file = await handle.getFile();
+        setImportHandle(handle);
+        try {
+          await importSQLite(file);
+          toast({ title: "Journal imported" });
+        } catch (err: any) {
+          toast({ title: "Import failed", description: err?.message ?? "Could not parse file.", variant: "destructive" });
+        }
+        return;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") return;
+      }
+    }
+    importRef.current?.click();
+  }
+
   // Track which strands are open, keyed as `${areaIdx}::${strandIdx}`.
   // Default: all collapsed for a clean overview.
   const [openStrands, setOpenStrands] = useState<Record<string, boolean>>({});
@@ -667,7 +692,7 @@ export default function ChildJournalPage() {
                 <DropdownMenuItem onSelect={openDialog}>
                   <LogOut className="h-4 w-4 mr-2" /> Save and close
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => importRef.current?.click()}>
+                <DropdownMenuItem onSelect={openImportPicker}>
                   <Upload className="h-4 w-4 mr-2" /> Import JSON
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
