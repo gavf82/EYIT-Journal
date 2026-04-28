@@ -223,6 +223,89 @@
   }
   .print-cover-inner { flex: 1; }
 
+  /* ── EYIT-branded cover (Summary print) ─────────────────────────────────
+     Fonts and colours extracted directly from the original EYIT docx:
+       Title: Gill Sans MT, 50pt (→ 36pt for proportional fit), #008264, bold
+       Date:  Gill Sans MT, 16pt, #008264, bold
+       Fields: Verdana, 12pt, black
+       Areas:  Arial, 14pt, filled with exact area background colours        */
+  .eyit-cover {
+    font-family: 'Gill Sans MT', 'Gill Sans', Optima, Calibri, sans-serif;
+  }
+
+  .eyit-cover-logo-row {
+    margin-bottom: 0.5cm;
+  }
+  .eyit-cover-logo {
+    /* Native: 550 × 95 px — display as a wide banner ~8 cm */
+    width: 8cm;
+    height: auto;
+    display: block;
+  }
+
+  .eyit-cover-titles {
+    margin-bottom: 0.8cm;
+    flex-shrink: 0;
+  }
+  .eyit-cover-h1 {
+    font-family: 'Gill Sans MT', 'Gill Sans', Optima, Calibri, sans-serif;
+    font-size: 36pt;
+    font-weight: bold;
+    color: #008264;
+    line-height: 1.15;
+    margin: 0;
+  }
+  .eyit-cover-h2 {
+    font-family: 'Gill Sans MT', 'Gill Sans', Optima, Calibri, sans-serif;
+    font-size: 16pt;
+    font-weight: bold;
+    color: #008264;
+    margin-top: 0.3cm;
+    margin-bottom: 0;
+  }
+
+  .eyit-cover-fields {
+    font-family: Verdana, Geneva, sans-serif;
+    font-size: 12pt;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55cm;
+    margin: 0.6cm 0 0 0;
+    flex-shrink: 0;
+  }
+  .eyit-cover-field {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5cm;
+    border-bottom: 1px solid #000;
+    padding-bottom: 3px;
+    margin: 0;
+  }
+  .eyit-cover-field dt {
+    width: 5.5cm;
+    flex-shrink: 0;
+    font-weight: normal;
+  }
+  .eyit-cover-field dd {
+    flex: 1;
+    margin: 0;
+  }
+
+  /* Seven coloured area boxes spanning the full page width */
+  .eyit-cover-areas {
+    display: flex;
+    width: 100%;
+    margin-bottom: 0.7cm; /* room above the footnote */
+  }
+  .eyit-cover-area {
+    flex: 1;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 9pt;
+    padding: 6px 4px;
+    text-align: center;
+    line-height: 1.35;
+  }
+
   /* Journal section title — appears once before the strand tables in print. */
   .print-journal-title {
     font-size: 13pt;

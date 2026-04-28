@@ -669,45 +669,56 @@ export default function SummaryPage() {
         </div>
       </nav>
 
-      {/* Print-only cover page (matches PDF cover format) */}
-      <section className="hidden print:flex print-cover">
-        <div className="print-corner">EYIT September 2024</div>
-        <div className="print-cover-inner">
-          <div className="text-center pt-24">
-            <h1 className="text-4xl font-semibold tracking-tight">Early Years Inclusion Team</h1>
-            <h2 className="text-3xl font-semibold mt-3">Development Journal</h2>
-          </div>
-          <p className="text-right mt-8 text-sm">September 2024</p>
-          <dl className="mt-20 space-y-10 text-base">
-            <div className="flex items-end gap-6 border-b border-black pb-2">
-              <dt className="font-medium w-48">Child's Name</dt>
-              <dd className="flex-1">{child.name}</dd>
-            </div>
-            <div className="flex items-end gap-6 border-b border-black pb-2">
-              <dt className="font-medium w-48">Date of Birth</dt>
-              <dd className="flex-1">{formatDate(child.dob)}</dd>
-            </div>
-            <div className="flex items-end gap-6 border-b border-black pb-2">
-              <dt className="font-medium w-48">Journal Start-Date</dt>
-              <dd className="flex-1">{formatDate(child.startDate)}</dd>
-            </div>
-            <div className="flex items-end gap-6 border-b border-black pb-2">
-              <dt className="font-medium w-48">Summary generated</dt>
-              <dd className="flex-1">{formatDate(new Date().toISOString())}</dd>
-            </div>
-            <div className="flex items-end gap-6 border-b border-black pb-2">
-              <dt className="font-medium w-48">Statements rated</dt>
-              <dd className="flex-1 tabular-nums">
-                {overall.rated} of {overall.total} ({overall.percentRated}%)
-                {ageFilterOn && childMonths !== null
-                  ? includeHistory
-                    ? ` — history up to current step (${childAgeLabel})`
-                    : ` — current step only (${childAgeLabel})`
-                  : ""}
-              </dd>
-            </div>
-          </dl>
+      {/* Print-only cover page — styled to match the EYIT Development Journal */}
+      <section className="hidden print:flex print-cover eyit-cover">
+        {/* Logo */}
+        <div className="eyit-cover-logo-row">
+          <img
+            src={`${import.meta.env.BASE_URL}eyit-logo.png`}
+            alt="Early Years Inclusion Team"
+            className="eyit-cover-logo"
+          />
         </div>
+
+        {/* Title block — Gill Sans MT, #008264 */}
+        <div className="eyit-cover-titles">
+          <div className="eyit-cover-h1">Early Years Inclusion Team</div>
+          <div className="eyit-cover-h1">Development Journal</div>
+          <div className="eyit-cover-h2">September 2024</div>
+        </div>
+
+        {/* Child details — Verdana 12pt */}
+        <dl className="eyit-cover-fields">
+          <div className="eyit-cover-field">
+            <dt>Child's Name</dt>
+            <dd>{child.name}</dd>
+          </div>
+          <div className="eyit-cover-field">
+            <dt>Date of Birth</dt>
+            <dd>{formatDate(child.dob)}</dd>
+          </div>
+          <div className="eyit-cover-field">
+            <dt>Journal Start-Date</dt>
+            <dd>{formatDate(child.startDate)}</dd>
+          </div>
+        </dl>
+
+        {/* Flexible spacer pushes areas to the bottom */}
+        <div style={{ flex: 1 }} />
+
+        {/* Seven coloured area boxes — Arial, exact area colours from the document */}
+        <div className="eyit-cover-areas">
+          {JOURNAL.map((area) => (
+            <div
+              key={area.area}
+              className="eyit-cover-area"
+              style={{ backgroundColor: AREA_COLORS[area.area] ?? "#ddd" }}
+            >
+              {area.area}
+            </div>
+          ))}
+        </div>
+
         <p className="print-footnote">
           Early Years Inclusion Team adapted from Special Educational Needs &amp; Inclusion Team,
           Learning Inclusion Service, Leeds City Council.
