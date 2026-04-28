@@ -263,16 +263,10 @@ function StepCard({ childId, aIdx, sIdx, stIdx, step, filter, ratings, setRating
   return (
     <Card data-testid={`step-${aIdx}-${sIdx}-${stIdx}`}>
       <CardContent className="p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-          <div>
-            <h4 className="font-medium">
-              Step {step.number}{" "}
-              <span className="text-muted-foreground font-normal">({step.ageRange})</span>
-            </h4>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {counts.rated} of {counts.total} rated · {counts.percentRated}%
-            </p>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <p className="text-xs text-muted-foreground">
+            {counts.rated} of {counts.total} rated · {counts.percentRated}%
+          </p>
           <div className="flex flex-wrap gap-1.5">
             <CountChip label="E" value={counts.emerging} variant="emerging" />
             <CountChip label="D" value={counts.developing} variant="developing" />
