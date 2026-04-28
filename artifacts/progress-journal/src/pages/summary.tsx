@@ -127,8 +127,8 @@ function collectStrandBlocks(
     items.sort((a, b) => a.key.localeCompare(b.key));
     blocks.push({ stepNumber: step.number, ageRange: step.ageRange, items });
   });
-  // Highest step first so latest age sits at the top of each strand.
-  blocks.sort((a, b) => b.stepNumber - a.stepNumber);
+  // Ascending step order so the earliest step sits at the top.
+  blocks.sort((a, b) => a.stepNumber - b.stepNumber);
   return blocks;
 }
 
@@ -136,10 +136,12 @@ function StrandTable({
   area,
   strand,
   blocks,
+  stagnantKeys,
 }: {
   area: JournalArea;
   strand: JournalStrand;
   blocks: StepBlock[];
+  stagnantKeys?: Set<string>;
 }) {
   return (
     <section
@@ -164,35 +166,38 @@ function StrandTable({
               <th scope="col" className="text-left">
                 Step {block.stepNumber} ({block.ageRange})
               </th>
-              <th scope="col" className="text-center">
-                Emerging
-              </th>
-              <th scope="col" className="text-center">
-                Developing
-              </th>
-              <th scope="col" className="text-center">
-                Secure
-              </th>
+              <th scope="col" className="text-center">Emerging</th>
+              <th scope="col" className="text-center">Developing</th>
+              <th scope="col" className="text-center">Secure</th>
             </tr>
           </thead>
           <tbody>
-            {block.items.map((it) => (
-              <tr key={it.key}>
-                <td>
-                  <span className="font-semibold mr-1">{it.key})</span>
-                  {it.text}
-                </td>
-                <td className="text-center text-xs tabular-nums">
-                  {it.status === "emerging" ? formatEntryDate(it.updatedAt) : null}
-                </td>
-                <td className="text-center text-xs tabular-nums">
-                  {it.status === "developing" ? formatEntryDate(it.updatedAt) : null}
-                </td>
-                <td className="text-center text-xs tabular-nums">
-                  {it.status === "secure" ? formatEntryDate(it.updatedAt) : null}
-                </td>
-              </tr>
-            ))}
+            {block.items.map((it) => {
+              const sk = `${area.area}::${strand.name}::${block.stepNumber}::${it.key}`;
+              const isStagnant = stagnantKeys?.has(sk) ?? false;
+              const dateStr = formatEntryDate(it.updatedAt);
+              return (
+                <tr key={it.key}>
+                  <td>
+                    <span className="font-semibold mr-1">{it.key})</span>
+                    {it.text}
+                  </td>
+                  <td className="text-center text-xs tabular-nums">
+                    {it.status === "emerging" ? (
+                      <span className={isStagnant ? "stagnant-date" : undefined}>{dateStr}</span>
+                    ) : null}
+                  </td>
+                  <td className="text-center text-xs tabular-nums">
+                    {it.status === "developing" ? (
+                      <span className={isStagnant ? "stagnant-date" : undefined}>{dateStr}</span>
+                    ) : null}
+                  </td>
+                  <td className="text-center text-xs tabular-nums">
+                    {it.status === "secure" ? dateStr : null}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       ))}
@@ -521,6 +526,13 @@ export default function SummaryPage() {
     [childId, state.ratings],
   );
 
+  // Lookup set used to highlight stagnant dates in the journal tables.
+  // Key format: "${areaName}::${strandName}::${stepNumber}::${itemKey}"
+  const stagnantKeys = useMemo(
+    () => new Set(stagnantItems.map((it) => `${it.areaName}::${it.strandName}::${it.stepNumber}::${it.itemKey}`)),
+    [stagnantItems],
+  );
+
   // Build the strand tables once per render — only strands with at least one
   // rated item appear, so the printout matches the PDF format with only the
   // user's selections.
@@ -686,6 +698,90 @@ export default function SummaryPage() {
         </p>
       </section>
 
+      {/* Print-only: Areas without progression — page 2 of the printout */}
+      {stagnantItems.length > 0 && (
+        <section className="hidden print:block" style={{ pageBreakAfter: "always", breakAfter: "page", marginBottom: 0 }}>
+          <div className="print-corner">EYIT September 2024</div>
+          <h2 style={{ fontSize: "14pt", fontWeight: 700, marginBottom: "0.5cm", marginTop: "0.3cm" }}>
+            Areas without progression
+          </h2>
+          <p style={{ fontSize: "9pt", color: "#555", marginBottom: "0.4cm" }}>
+            The following items have been rated Emerging or Developing for 6 or more months with no change.
+            Corresponding dates are highlighted in the journal record.
+          </p>
+          {/* Group by area */}
+          {Array.from(
+            stagnantItems.reduce((map, it) => {
+              map.set(it.areaName, [...(map.get(it.areaName) ?? []), it]);
+              return map;
+            }, new Map<string, StagnantItem[]>()),
+          ).map(([areaName, items]) => (
+            <div key={areaName} style={{ marginBottom: "0.35cm" }}>
+              <p style={{ fontSize: "9pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid #ccc", paddingBottom: "2px", marginBottom: "0.2cm" }}>
+                {areaName}
+              </p>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9pt" }}>
+                <colgroup>
+                  <col style={{ width: "18%" }} />
+                  <col style={{ width: "42%" }} />
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "10%" }} />
+                </colgroup>
+                <thead>
+                  <tr style={{ backgroundColor: "#f3f3f3" }}>
+                    <th style={{ textAlign: "left", padding: "2px 4px", fontWeight: 600 }}>Strand · Step</th>
+                    <th style={{ textAlign: "left", padding: "2px 4px", fontWeight: 600 }}>Statement</th>
+                    <th style={{ textAlign: "center", padding: "2px 4px", fontWeight: 600 }}>Status</th>
+                    <th style={{ textAlign: "center", padding: "2px 4px", fontWeight: 600 }}>Rated</th>
+                    <th style={{ textAlign: "center", padding: "2px 4px", fontWeight: 600 }}>Months</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((it) => (
+                    <tr key={`${it.strandName}::${it.stepNumber}::${it.itemKey}`} style={{ borderBottom: "1px solid #e8e8e8" }}>
+                      <td style={{ padding: "2px 4px", verticalAlign: "top" }}>
+                        <span style={{ fontWeight: 600 }}>{it.strandName}</span>
+                        <br />
+                        <span style={{ color: "#555" }}>Step {it.stepNumber} ({it.ageRange})</span>
+                      </td>
+                      <td style={{ padding: "2px 4px", verticalAlign: "top" }}>
+                        <span style={{ fontWeight: 600 }}>{it.itemKey})</span> {it.itemText}
+                      </td>
+                      <td style={{ textAlign: "center", padding: "2px 4px", verticalAlign: "top" }}>
+                        <span style={{
+                          background: it.status === "emerging" ? "hsl(5 72% 66% / 30%)" : "hsl(38 88% 62% / 30%)",
+                          fontWeight: 700,
+                          padding: "0 4px",
+                          borderRadius: "2px",
+                          WebkitPrintColorAdjust: "exact",
+                          printColorAdjust: "exact",
+                        } as React.CSSProperties}>
+                          {it.status === "emerging" ? "E" : "D"}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: "center", padding: "2px 4px", verticalAlign: "top" }}>
+                        <span style={{ background: "hsl(38 88% 62% / 28%)", fontWeight: 700, padding: "0 3px", borderRadius: "2px", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } as React.CSSProperties}>
+                          {formatEntryDate(it.updatedAt)}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: "center", padding: "2px 4px", verticalAlign: "top", color: "#b45309" }}>
+                        {it.monthsStale} mo
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+          <p className="print-footnote">
+            Early Years Inclusion Team adapted from Special Educational Needs &amp; Inclusion Team,
+            Learning Inclusion Service, Leeds City Council.
+          </p>
+        </section>
+      )}
+
       {/* Screen-only dashboard */}
       <article className="space-y-8 no-print">
         <header id="sec-overview" className="border-b border-border pb-5">
@@ -838,7 +934,7 @@ export default function SummaryPage() {
                 data-testid={`journal-page-${idx}`}
               >
                 <div className="hidden print:block print-corner">EYIT September 2024</div>
-                <StrandTable area={area} strand={strand} blocks={blocks} />
+                <StrandTable area={area} strand={strand} blocks={blocks} stagnantKeys={stagnantKeys} />
                 <p className="hidden print:block print-footnote">
                   Early Years Inclusion Team adapted from Special Educational Needs &amp;
                   Inclusion Team, Learning Inclusion Service, Leeds City Council.

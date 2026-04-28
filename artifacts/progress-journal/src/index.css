@@ -171,6 +171,14 @@
   break-inside: auto;
 }
 
+/* Stagnant item date highlight — amber tint, visible on screen and in print. */
+.stagnant-date {
+  background: hsl(38 88% 62% / 28%);
+  font-weight: 700;
+  border-radius: 3px;
+  padding: 0 3px;
+}
+
 @media print {
   /* Tighter margins on landscape A4 to maximise usable area. */
   @page {
@@ -183,12 +191,13 @@
   }
   .no-print { display: none !important; }
 
-  /* Force background colors for the yellow strips when printing. */
+  /* Force background colors for the yellow strips and stagnant highlights when printing. */
   .journal-strand-header,
   .journal-step-table,
   .journal-step-table th,
   .journal-step-table td,
-  .journal-step-row th {
+  .journal-step-row th,
+  .stagnant-date {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
