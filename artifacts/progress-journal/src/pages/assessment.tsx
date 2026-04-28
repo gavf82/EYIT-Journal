@@ -70,7 +70,7 @@ function collectBlocks(
         const items: AssessmentItem[] = step.items.flatMap((item) => {
           const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
           const s = r?.status ?? null;
-          if (s !== "emerging" && s !== "developing" && s !== "not_met") return [];
+          if (s !== "emerging" && s !== "developing") return [];
           return [{ key: item.key, text: item.text, status: s }];
         });
         if (items.length === 0) continue;
@@ -167,15 +167,10 @@ function AssessmentTable({
         </thead>
         <tbody>
           {block.items.map((item) => (
-            <tr key={item.key} className={item.status === "not_met" ? "opacity-60" : ""}>
+            <tr key={item.key}>
               <td>
                 <span className="font-semibold mr-1">{item.key})</span>
                 {item.text}
-                {item.status === "not_met" && (
-                  <span className="no-print ml-1.5 inline-flex items-center rounded px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-[hsl(var(--status-not-met)/0.15)] text-[hsl(215_20%_38%)]">
-                    Not met
-                  </span>
-                )}
               </td>
               <td className="text-center">
                 <StatusDot status={item.status} target="emerging" />
