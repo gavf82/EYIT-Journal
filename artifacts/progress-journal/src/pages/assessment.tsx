@@ -49,6 +49,7 @@ function collectBlocks(
   visibility: StepVisibility,
   includeIncomplete: boolean,
   baselineSearch = false,
+  baselineDepth = 3,
 ): AssessmentBlock[] {
   const visibleSet = visibility?.get(`${aIdx}::${sIdx}`) ?? null;
   const blocks: AssessmentBlock[] = [];
@@ -61,11 +62,12 @@ function collectBlocks(
   }
 
   if (baselineSearch) {
-    // Baseline search: show ALL steps from the age-appropriate step downward to
-    // Step 1, ordered highest → lowest, every item shown regardless of rating.
+    // Baseline search: show steps from the age-appropriate step downward,
+    // limited to baselineDepth steps below the focus (so focus + depth = depth+1 total).
     if (!visibleSet || visibleSet.size === 0) return [];
     const focusIdx = Math.max(...Array.from(visibleSet));
-    for (let stIdx = focusIdx; stIdx >= 0; stIdx--) {
+    const lowerBound = Math.max(0, focusIdx - baselineDepth);
+    for (let stIdx = focusIdx; stIdx >= lowerBound; stIdx--) {
       const step = strand.steps[stIdx];
       if (!step || !step.items || step.note) continue;
       const items: AssessmentItem[] = step.items.map((item) => {
@@ -262,7 +264,13 @@ export default function AssessmentPage() {
   const [includeIncomplete, setIncludeIncomplete] = useState(false);
   const [selectedAreas, setSelectedAreas] = useState<Set<string>>(() => new Set(ALL_AREA_NAMES));
   const [baselineSearch, setBaselineSearch] = useState(false);
+  const [baselineDepth, setBaselineDepth] = useState(3);
   const { openDialog, hasData, dialogProps } = useSaveAndClose();
+
+  function handleBaselineToggle(on: boolean) {
+    setBaselineSearch(on);
+    if (!on) setBaselineDepth(3); // reset when toggled off
+  }
 
   const allSelected = selectedAreas.size === ALL_AREA_NAMES.length;
 
@@ -332,12 +340,13 @@ export default function AssessmentPage() {
           vis,
           includeIncomplete,
           baselineSearch,
+          baselineDepth,
         );
         if (blocks.length > 0) out.push({ area, strand, blocks });
       });
     });
     return out;
-  }, [childId, state.ratings, visibility, baselineVisibility, includeIncomplete, selectedAreas, baselineSearch]);
+  }, [childId, state.ratings, visibility, baselineVisibility, includeIncomplete, selectedAreas, baselineSearch, baselineDepth]);
 
   if (!child) {
     return (
@@ -377,7 +386,7 @@ export default function AssessmentPage() {
                 >
                   <Switch
                     checked={baselineSearch}
-                    onCheckedChange={setBaselineSearch}
+                    onCheckedChange={handleBaselineToggle}
                     data-testid="toggle-baseline-search"
                   />
                   <Layers className="h-3.5 w-3.5 text-muted-foreground" />
@@ -564,18 +573,32 @@ export default function AssessmentPage() {
             : "No assessment content available for the current age range."}
         </p>
       ) : (
-        <div className="print-pages space-y-1">
-          {strands.flatMap(({ area, strand, blocks }) =>
-            blocks.map((block) => (
-              <div
-                key={`${area.area}-${strand.name}-${block.stepNumber}`}
-                className="journal-page"
+        <>
+          <div className="print-pages space-y-1">
+            {strands.flatMap(({ area, strand, blocks }) =>
+              blocks.map((block) => (
+                <div
+                  key={`${area.area}-${strand.name}-${block.stepNumber}`}
+                  className="journal-page"
+                >
+                  <AssessmentTable area={area} strand={strand} block={block} />
+                </div>
+              )),
+            )}
+          </div>
+          {baselineSearch && strands.some(({ blocks }) => blocks.length > 0 && blocks[blocks.length - 1].stepNumber > 1) && (
+            <div className="print:hidden flex justify-center pt-4 pb-8">
+              <Button
+                variant="outline"
+                className="gap-2 text-sm"
+                onClick={() => setBaselineDepth((d) => d + 3)}
               >
-                <AssessmentTable area={area} strand={strand} block={block} />
-              </div>
-            )),
+                <Layers className="h-4 w-4" />
+                Show 3 more steps
+              </Button>
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );
