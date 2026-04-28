@@ -158,15 +158,16 @@ function ImportButton() {
   const [pending, setPending] = useState<{
     children: ReturnType<typeof useStore>["state"]["children"];
     ratings: ReturnType<typeof useStore>["state"]["ratings"];
+    handle: FileSystemFileHandle | null;
   } | null>(null);
 
   async function onFile(f: File, handle?: FileSystemFileHandle) {
     if (ref.current) ref.current.value = "";
     try {
       const data = await parseSQLite(f);
-      // Store the handle so saves can write back to this file.
-      setImportHandle(handle ?? null);
-      setPending(data);
+      // Store the handle alongside parsed data — only committed to the
+      // module-level store if the user confirms the import dialog.
+      setPending({ ...data, handle: handle ?? null });
     } catch (err: any) {
       toast({ title: "Import failed", description: err?.message ?? "Unable to read file.", variant: "destructive" });
     }
@@ -201,6 +202,10 @@ function ImportButton() {
       children: [...kept, ...pending.children],
       ratings: { ...state.ratings, ...pending.ratings },
     });
+    // Only promote the file handle to the module-level store now that the
+    // user has explicitly confirmed they want to import (and thus save back
+    // to) this file.
+    setImportHandle(pending.handle);
     toast({
       title: "Backup restored",
       description: `${pending.children.length} child${pending.children.length === 1 ? "" : "ren"} merged into your collection.`,

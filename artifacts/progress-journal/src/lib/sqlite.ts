@@ -103,6 +103,15 @@ export async function exportSQLite(): Promise<boolean> {
 
 // ── Import ───────────────────────────────────────────────────────────────────
 
+/** Maximum backup file size accepted (50 MB). */
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
+/** Maximum number of child records accepted from a single backup. */
+const MAX_CHILDREN = 500;
+/** Maximum number of rating records accepted from a single backup. */
+const MAX_RATINGS = 200_000;
+/** Maximum character length for free-form string fields. */
+const MAX_FIELD_LEN = 2_000;
+
 /**
  * Open a .db file and return its children + ratings without touching the store.
  * Useful for showing a confirmation preview before committing the import.
@@ -110,71 +119,117 @@ export async function exportSQLite(): Promise<boolean> {
 export async function parseSQLite(
   file: File,
 ): Promise<Pick<StoreState, "children" | "ratings">> {
+  if (file.size > MAX_FILE_BYTES) {
+    throw new Error(
+      `Backup file is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum accepted size is ${MAX_FILE_BYTES / 1024 / 1024} MB.`,
+    );
+  }
+
   const SQL = await getSQLite();
 
   const buffer = await file.arrayBuffer();
   const db = new SQL.Database(new Uint8Array(buffer));
 
-  const tables = db
-    .exec(
-      `SELECT name FROM sqlite_master
-       WHERE type='table' AND name IN ('children','ratings')`,
-    )
-    .flatMap((r: initSqlJs.QueryExecResult) =>
-      r.values.map((v: initSqlJs.SqlValue[]) => v[0] as string),
-    );
+  function assertFieldLen(value: string | null, field: string): void {
+    if (value !== null && value.length > MAX_FIELD_LEN) {
+      throw new Error(
+        `Field "${field}" exceeds the maximum allowed length of ${MAX_FIELD_LEN} characters.`,
+      );
+    }
+  }
 
-  if (!tables.includes("children") || !tables.includes("ratings")) {
+  try {
+    const tables = db
+      .exec(
+        `SELECT name FROM sqlite_master
+         WHERE type='table' AND name IN ('children','ratings')`,
+      )
+      .flatMap((r: initSqlJs.QueryExecResult) =>
+        r.values.map((v: initSqlJs.SqlValue[]) => v[0] as string),
+      );
+
+    if (!tables.includes("children") || !tables.includes("ratings")) {
+      throw new Error(
+        "This file does not look like an EYIT journal backup. Expected tables: children, ratings.",
+      );
+    }
+
+    // Guard: check row counts before materialising all data into JS memory.
+    const childCount = (
+      db.exec("SELECT COUNT(*) FROM children")[0]?.values[0]?.[0] as number ?? 0
+    );
+    if (childCount > MAX_CHILDREN) {
+      throw new Error(
+        `Backup contains too many children (${childCount}). Maximum accepted is ${MAX_CHILDREN}.`,
+      );
+    }
+
+    const ratingCount = (
+      db.exec("SELECT COUNT(*) FROM ratings")[0]?.values[0]?.[0] as number ?? 0
+    );
+    if (ratingCount > MAX_RATINGS) {
+      throw new Error(
+        `Backup contains too many rating rows (${ratingCount}). Maximum accepted is ${MAX_RATINGS.toLocaleString()}.`,
+      );
+    }
+
+    const children: StoreState["children"] = [];
+    const childRows = db.exec(
+      "SELECT id, name, dob, start_date, created_at, updated_at FROM children",
+    );
+    if (childRows.length > 0) {
+      for (const row of childRows[0].values) {
+        const id = row[0] as string;
+        const name = row[1] as string;
+        const dob = (row[2] as string | null) ?? "";
+        const startDate = (row[3] as string | null) ?? "";
+        const createdAt = (row[4] as string | null) ?? new Date().toISOString();
+        const updatedAt = (row[5] as string | null) ?? new Date().toISOString();
+        assertFieldLen(id, "children.id");
+        assertFieldLen(name, "children.name");
+        assertFieldLen(dob, "children.dob");
+        assertFieldLen(startDate, "children.start_date");
+        children.push({ id, name, dob, startDate, createdAt, updatedAt });
+      }
+    }
+
+    // Check whether the file has the history column (added in a later schema version).
+    const hasHistoryCol =
+      db
+        .exec(`SELECT 1 FROM pragma_table_info('ratings') WHERE name='history'`)
+        .flatMap((r: initSqlJs.QueryExecResult) => r.values)
+        .length > 0;
+
+    const ratings: StoreState["ratings"] = {};
+    const ratingRows = db.exec(
+      hasHistoryCol
+        ? "SELECT child_id, area_idx, strand_idx, step_idx, item_key, status, updated_at, history FROM ratings"
+        : "SELECT child_id, area_idx, strand_idx, step_idx, item_key, status, updated_at, NULL FROM ratings",
+    );
+    if (ratingRows.length > 0) {
+      for (const row of ratingRows[0].values) {
+        const childId = row[0] as string;
+        const itemKey = row[4] as string;
+        const status = row[5] as string;
+        const updatedAt = row[6] as string;
+        const historyRaw = row[7] as string | null;
+        assertFieldLen(childId, "ratings.child_id");
+        assertFieldLen(itemKey, "ratings.item_key");
+        assertFieldLen(status, "ratings.status");
+        assertFieldLen(historyRaw, "ratings.history");
+        const key = `${childId}::${row[1]}::${row[2]}::${row[3]}::${itemKey}`;
+        ratings[key] = {
+          status: status as "emerging" | "developing" | "secure",
+          updatedAt,
+          ...(historyRaw ? { history: JSON.parse(historyRaw) } : {}),
+        };
+      }
+    }
+
+    return { children, ratings };
+  } finally {
     db.close();
-    throw new Error(
-      "This file does not look like an EYIT journal backup. Expected tables: children, ratings.",
-    );
   }
-
-  const children: StoreState["children"] = [];
-  const childRows = db.exec(
-    "SELECT id, name, dob, start_date, created_at, updated_at FROM children",
-  );
-  if (childRows.length > 0) {
-    for (const row of childRows[0].values) {
-      children.push({
-        id: row[0] as string,
-        name: row[1] as string,
-        dob: (row[2] as string | null) ?? "",
-        startDate: (row[3] as string | null) ?? "",
-        createdAt: (row[4] as string | null) ?? new Date().toISOString(),
-        updatedAt: (row[5] as string | null) ?? new Date().toISOString(),
-      });
-    }
-  }
-
-  // Check whether the file has the history column (added in a later schema version).
-  const hasHistoryCol =
-    db
-      .exec(`SELECT 1 FROM pragma_table_info('ratings') WHERE name='history'`)
-      .flatMap((r: initSqlJs.QueryExecResult) => r.values)
-      .length > 0;
-
-  const ratings: StoreState["ratings"] = {};
-  const ratingRows = db.exec(
-    hasHistoryCol
-      ? "SELECT child_id, area_idx, strand_idx, step_idx, item_key, status, updated_at, history FROM ratings"
-      : "SELECT child_id, area_idx, strand_idx, step_idx, item_key, status, updated_at, NULL FROM ratings",
-  );
-  if (ratingRows.length > 0) {
-    for (const row of ratingRows[0].values) {
-      const key = `${row[0]}::${row[1]}::${row[2]}::${row[3]}::${row[4]}`;
-      const historyRaw = row[7] as string | null;
-      ratings[key] = {
-        status: row[5] as "emerging" | "developing" | "secure",
-        updatedAt: row[6] as string,
-        ...(historyRaw ? { history: JSON.parse(historyRaw) } : {}),
-      };
-    }
-  }
-
-  db.close();
-  return { children, ratings };
 }
 
 /**

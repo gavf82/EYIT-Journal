@@ -584,9 +584,12 @@ export default function ChildJournalPage() {
           multiple: false,
         });
         const file = await handle.getFile();
-        setImportHandle(handle);
         try {
           await importSQLite(file);
+          // Only store the file handle after a successful import so that a
+          // failed or inspected-then-rejected file never becomes the implicit
+          // save destination for future exports.
+          setImportHandle(handle);
           toast({ title: "Journal imported" });
         } catch (err: any) {
           toast({ title: "Import failed", description: err?.message ?? "Could not parse file.", variant: "destructive" });
