@@ -151,15 +151,6 @@ function collectStrandBlocks(
   return allBlocks.filter((b) => b.stepNumber >= first && b.stepNumber <= last);
 }
 
-// Stable, URL-safe anchor ID for a strand — used by the ToC and each table section.
-function toAnchorId(areaName: string, strandName: string): string {
-  return `print-${areaName}-${strandName}`
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/-{2,}/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
 function StrandTable({
   area,
   strand,
@@ -173,7 +164,6 @@ function StrandTable({
 }) {
   return (
     <section
-      id={toAnchorId(area.area, strand.name)}
       className="journal-strand"
       data-testid={`strand-table-${strand.name}`}
       style={{ "--area-color": AREA_COLORS[area.area] ?? "#f6c344" } as React.CSSProperties}
@@ -309,7 +299,6 @@ function FullDJStrandTable({
 }) {
   return (
     <section
-      id={toAnchorId(area.area, strand.name)}
       className="journal-strand"
       style={{ "--area-color": AREA_COLORS[area.area] ?? "#f6c344" } as React.CSSProperties}
     >
@@ -1009,24 +998,6 @@ export default function SummaryPage() {
     return out;
   }, [childId, state.ratings]);
 
-  // Sequential page numbers for the ToC.
-  // Page 1: Cover · Page 2: ToC · Page 3 (if any): Stagnant items · then one page per strand.
-  // For the Summary print this is accurate (each strand table fits one page).
-  // For the Full DJ it is an approximation — strands with many steps span several pages.
-  const tocPageNumbers = useMemo(() => {
-    const baseOffset = 2 + (stagnantItems.length > 0 ? 1 : 0);
-    const result = new Map<string, number>();
-    let page = baseOffset + 1;
-    const orderedStrands = fullDJPrint
-      ? JOURNAL.flatMap((area) => area.strands.map((strand) => ({ area, strand })))
-      : strandTables.map(({ area, strand }) => ({ area, strand }));
-    orderedStrands.forEach(({ area, strand }) => {
-      result.set(toAnchorId(area.area, strand.name), page);
-      page++;
-    });
-    return result;
-  }, [stagnantItems.length, strandTables, fullDJPrint]);
-
   function handleFullDJPrint() {
     setFullDJPrint(true);
     // Two rAF frames ensures React has committed the DOM update before printing.
@@ -1213,103 +1184,6 @@ export default function SummaryPage() {
           Learning Inclusion Service, Leeds City Council.
         </p>
       </section>
-
-      {/* Print-only: Table of Contents — sits between cover and journal pages */}
-      {(() => {
-        // Build the list of area→strands to show in the ToC.
-        // Summary: only strands that have rated items. Full DJ: every strand.
-        const tocAreas = JOURNAL.map((area) => {
-          const strands = fullDJPrint
-            ? area.strands
-            : strandTables
-                .filter((t) => t.area.area === area.area)
-                .map((t) => t.strand);
-          return { area, strands };
-        }).filter(({ strands }) => strands.length > 0);
-
-        if (tocAreas.length === 0) return null;
-
-        return (
-          <section
-            className="hidden print:block"
-            style={{ pageBreakAfter: "always", breakAfter: "page", position: "relative" }}
-          >
-            <div className="print-corner">EYIT September 2024</div>
-
-            <h2 style={{
-              fontFamily: "'Gill Sans MT', 'Gill Sans', Optima, Calibri, sans-serif",
-              fontSize: "18pt",
-              fontWeight: 700,
-              color: "#008264",
-              marginTop: "0.5cm",
-              marginBottom: "0.6cm",
-              borderBottom: "2px solid #008264",
-              paddingBottom: "0.2cm",
-            }}>
-              Contents
-            </h2>
-
-            <div style={{ columns: "2", columnGap: "1.2cm" }}>
-              {tocAreas.map(({ area, strands }) => (
-                <div key={area.area} style={{ breakInside: "avoid", marginBottom: "0.5cm" }}>
-                  {/* Area header bar */}
-                  <div style={{
-                    backgroundColor: AREA_COLORS[area.area] ?? "#eee",
-                    fontFamily: "Verdana, Geneva, sans-serif",
-                    fontSize: "9pt",
-                    fontWeight: 700,
-                    padding: "3px 8px",
-                    marginBottom: "0.15cm",
-                    WebkitPrintColorAdjust: "exact",
-                    printColorAdjust: "exact",
-                  } as React.CSSProperties}>
-                    {area.area}
-                  </div>
-                  {/* Strand links with page numbers */}
-                  <ul style={{ listStyle: "none", margin: 0, padding: "0 0 0 8px" }}>
-                    {strands.map((strand) => {
-                      const anchorId = toAnchorId(area.area, strand.name);
-                      const pageNum = tocPageNumbers.get(anchorId);
-                      return (
-                        <li key={strand.name} style={{ marginBottom: "0.12cm" }}>
-                          <a
-                            href={`#${anchorId}`}
-                            style={{
-                              fontFamily: "Verdana, Geneva, sans-serif",
-                              fontSize: "9pt",
-                              color: "#008264",
-                              textDecoration: "none",
-                              display: "flex",
-                              alignItems: "baseline",
-                              gap: "0.2cm",
-                            }}
-                          >
-                            <span>{toTitleCase(strand.name)}</span>
-                            <span style={{
-                              flex: 1,
-                              borderBottom: "1px dotted #aaa",
-                              minWidth: "0.5cm",
-                              marginBottom: "2px",
-                            }} />
-                            <span style={{
-                              color: "#444",
-                              minWidth: "1.4em",
-                              textAlign: "right",
-                              flexShrink: 0,
-                            }}>
-                              {pageNum ?? "—"}
-                            </span>
-                          </a>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </section>
-        );
-      })()}
 
       {/* Print-only: Areas without progression — page 2 of the printout */}
       {stagnantItems.length > 0 && (
