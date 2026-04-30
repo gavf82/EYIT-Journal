@@ -1009,6 +1009,24 @@ export default function SummaryPage() {
     return out;
   }, [childId, state.ratings]);
 
+  // Sequential page numbers for the ToC.
+  // Page 1: Cover · Page 2: ToC · Page 3 (if any): Stagnant items · then one page per strand.
+  // For the Summary print this is accurate (each strand table fits one page).
+  // For the Full DJ it is an approximation — strands with many steps span several pages.
+  const tocPageNumbers = useMemo(() => {
+    const baseOffset = 2 + (stagnantItems.length > 0 ? 1 : 0);
+    const result = new Map<string, number>();
+    let page = baseOffset + 1;
+    const orderedStrands = fullDJPrint
+      ? JOURNAL.flatMap((area) => area.strands.map((strand) => ({ area, strand })))
+      : strandTables.map(({ area, strand }) => ({ area, strand }));
+    orderedStrands.forEach(({ area, strand }) => {
+      result.set(toAnchorId(area.area, strand.name), page);
+      page++;
+    });
+    return result;
+  }, [stagnantItems.length, strandTables, fullDJPrint]);
+
   function handleFullDJPrint() {
     setFullDJPrint(true);
     // Two rAF frames ensures React has committed the DOM update before printing.
@@ -1247,23 +1265,44 @@ export default function SummaryPage() {
                   } as React.CSSProperties}>
                     {area.area}
                   </div>
-                  {/* Strand links */}
+                  {/* Strand links with page numbers */}
                   <ul style={{ listStyle: "none", margin: 0, padding: "0 0 0 8px" }}>
-                    {strands.map((strand) => (
-                      <li key={strand.name} style={{ marginBottom: "0.1cm" }}>
-                        <a
-                          href={`#${toAnchorId(area.area, strand.name)}`}
-                          style={{
-                            fontFamily: "Verdana, Geneva, sans-serif",
-                            fontSize: "9pt",
-                            color: "#008264",
-                            textDecoration: "none",
-                          }}
-                        >
-                          {toTitleCase(strand.name)}
-                        </a>
-                      </li>
-                    ))}
+                    {strands.map((strand) => {
+                      const anchorId = toAnchorId(area.area, strand.name);
+                      const pageNum = tocPageNumbers.get(anchorId);
+                      return (
+                        <li key={strand.name} style={{ marginBottom: "0.12cm" }}>
+                          <a
+                            href={`#${anchorId}`}
+                            style={{
+                              fontFamily: "Verdana, Geneva, sans-serif",
+                              fontSize: "9pt",
+                              color: "#008264",
+                              textDecoration: "none",
+                              display: "flex",
+                              alignItems: "baseline",
+                              gap: "0.2cm",
+                            }}
+                          >
+                            <span>{toTitleCase(strand.name)}</span>
+                            <span style={{
+                              flex: 1,
+                              borderBottom: "1px dotted #aaa",
+                              minWidth: "0.5cm",
+                              marginBottom: "2px",
+                            }} />
+                            <span style={{
+                              color: "#444",
+                              minWidth: "1.4em",
+                              textAlign: "right",
+                              flexShrink: 0,
+                            }}>
+                              {pageNum ?? "—"}
+                            </span>
+                          </a>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               ))}
@@ -1537,7 +1576,9 @@ export default function SummaryPage() {
         <h2 className="text-lg font-semibold mb-3 no-print">Journal pages (print preview)</h2>
 
         {/* ── Standard summary journal (screen + standard print) ── */}
-        <div className={fullDJPrint ? "hidden" : undefined}>
+        {/* NOTE: must be conditionally unmounted (not CSS-hidden) when fullDJPrint is true
+            to avoid duplicate id= attributes on the same IDs used by the Full DJ sections. */}
+        {!fullDJPrint && <div>
           {/* Print-only section title */}
           {strandTables.length > 0 && (
             <div className="hidden print:block print-journal-title">
@@ -1570,7 +1611,7 @@ export default function SummaryPage() {
               ))}
             </div>
           )}
-        </div>
+        </div>}
 
         {/* ── Full DJ journal (only injected during Full DJ print) ── */}
         {fullDJPrint && (
