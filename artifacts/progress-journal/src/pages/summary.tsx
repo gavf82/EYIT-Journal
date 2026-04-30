@@ -11,7 +11,15 @@ import {
 } from "../lib/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Printer, LogOut, AlertTriangle, Info } from "lucide-react";
+import { ArrowLeft, Printer, LogOut, AlertTriangle, Info, ChevronDown, FileText, BookOpen } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Tooltip as UITooltip,
   TooltipContent,
@@ -1058,20 +1066,41 @@ export default function SummaryPage() {
             <LogOut className="h-4 w-4" /> Save and close
           </Button>
           <SaveAndCloseDialog {...dialogProps} />
-          <div className="flex flex-col gap-1">
-            <Button className="gap-2" onClick={() => window.print()} data-testid="button-print">
-              <Printer className="h-4 w-4" /> Print summary
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 text-xs"
-              onClick={handleFullDJPrint}
-              data-testid="button-print-full-dj"
-            >
-              <Printer className="h-3.5 w-3.5" /> Print Full DJ
-            </Button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="gap-2" data-testid="button-print">
+                <Printer className="h-4 w-4" /> Print <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                Choose what to print
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="gap-2 cursor-pointer"
+                onClick={() => window.print()}
+                data-testid="button-print-summary"
+              >
+                <FileText className="h-4 w-4 shrink-0" />
+                <div>
+                  <div className="font-medium">Summary</div>
+                  <div className="text-xs text-muted-foreground">Cover + rated items</div>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="gap-2 cursor-pointer"
+                onClick={handleFullDJPrint}
+                data-testid="button-print-full-dj"
+              >
+                <BookOpen className="h-4 w-4 shrink-0" />
+                <div>
+                  <div className="font-medium">Full DJ</div>
+                  <div className="text-xs text-muted-foreground">All steps — for LA submission</div>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
