@@ -1179,6 +1179,10 @@ export default function SummaryPage() {
           </div>
         </dl>
 
+        <p className="print-footnote">
+          Early Years Inclusion Team adapted from Special Educational Needs &amp; Inclusion Team,
+          Learning Inclusion Service, Leeds City Council.
+        </p>
       </section>
 
       {/* Print-only: Areas without progression — page 2 of the printout */}
@@ -1258,10 +1262,6 @@ export default function SummaryPage() {
               </table>
             </div>
           ))}
-          <p className="print-footnote">
-            Early Years Inclusion Team adapted from Special Educational Needs &amp; Inclusion Team,
-            Learning Inclusion Service, Leeds City Council.
-          </p>
         </section>
       )}
 
