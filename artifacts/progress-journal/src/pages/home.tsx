@@ -345,54 +345,99 @@ function ChildCard({ childId, name, dob, startDate, updatedAt, ratings }: ChildC
   );
 }
 
-function InstallButton() {
+const DISMISS_KEY = "eyit-install-banner-dismissed";
+
+function InstallBanner() {
   const { installState, install } = useInstallPrompt();
   const [iosOpen, setIosOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(
+    () => localStorage.getItem(DISMISS_KEY) === "1",
+  );
 
-  if (installState === "unavailable" || installState === "installed") return null;
+  // In dev mode, treat the install state as "available" so the banner is
+  // visible for preview purposes. Dismiss still works normally.
+  const effectiveState = import.meta.env.DEV && installState === "unavailable"
+    ? "available"
+    : installState;
+  if (dismissed || effectiveState === "unavailable" || effectiveState === "installed") return null;
 
-  if (installState === "ios") {
-    return (
-      <>
-        <Button variant="outline" className="gap-2" onClick={() => setIosOpen(true)}>
-          <Download className="h-4 w-4" /> Install app
-        </Button>
-        <Dialog open={iosOpen} onOpenChange={setIosOpen}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Install on iPhone / iPad</DialogTitle>
-              <DialogDescription>
-                Add this journal to your home screen for instant offline access.
-              </DialogDescription>
-            </DialogHeader>
-            <ol className="text-sm space-y-3 py-2">
-              <li className="flex items-start gap-3">
-                <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">1</span>
-                <span>Tap the <Share className="inline h-4 w-4 align-text-bottom" /> <strong>Share</strong> button in Safari's toolbar (bottom centre or top right).</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">2</span>
-                <span>Scroll down and tap <strong>Add to Home Screen</strong>.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">3</span>
-                <span>Tap <strong>Add</strong> — the app icon will appear on your home screen and work offline.</span>
-              </li>
-            </ol>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIosOpen(false)}>Got it</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </>
-    );
+  function dismiss() {
+    localStorage.setItem(DISMISS_KEY, "1");
+    setDismissed(true);
   }
 
-  // installState === "available"
   return (
-    <Button variant="outline" className="gap-2" onClick={install}>
-      <Download className="h-4 w-4" /> Install app
-    </Button>
+    <>
+      <div className="mb-6 rounded-xl bg-[#008264] text-white px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className="shrink-0 h-11 w-11 rounded-lg bg-white/20 flex items-center justify-center">
+            <Download className="h-6 w-6 text-white" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-sm leading-snug">Install the EYIT Journal app</p>
+            <p className="text-white/80 text-xs mt-0.5 leading-snug">
+              {effectiveState === "ios"
+                ? "Add to your home screen — works fully offline, no internet needed."
+                : "One click to install — works fully offline, no internet needed."}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {effectiveState === "ios" ? (
+            <Button
+              size="sm"
+              className="bg-white text-[#008264] hover:bg-white/90 gap-1.5 font-semibold"
+              onClick={() => setIosOpen(true)}
+            >
+              <Share className="h-3.5 w-3.5" /> Add to Home Screen
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              className="bg-white text-[#008264] hover:bg-white/90 gap-1.5 font-semibold"
+              onClick={install}
+            >
+              <Download className="h-3.5 w-3.5" /> Install app
+            </Button>
+          )}
+          <button
+            onClick={dismiss}
+            aria-label="Dismiss"
+            className="h-7 w-7 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <Dialog open={iosOpen} onOpenChange={setIosOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Install on iPhone / iPad</DialogTitle>
+            <DialogDescription>
+              Add this journal to your home screen for instant offline access.
+            </DialogDescription>
+          </DialogHeader>
+          <ol className="text-sm space-y-3 py-2">
+            <li className="flex items-start gap-3">
+              <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">1</span>
+              <span>Tap the <Share className="inline h-4 w-4 align-text-bottom" /> <strong>Share</strong> button in Safari's toolbar (bottom centre or top right).</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">2</span>
+              <span>Scroll down and tap <strong>Add to Home Screen</strong>.</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">3</span>
+              <span>Tap <strong>Add</strong> — the app icon will appear on your home screen and work offline.</span>
+            </li>
+          </ol>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIosOpen(false); dismiss(); }}>Got it</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -427,7 +472,6 @@ export default function HomePage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <InstallButton />
           <Button
             variant="outline"
             className="gap-2"
@@ -442,6 +486,8 @@ export default function HomePage() {
           <AddChildDialog />
         </div>
       </div>
+
+      <InstallBanner />
 
       {hasChildren && (
         <div className="relative mb-6 max-w-sm">
