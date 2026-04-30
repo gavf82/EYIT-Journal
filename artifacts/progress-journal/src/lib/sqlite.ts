@@ -46,6 +46,16 @@ CREATE TABLE IF NOT EXISTS stagnant_notes (
   note_date   TEXT NOT NULL DEFAULT '',
   PRIMARY KEY (child_id, area_name, strand_name)
 );
+
+CREATE TABLE IF NOT EXISTS acknowledged_stagnations (
+  child_id    TEXT    NOT NULL,
+  area_name   TEXT    NOT NULL,
+  strand_name TEXT    NOT NULL,
+  step_number INTEGER NOT NULL,
+  item_key    TEXT    NOT NULL,
+  acked_at    TEXT    NOT NULL,
+  PRIMARY KEY (child_id, area_name, strand_name, step_number, item_key)
+);
 `;
 
 // ── Export ───────────────────────────────────────────────────────────────────
@@ -115,6 +125,23 @@ export async function exportSQLite(): Promise<boolean> {
   }
   insertNote.free();
 
+  const insertAcked = db.prepare(
+    `INSERT OR REPLACE INTO acknowledged_stagnations
+       (child_id, area_name, strand_name, step_number, item_key, acked_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  );
+  for (const [key, ackedAt] of Object.entries(store.acknowledgedStagnations ?? {})) {
+    // key = "${childId}::${areaName}::${strandName}::${stepNumber}::${itemKey}"
+    const parts = key.split("::");
+    if (parts.length < 5) continue;
+    const [childId, areaName, strandName, stepStr, ...itemParts] = parts;
+    const itemKey = itemParts.join("::");
+    const stepNumber = parseInt(stepStr, 10);
+    if (isNaN(stepNumber)) continue;
+    insertAcked.run([childId, areaName, strandName, stepNumber, itemKey, ackedAt]);
+  }
+  insertAcked.free();
+
   const data = db.export();
   db.close();
 
@@ -146,7 +173,7 @@ const MAX_NOTE_LEN = 5_000;
  */
 export async function parseSQLite(
   file: File,
-): Promise<Pick<StoreState, "children" | "ratings" | "stagnantNotes">> {
+): Promise<Pick<StoreState, "children" | "ratings" | "stagnantNotes" | "acknowledgedStagnations">> {
   if (file.size > MAX_FILE_BYTES) {
     throw new Error(
       `Backup file is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum accepted size is ${MAX_FILE_BYTES / 1024 / 1024} MB.`,
@@ -170,7 +197,7 @@ export async function parseSQLite(
     const tables = db
       .exec(
         `SELECT name FROM sqlite_master
-         WHERE type='table' AND name IN ('children','ratings','stagnant_notes')`,
+         WHERE type='table' AND name IN ('children','ratings','stagnant_notes','acknowledged_stagnations')`,
       )
       .flatMap((r: initSqlJs.QueryExecResult) =>
         r.values.map((v: initSqlJs.SqlValue[]) => v[0] as string),
@@ -278,7 +305,31 @@ export async function parseSQLite(
       }
     }
 
-    return { children, ratings, stagnantNotes };
+    // Acknowledged stagnations — optional table (backward compat with older backups).
+    const acknowledgedStagnations: StoreState["acknowledgedStagnations"] = {};
+    if (tables.includes("acknowledged_stagnations")) {
+      const ackedRows = db.exec(
+        "SELECT child_id, area_name, strand_name, step_number, item_key, acked_at FROM acknowledged_stagnations",
+      );
+      if (ackedRows.length > 0) {
+        for (const row of ackedRows[0].values) {
+          const childId = row[0] as string;
+          const areaName = row[1] as string;
+          const strandName = row[2] as string;
+          const stepNumber = row[3] as number;
+          const itemKey = row[4] as string;
+          const ackedAt = (row[5] as string | null) ?? new Date().toISOString();
+          assertFieldLen(childId, "acknowledged_stagnations.child_id");
+          assertFieldLen(areaName, "acknowledged_stagnations.area_name");
+          assertFieldLen(strandName, "acknowledged_stagnations.strand_name");
+          assertFieldLen(itemKey, "acknowledged_stagnations.item_key");
+          const key = `${childId}::${areaName}::${strandName}::${stepNumber}::${itemKey}`;
+          acknowledgedStagnations[key] = ackedAt;
+        }
+      }
+    }
+
+    return { children, ratings, stagnantNotes, acknowledgedStagnations };
   } finally {
     db.close();
   }
@@ -288,7 +339,7 @@ export async function parseSQLite(
  * Parse a .db file and merge it into the current store.
  */
 export async function importSQLite(file: File): Promise<void> {
-  const { children, ratings, stagnantNotes } = await parseSQLite(file);
+  const { children, ratings, stagnantNotes, acknowledgedStagnations } = await parseSQLite(file);
 
   const current = getStore();
   const childMap = new Map(current.children.map((c) => [c.id, c]));
@@ -298,5 +349,6 @@ export async function importSQLite(file: File): Promise<void> {
     children: [...childMap.values()],
     ratings: { ...current.ratings, ...ratings },
     stagnantNotes: { ...(current.stagnantNotes ?? {}), ...stagnantNotes },
+    acknowledgedStagnations: { ...(current.acknowledgedStagnations ?? {}), ...acknowledgedStagnations },
   });
 }

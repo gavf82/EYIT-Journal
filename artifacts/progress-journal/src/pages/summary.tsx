@@ -11,7 +11,7 @@ import {
 } from "../lib/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Printer, LogOut, AlertTriangle, Info, ChevronDown, FileText, BookOpen } from "lucide-react";
+import { ArrowLeft, Printer, LogOut, AlertTriangle, Info, ChevronDown, FileText, BookOpen, CheckCircle2, RotateCcw } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -442,16 +442,81 @@ function computeStagnantItems(
   return result;
 }
 
-function StagnantItemsSection({ items }: { items: StagnantItem[] }) {
-  if (items.length === 0) return null;
+interface StagnantItemsSectionProps {
+  activeItems: StagnantItem[];
+  dismissedItems: StagnantItem[];
+  onAcknowledge: (it: StagnantItem) => void;
+  onUnacknowledge: (it: StagnantItem) => void;
+}
 
-  // Group by area
-  const byArea = new Map<string, StagnantItem[]>();
-  items.forEach((it) => {
-    const list = byArea.get(it.areaName) ?? [];
-    list.push(it);
-    byArea.set(it.areaName, list);
-  });
+function StagnantItemsSection({ activeItems, dismissedItems, onAcknowledge, onUnacknowledge }: StagnantItemsSectionProps) {
+  const [showDismissed, setShowDismissed] = useState(false);
+
+  if (activeItems.length === 0 && dismissedItems.length === 0) return null;
+
+  function renderItems(items: StagnantItem[], isDismissed: boolean) {
+    const byArea = new Map<string, StagnantItem[]>();
+    items.forEach((it) => {
+      const list = byArea.get(it.areaName) ?? [];
+      list.push(it);
+      byArea.set(it.areaName, list);
+    });
+
+    return Array.from(byArea.entries()).map(([areaName, areaItems]) => (
+      <div key={areaName} className="px-4 py-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+          {areaName}
+        </p>
+        <ul className="space-y-2">
+          {areaItems.map((it) => (
+            <li
+              key={`${it.strandName}::${it.stepNumber}::${it.itemKey}`}
+              className={cn("flex items-start gap-3 text-sm", isDismissed && "opacity-50")}
+            >
+              <span
+                className={cn(
+                  "mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                  it.status === "emerging"
+                    ? "bg-[hsl(5_72%_66%/20%)] text-[hsl(5_72%_40%)]"
+                    : "bg-[hsl(38_88%_62%/20%)] text-[hsl(38_88%_35%)]",
+                )}
+              >
+                {it.status === "emerging" ? "E" : "D"}
+              </span>
+              <span className="flex-1 leading-snug">
+                <span className="font-medium">{it.strandName}</span>
+                <span className="text-muted-foreground"> · Step {it.stepNumber} ({it.ageRange}) · {it.itemKey})</span>
+                <br />
+                {it.itemText}
+              </span>
+              <span className="shrink-0 text-xs text-muted-foreground tabular-nums whitespace-nowrap text-right">
+                {formatEntryDate(it.updatedAt)}
+                <br />
+                <span className="text-[hsl(38_88%_45%)]">{it.monthsStale} mo ago</span>
+              </span>
+              {isDismissed ? (
+                <button
+                  onClick={() => onUnacknowledge(it)}
+                  title="Remove reviewed mark"
+                  className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => onAcknowledge(it)}
+                  title="Mark as reviewed — removes from report"
+                  className="mt-0.5 shrink-0 text-muted-foreground hover:text-[#008264] transition-colors"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    ));
+  }
 
   return (
     <section>
@@ -459,48 +524,35 @@ function StagnantItemsSection({ items }: { items: StagnantItem[] }) {
         <AlertTriangle className="h-4 w-4 text-[hsl(38_88%_45%)]" />
         <h2 className="text-lg font-semibold">Areas without progression</h2>
         <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-          {items.length} item{items.length !== 1 ? "s" : ""} · no change for 6+ months
+          {activeItems.length} item{activeItems.length !== 1 ? "s" : ""} · no change for 6+ months
         </span>
       </div>
       <Card className="border-[hsl(38_88%_62%)/40]">
         <CardContent className="p-0 divide-y divide-border">
-          {Array.from(byArea.entries()).map(([areaName, areaItems]) => (
-            <div key={areaName} className="px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                {areaName}
-              </p>
-              <ul className="space-y-2">
-                {areaItems.map((it) => (
-                  <li
-                    key={`${it.strandName}::${it.stepNumber}::${it.itemKey}`}
-                    className="flex items-start gap-3 text-sm"
-                  >
-                    <span
-                      className={cn(
-                        "mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                        it.status === "emerging"
-                          ? "bg-[hsl(5_72%_66%/20%)] text-[hsl(5_72%_40%)]"
-                          : "bg-[hsl(38_88%_62%/20%)] text-[hsl(38_88%_35%)]",
-                      )}
-                    >
-                      {it.status === "emerging" ? "E" : "D"}
-                    </span>
-                    <span className="flex-1 leading-snug">
-                      <span className="font-medium">{it.strandName}</span>
-                      <span className="text-muted-foreground"> · Step {it.stepNumber} ({it.ageRange}) · {it.itemKey})</span>
-                      <br />
-                      {it.itemText}
-                    </span>
-                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums whitespace-nowrap">
-                      {formatEntryDate(it.updatedAt)}
-                      <br />
-                      <span className="text-[hsl(38_88%_45%)]">{it.monthsStale} mo ago</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
+          {activeItems.length === 0 ? (
+            <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+              All items have been marked as reviewed.
             </div>
-          ))}
+          ) : (
+            renderItems(activeItems, false)
+          )}
+          {dismissedItems.length > 0 && (
+            <div className="px-4 py-2">
+              <button
+                onClick={() => setShowDismissed((v) => !v)}
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5 text-[#008264]" />
+                {dismissedItems.length} reviewed item{dismissedItems.length !== 1 ? "s" : ""} hidden
+                <span className="underline underline-offset-2">{showDismissed ? "· Hide" : "· Show"}</span>
+              </button>
+              {showDismissed && (
+                <div className="mt-2 divide-y divide-border border-t border-border pt-2">
+                  {renderItems(dismissedItems, true)}
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </section>
@@ -908,7 +960,7 @@ const SECTIONS = [
 export default function SummaryPage() {
   const params = useParams<{ id: string }>();
   const childId = params.id ?? "";
-  const { state } = useStore();
+  const { state, setStagnationAcknowledged } = useStore();
   const child = state.children.find((c) => c.id === childId);
 
   const childMonths = child ? ageInMonths(child.dob) : null;
@@ -948,16 +1000,44 @@ export default function SummaryPage() {
 
   // Stagnation scanning is independent of the age filter — we always scan
   // the full rating history so items from earlier steps are never hidden.
-  const stagnantItems = useMemo(
+  const allStagnantItems = useMemo(
     () => computeStagnantItems(childId, state.ratings, null),
     [childId, state.ratings],
   );
 
+  // Split into active (still needs attention) and dismissed (marked reviewed).
+  const { activeStagnantItems, dismissedStagnantItems } = useMemo(() => {
+    const acked = state.acknowledgedStagnations ?? {};
+    const active: StagnantItem[] = [];
+    const dismissed: StagnantItem[] = [];
+    for (const it of allStagnantItems) {
+      const key = `${childId}::${it.areaName}::${it.strandName}::${it.stepNumber}::${it.itemKey}`;
+      if (acked[key]) dismissed.push(it);
+      else active.push(it);
+    }
+    return { activeStagnantItems: active, dismissedStagnantItems: dismissed };
+  }, [allStagnantItems, state.acknowledgedStagnations, childId]);
+
+  const acknowledgeItem = (it: StagnantItem) => {
+    const key = `${childId}::${it.areaName}::${it.strandName}::${it.stepNumber}::${it.itemKey}`;
+    setStagnationAcknowledged(key, true);
+  };
+
+  const unacknowledgeItem = (it: StagnantItem) => {
+    const key = `${childId}::${it.areaName}::${it.strandName}::${it.stepNumber}::${it.itemKey}`;
+    setStagnationAcknowledged(key, false);
+  };
+
+  // Keep the old name for backward-compat references in the rest of the file
+  // (nav badge, print section). This only counts active items.
+  const stagnantItems = activeStagnantItems;
+
   // Lookup set used to highlight stagnant dates in the journal tables.
   // Key format: "${areaName}::${strandName}::${stepNumber}::${itemKey}"
+  // Only active (unacknowledged) items get highlighted.
   const stagnantKeys = useMemo(
-    () => new Set(stagnantItems.map((it) => `${it.areaName}::${it.strandName}::${it.stepNumber}::${it.itemKey}`)),
-    [stagnantItems],
+    () => new Set(activeStagnantItems.map((it) => `${it.areaName}::${it.strandName}::${it.stepNumber}::${it.itemKey}`)),
+    [activeStagnantItems],
   );
 
   // Build the strand tables once per render — only strands with at least one
@@ -1442,7 +1522,14 @@ export default function SummaryPage() {
           </div>
         </section>
 
-        <div id="sec-alerts"><StagnantItemsSection items={stagnantItems} /></div>
+        <div id="sec-alerts">
+          <StagnantItemsSection
+            activeItems={activeStagnantItems}
+            dismissedItems={dismissedStagnantItems}
+            onAcknowledge={acknowledgeItem}
+            onUnacknowledge={unacknowledgeItem}
+          />
+        </div>
       </article>
 
       {/* Journal pages — PDF-style tables, shown on screen and printed */}

@@ -35,6 +35,12 @@ export interface StoreState {
   ratings: Record<string, Rating>;
   /** key: `${childId}::${areaName}::${strandName}` */
   stagnantNotes: Record<string, StagnantNote>;
+  /**
+   * Stagnant items the practitioner has explicitly marked as reviewed.
+   * key: `${childId}::${areaName}::${strandName}::${stepNumber}::${itemKey}`
+   * value: ISO datetime string of when it was acknowledged.
+   */
+  acknowledgedStagnations: Record<string, string>;
 }
 
 const STORE_KEY = 'eyit-journal-store';
@@ -43,14 +49,20 @@ const initialState: StoreState = {
   children: [],
   ratings: {},
   stagnantNotes: {},
+  acknowledgedStagnations: {},
 };
 
 export function getStore(): StoreState {
   try {
     const data = localStorage.getItem(STORE_KEY);
     const parsed = data ? JSON.parse(data) : initialState;
-    // Backward compat: stagnantNotes was added after initial release.
-    return { ...initialState, ...parsed, stagnantNotes: parsed.stagnantNotes ?? {} };
+    // Backward compat: fields added after initial release default to empty objects.
+    return {
+      ...initialState,
+      ...parsed,
+      stagnantNotes: parsed.stagnantNotes ?? {},
+      acknowledgedStagnations: parsed.acknowledgedStagnations ?? {},
+    };
   } catch (e) {
     console.error('Failed to load store', e);
     return initialState;
@@ -113,10 +125,14 @@ export function useStore() {
     const newNotes = Object.fromEntries(
       Object.entries(current.stagnantNotes ?? {}).filter(([k]) => !k.startsWith(prefix))
     );
+    const newAcked = Object.fromEntries(
+      Object.entries(current.acknowledgedStagnations ?? {}).filter(([k]) => !k.startsWith(prefix))
+    );
     setStore({
       children: current.children.filter(c => c.id !== id),
       ratings: newRatings,
       stagnantNotes: newNotes,
+      acknowledgedStagnations: newAcked,
     });
   };
 
@@ -156,6 +172,17 @@ export function useStore() {
     setStore({ ...current, stagnantNotes: notes });
   };
 
+  const setStagnationAcknowledged = (key: string, acknowledged: boolean) => {
+    const current = getStore();
+    const acked = { ...(current.acknowledgedStagnations ?? {}) };
+    if (acknowledged) {
+      acked[key] = new Date().toISOString();
+    } else {
+      delete acked[key];
+    }
+    setStore({ ...current, acknowledgedStagnations: acked });
+  };
+
   return {
     state,
     addChild,
@@ -163,7 +190,13 @@ export function useStore() {
     deleteChild,
     setRating,
     setStagnantNote,
-    importData: (data: StoreState) => setStore({ ...initialState, ...data, stagnantNotes: data.stagnantNotes ?? {} }),
+    setStagnationAcknowledged,
+    importData: (data: StoreState) => setStore({
+      ...initialState,
+      ...data,
+      stagnantNotes: data.stagnantNotes ?? {},
+      acknowledgedStagnations: data.acknowledgedStagnations ?? {},
+    }),
     resetAll: () => setStore(initialState),
   };
 }

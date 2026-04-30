@@ -18,7 +18,7 @@ export function removeDemoData(): void {
   Object.entries(store.ratings).forEach(([k, v]) => {
     if (!k.startsWith(DEMO_CHILD_ID + "::")) ratings[k] = v;
   });
-  setStore({ children, ratings, stagnantNotes: store.stagnantNotes ?? {} });
+  setStore({ children, ratings, stagnantNotes: store.stagnantNotes ?? {}, acknowledgedStagnations: store.acknowledgedStagnations ?? {} });
 }
 
 export function seedDemoData(): void {
@@ -245,5 +245,6 @@ export function seedDemoData(): void {
     ],
     ratings,
     stagnantNotes: store.stagnantNotes ?? {},
+    acknowledgedStagnations: store.acknowledgedStagnations ?? {},
   });
 }

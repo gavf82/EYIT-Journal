@@ -160,6 +160,7 @@ function ImportButton() {
     children: ReturnType<typeof useStore>["state"]["children"];
     ratings: ReturnType<typeof useStore>["state"]["ratings"];
     stagnantNotes: ReturnType<typeof useStore>["state"]["stagnantNotes"];
+    acknowledgedStagnations: ReturnType<typeof useStore>["state"]["acknowledgedStagnations"];
     handle: FileSystemFileHandle | null;
   } | null>(null);
 
@@ -204,6 +205,7 @@ function ImportButton() {
       children: [...kept, ...pending.children],
       ratings: { ...state.ratings, ...pending.ratings },
       stagnantNotes: { ...(state.stagnantNotes ?? {}), ...(pending.stagnantNotes ?? {}) },
+      acknowledgedStagnations: { ...(state.acknowledgedStagnations ?? {}), ...(pending.acknowledgedStagnations ?? {}) },
     });
     // Only promote the file handle to the module-level store now that the
     // user has explicitly confirmed they want to import (and thus save back
