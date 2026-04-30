@@ -27,13 +27,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, ChevronRight, Calendar, Sparkles, BookText, Upload, LogOut, Search, X } from "lucide-react";
+import { Plus, ChevronRight, Calendar, Sparkles, BookText, Upload, LogOut, Search, X, Download, Share } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useToast } from "../hooks/use-toast";
 import { useSaveAndClose } from "../hooks/use-save-and-close";
 import { SaveAndCloseDialog } from "../components/save-and-close-dialog";
 import { ageInMonths, formatAge } from "../lib/age";
 import { useDirty } from "../hooks/use-dirty";
+import { useInstallPrompt } from "../hooks/use-install-prompt";
 
 function formatDate(d: string) {
   if (!d) return "";
@@ -158,6 +159,7 @@ function ImportButton() {
   const [pending, setPending] = useState<{
     children: ReturnType<typeof useStore>["state"]["children"];
     ratings: ReturnType<typeof useStore>["state"]["ratings"];
+    stagnantNotes: ReturnType<typeof useStore>["state"]["stagnantNotes"];
     handle: FileSystemFileHandle | null;
   } | null>(null);
 
@@ -201,6 +203,7 @@ function ImportButton() {
     importData({
       children: [...kept, ...pending.children],
       ratings: { ...state.ratings, ...pending.ratings },
+      stagnantNotes: { ...(state.stagnantNotes ?? {}), ...(pending.stagnantNotes ?? {}) },
     });
     // Only promote the file handle to the module-level store now that the
     // user has explicitly confirmed they want to import (and thus save back
@@ -342,6 +345,57 @@ function ChildCard({ childId, name, dob, startDate, updatedAt, ratings }: ChildC
   );
 }
 
+function InstallButton() {
+  const { installState, install } = useInstallPrompt();
+  const [iosOpen, setIosOpen] = useState(false);
+
+  if (installState === "unavailable" || installState === "installed") return null;
+
+  if (installState === "ios") {
+    return (
+      <>
+        <Button variant="outline" className="gap-2" onClick={() => setIosOpen(true)}>
+          <Download className="h-4 w-4" /> Install app
+        </Button>
+        <Dialog open={iosOpen} onOpenChange={setIosOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Install on iPhone / iPad</DialogTitle>
+              <DialogDescription>
+                Add this journal to your home screen for instant offline access.
+              </DialogDescription>
+            </DialogHeader>
+            <ol className="text-sm space-y-3 py-2">
+              <li className="flex items-start gap-3">
+                <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">1</span>
+                <span>Tap the <Share className="inline h-4 w-4 align-text-bottom" /> <strong>Share</strong> button in Safari's toolbar (bottom centre or top right).</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">2</span>
+                <span>Scroll down and tap <strong>Add to Home Screen</strong>.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">3</span>
+                <span>Tap <strong>Add</strong> — the app icon will appear on your home screen and work offline.</span>
+              </li>
+            </ol>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIosOpen(false)}>Got it</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
+  // installState === "available"
+  return (
+    <Button variant="outline" className="gap-2" onClick={install}>
+      <Download className="h-4 w-4" /> Install app
+    </Button>
+  );
+}
+
 export default function HomePage() {
   const { state } = useStore();
   const { openDialog, hasData, dialogProps } = useSaveAndClose();
@@ -373,6 +427,7 @@ export default function HomePage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <InstallButton />
           <Button
             variant="outline"
             className="gap-2"
