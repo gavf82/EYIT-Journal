@@ -1479,10 +1479,6 @@ export default function SummaryPage() {
                 >
                   <div className="hidden print:block print-corner">EYIT September 2024</div>
                   <StrandTable area={area} strand={strand} blocks={blocks} stagnantKeys={stagnantKeys} />
-                  <p className="hidden print:block print-footnote">
-                    Early Years Inclusion Team adapted from Special Educational Needs &amp;
-                    Inclusion Team, Learning Inclusion Service, Leeds City Council.
-                  </p>
                 </div>
               ))}
             </div>
@@ -1508,10 +1504,6 @@ export default function SummaryPage() {
                 >
                   <div className="hidden print:block print-corner">EYIT September 2024</div>
                   <FullDJStrandTable area={area} strand={strand} blocks={blocks} stagnantKeys={stagnantKeys} />
-                  <p className="hidden print:block print-footnote">
-                    Early Years Inclusion Team adapted from Special Educational Needs &amp;
-                    Inclusion Team, Learning Inclusion Service, Leeds City Council.
-                  </p>
                 </div>
               ))}
             </div>
