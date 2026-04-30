@@ -565,11 +565,48 @@ export default function HomePage() {
         <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
           The EYIT Development Journal supports practitioners and parents to notice and
           celebrate small steps of progress. For every statement you can mark whether
-          a skill is <span className="font-medium text-foreground">emerging</span>,
-          <span className="font-medium text-foreground"> developing</span>, or
-          <span className="font-medium text-foreground"> secure</span>. All information
+          a skill is <span className="font-medium text-foreground">emerging</span>,{" "}
+          <span className="font-medium text-foreground">developing</span>, or{" "}
+          <span className="font-medium text-foreground">secure</span>. All information
           stays in your browser — nothing is sent anywhere.
         </p>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="link" className="mt-1 h-auto p-0 text-sm text-muted-foreground underline-offset-4">
+              More information
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Using this journal</DialogTitle>
+              <DialogDescription>
+                Guidance for practitioners on how the EYDJ is intended to be used.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="text-sm space-y-3 text-muted-foreground leading-relaxed py-1">
+              <p>
+                <span className="font-semibold text-foreground">Not a checklist.</span>{" "}
+                It is not necessary or appropriate to record assessments for every statement.
+                Outcomes in each step reflect expected developmental milestones and should be
+                treated as a guide — each child will proceed at their own rate and may present
+                attainments across a range of steps.
+              </p>
+              <p>
+                <span className="font-semibold text-foreground">Communication &amp; Language.</span>{" "}
+                Listening &amp; Attention and Understanding are kept as separate developmental
+                strands to provide greater depth in understanding a child's communication and
+                language attainment and needs.
+              </p>
+              <p>
+                <span className="font-semibold text-foreground">Graduated Approach.</span>{" "}
+                For most children, a Graduated Approach cycle should be completed within the
+                setting before requesting involvement from an external professional agency.
+                However, for children entering provision with evident high-level learning needs,
+                earlier external involvement may be appropriate.
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
