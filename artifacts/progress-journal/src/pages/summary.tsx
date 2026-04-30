@@ -232,6 +232,139 @@ function StrandTable({
 }
 
 // ---------------------------------------------------------------------------
+// Full Development Journal (Full DJ) — all steps, all items, for LA submission
+// ---------------------------------------------------------------------------
+
+interface FullDJItemRow {
+  key: string;
+  text: string;
+  status: Exclude<Status, null> | null;
+  updatedAt: string | null;
+  history?: HistoryEntry[];
+}
+
+interface FullDJStepBlock {
+  stepNumber: number;
+  ageRange: string;
+  items: FullDJItemRow[];
+}
+
+function collectFullDJBlocks(
+  area: JournalArea,
+  aIdx: number,
+  strand: JournalStrand,
+  sIdx: number,
+  childId: string,
+  ratings: Record<string, Rating>,
+): FullDJStepBlock[] {
+  const blocks: FullDJStepBlock[] = [];
+  strand.steps.forEach((step, stIdx) => {
+    if (!step.items || step.note) return;
+    const items: FullDJItemRow[] = step.items.map((item) => {
+      const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
+      const s = r?.status ?? null;
+      return {
+        key: item.key,
+        text: item.text,
+        status: s as Exclude<Status, null> | null,
+        updatedAt: r?.updatedAt ?? null,
+        history: r?.history,
+      };
+    });
+    if (items.length > 0) {
+      blocks.push({ stepNumber: step.number, ageRange: step.ageRange, items });
+    }
+  });
+  return blocks;
+}
+
+function FullDJStrandTable({
+  area,
+  strand,
+  blocks,
+  stagnantKeys,
+}: {
+  area: JournalArea;
+  strand: JournalStrand;
+  blocks: FullDJStepBlock[];
+  stagnantKeys?: Set<string>;
+}) {
+  return (
+    <section
+      className="journal-strand"
+      style={{ "--area-color": AREA_COLORS[area.area] ?? "#f6c344" } as React.CSSProperties}
+    >
+      <div className="journal-strand-header">
+        <span className="font-semibold">{area.area}: </span>
+        <span className="uppercase tracking-wide">{strand.name}</span>
+      </div>
+      {blocks.map((block) => (
+        <table key={block.stepNumber} className="journal-step-table">
+          <colgroup>
+            <col className="journal-col-text" />
+            <col className="journal-col-status" />
+            <col className="journal-col-status" />
+            <col className="journal-col-status" />
+          </colgroup>
+          <thead>
+            <tr className="journal-step-row">
+              <th scope="col" className="text-left">
+                Step {block.stepNumber} ({block.ageRange})
+              </th>
+              <th scope="col" className="text-center">Emerging</th>
+              <th scope="col" className="text-center">Developing</th>
+              <th scope="col" className="text-center">Secure</th>
+            </tr>
+          </thead>
+          <tbody>
+            {block.items.map((it) => {
+              const sk = `${area.area}::${strand.name}::${block.stepNumber}::${it.key}`;
+              const isStagnant = stagnantKeys?.has(sk) ?? false;
+
+              function stageDate(s: "emerging" | "developing" | "secure"): string | null {
+                if (it.status === s) return it.updatedAt;
+                const h = it.history?.find((e) => e.status === s);
+                return h?.date ?? null;
+              }
+
+              const eDate = it.status ? stageDate("emerging") : null;
+              const dDate = it.status ? stageDate("developing") : null;
+              const sDate = it.status ? stageDate("secure") : null;
+
+              return (
+                <tr key={it.key}>
+                  <td>
+                    <span className="font-semibold mr-1">{it.key})</span>
+                    {it.text}
+                  </td>
+                  <td className="text-center text-xs tabular-nums">
+                    {eDate ? (
+                      <span className={isStagnant && it.status === "emerging" ? "stagnant-date" : undefined}>
+                        {formatEntryDate(eDate)}
+                      </span>
+                    ) : null}
+                  </td>
+                  <td className="text-center text-xs tabular-nums">
+                    {dDate ? (
+                      <span className={isStagnant && it.status === "developing" ? "stagnant-date" : undefined}>
+                        {formatEntryDate(dDate)}
+                      </span>
+                    ) : null}
+                  </td>
+                  <td className="text-center text-xs tabular-nums">
+                    {sDate ? formatEntryDate(sDate) : null}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      ))}
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Stagnation detection — items rated Emerging/Developing with no progress
 // for more than 6 calendar months.
 // ---------------------------------------------------------------------------
@@ -775,6 +908,7 @@ export default function SummaryPage() {
   const [ageFilterOn, setAgeFilterOn] = useState<boolean>(childMonths !== null);
   const [includeHistory, setIncludeHistory] = useState<boolean>(true);
   const [radarInfoOpen, setRadarInfoOpen] = useState(false);
+  const [fullDJPrint, setFullDJPrint] = useState(false);
   const { openDialog, hasData, dialogProps } = useSaveAndClose();
 
   const [activeSection, setActiveSection] = useState<string>("sec-overview");
@@ -843,6 +977,30 @@ export default function SummaryPage() {
     return out;
   }, [childId, state.ratings, visibility]);
 
+  // Full DJ tables: every step, every item, no age filter — for LA submission.
+  const fullDJStrandTables = useMemo(() => {
+    if (!childId) return [];
+    const out: { area: JournalArea; strand: JournalStrand; blocks: FullDJStepBlock[] }[] = [];
+    JOURNAL.forEach((area, aIdx) => {
+      area.strands.forEach((strand, sIdx) => {
+        const blocks = collectFullDJBlocks(area, aIdx, strand, sIdx, childId, state.ratings);
+        if (blocks.length > 0) out.push({ area, strand, blocks });
+      });
+    });
+    return out;
+  }, [childId, state.ratings]);
+
+  function handleFullDJPrint() {
+    setFullDJPrint(true);
+    // Two rAF frames ensures React has committed the DOM update before printing.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+        setFullDJPrint(false);
+      });
+    });
+  }
+
   if (!child) {
     return (
       <div className="container max-w-2xl px-4 py-16 text-center">
@@ -900,9 +1058,20 @@ export default function SummaryPage() {
             <LogOut className="h-4 w-4" /> Save and close
           </Button>
           <SaveAndCloseDialog {...dialogProps} />
-          <Button className="gap-2" onClick={() => window.print()} data-testid="button-print">
-            <Printer className="h-4 w-4" /> Print summary
-          </Button>
+          <div className="flex flex-col gap-1">
+            <Button className="gap-2" onClick={() => window.print()} data-testid="button-print">
+              <Printer className="h-4 w-4" /> Print summary
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-xs"
+              onClick={handleFullDJPrint}
+              data-testid="button-print-full-dj"
+            >
+              <Printer className="h-3.5 w-3.5" /> Print Full DJ
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -954,7 +1123,9 @@ export default function SummaryPage() {
         <div className="eyit-cover-titles">
           <div className="eyit-cover-h1">Early Years Inclusion Team</div>
           <div className="eyit-cover-h1">Development Journal</div>
-          <div className="eyit-cover-h2">September 2024</div>
+          <div className="eyit-cover-h2">
+            {fullDJPrint ? "Full Journal Record" : "Summary"} — September 2024
+          </div>
         </div>
 
         {/* Child details — Verdana 12pt */}
@@ -1248,40 +1419,73 @@ export default function SummaryPage() {
       {/* Journal pages — PDF-style tables, shown on screen and printed */}
       <section id="sec-journal" className="mt-8 print:mt-0">
         <h2 className="text-lg font-semibold mb-3 no-print">Journal pages (print preview)</h2>
-        {/* Print-only section title */}
-        {strandTables.length > 0 && (
-          <div className="hidden print:block print-journal-title">
-            Journal Record — {child.name}
-            <span style={{ fontSize: "9pt", fontWeight: 400, marginLeft: "1cm", color: "#444" }}>
-              {ageFilterOn && childMonths !== null
-                ? includeHistory
-                  ? `History up to current step (${childAgeLabel})`
-                  : `Current step only (${childAgeLabel})`
-                : "All steps"}
-            </span>
-          </div>
-        )}
-        {strandTables.length === 0 ? (
-          <p className="text-sm text-muted-foreground italic no-print">
-            No statements have been rated yet — go back to the journal and mark some items to see
-            them here.
-          </p>
-        ) : (
-          <div className="print-pages space-y-6 print:space-y-0">
-            {strandTables.map(({ area, strand, blocks }, idx) => (
-              <div
-                key={`${area.area}::${strand.name}`}
-                className="journal-page"
-                data-testid={`journal-page-${idx}`}
-              >
-                <div className="hidden print:block print-corner">EYIT September 2024</div>
-                <StrandTable area={area} strand={strand} blocks={blocks} stagnantKeys={stagnantKeys} />
-                <p className="hidden print:block print-footnote">
-                  Early Years Inclusion Team adapted from Special Educational Needs &amp;
-                  Inclusion Team, Learning Inclusion Service, Leeds City Council.
-                </p>
-              </div>
-            ))}
+
+        {/* ── Standard summary journal (screen + standard print) ── */}
+        <div className={fullDJPrint ? "hidden" : undefined}>
+          {/* Print-only section title */}
+          {strandTables.length > 0 && (
+            <div className="hidden print:block print-journal-title">
+              Journal Record — {child.name}
+              <span style={{ fontSize: "9pt", fontWeight: 400, marginLeft: "1cm", color: "#444" }}>
+                {ageFilterOn && childMonths !== null
+                  ? includeHistory
+                    ? `History up to current step (${childAgeLabel})`
+                    : `Current step only (${childAgeLabel})`
+                  : "All steps"}
+              </span>
+            </div>
+          )}
+          {strandTables.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic no-print">
+              No statements have been rated yet — go back to the journal and mark some items to see
+              them here.
+            </p>
+          ) : (
+            <div className="print-pages space-y-6 print:space-y-0">
+              {strandTables.map(({ area, strand, blocks }, idx) => (
+                <div
+                  key={`${area.area}::${strand.name}`}
+                  className="journal-page"
+                  data-testid={`journal-page-${idx}`}
+                >
+                  <div className="hidden print:block print-corner">EYIT September 2024</div>
+                  <StrandTable area={area} strand={strand} blocks={blocks} stagnantKeys={stagnantKeys} />
+                  <p className="hidden print:block print-footnote">
+                    Early Years Inclusion Team adapted from Special Educational Needs &amp;
+                    Inclusion Team, Learning Inclusion Service, Leeds City Council.
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── Full DJ journal (only injected during Full DJ print) ── */}
+        {fullDJPrint && (
+          <div>
+            <div className="hidden print:block print-journal-title">
+              Full Development Journal — {child.name}
+              <span style={{ fontSize: "9pt", fontWeight: 400, marginLeft: "1cm", color: "#444" }}>
+                All steps and statements
+                {childAgeLabel ? ` · Age ${childAgeLabel}` : ""}
+              </span>
+            </div>
+            <div className="print-pages space-y-6 print:space-y-0">
+              {fullDJStrandTables.map(({ area, strand, blocks }, idx) => (
+                <div
+                  key={`fulldj-${area.area}::${strand.name}`}
+                  className="journal-page"
+                  data-testid={`full-dj-page-${idx}`}
+                >
+                  <div className="hidden print:block print-corner">EYIT September 2024</div>
+                  <FullDJStrandTable area={area} strand={strand} blocks={blocks} stagnantKeys={stagnantKeys} />
+                  <p className="hidden print:block print-footnote">
+                    Early Years Inclusion Team adapted from Special Educational Needs &amp;
+                    Inclusion Team, Learning Inclusion Service, Leeds City Council.
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </section>
