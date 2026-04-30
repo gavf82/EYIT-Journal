@@ -498,17 +498,17 @@ function StagnantItemsSection({ activeItems, dismissedItems, onAcknowledge, onUn
                 <button
                   onClick={() => onUnacknowledge(it)}
                   title="Remove reviewed mark"
-                  className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                  className="shrink-0 flex items-center justify-center h-9 w-9 -mr-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 >
-                  <RotateCcw className="h-3.5 w-3.5" />
+                  <RotateCcw className="h-4 w-4" />
                 </button>
               ) : (
                 <button
                   onClick={() => onAcknowledge(it)}
                   title="Mark as reviewed — removes from report"
-                  className="mt-0.5 shrink-0 text-muted-foreground hover:text-[#008264] transition-colors"
+                  className="shrink-0 flex items-center justify-center h-9 w-9 -mr-1 rounded-md text-muted-foreground hover:text-[#008264] hover:bg-[#00826415] transition-colors"
                 >
-                  <CheckCircle2 className="h-4 w-4" />
+                  <CheckCircle2 className="h-5 w-5" />
                 </button>
               )}
             </li>
