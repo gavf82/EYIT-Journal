@@ -23,9 +23,18 @@ export interface Rating {
   history?: HistoryEntry[];
 }
 
+/** Per-strand practitioner note attached to a stagnation alert. */
+export interface StagnantNote {
+  text: string;
+  /** ISO date string "YYYY-MM-DD" — the date of entry written by the practitioner. */
+  date: string;
+}
+
 export interface StoreState {
   children: Child[];
   ratings: Record<string, Rating>;
+  /** key: `${childId}::${areaName}::${strandName}` */
+  stagnantNotes: Record<string, StagnantNote>;
 }
 
 const STORE_KEY = 'eyit-journal-store';
@@ -33,12 +42,15 @@ const STORE_KEY = 'eyit-journal-store';
 const initialState: StoreState = {
   children: [],
   ratings: {},
+  stagnantNotes: {},
 };
 
 export function getStore(): StoreState {
   try {
     const data = localStorage.getItem(STORE_KEY);
-    return data ? JSON.parse(data) : initialState;
+    const parsed = data ? JSON.parse(data) : initialState;
+    // Backward compat: stagnantNotes was added after initial release.
+    return { ...initialState, ...parsed, stagnantNotes: parsed.stagnantNotes ?? {} };
   } catch (e) {
     console.error('Failed to load store', e);
     return initialState;
@@ -98,9 +110,13 @@ export function useStore() {
     const newRatings = Object.fromEntries(
       Object.entries(current.ratings).filter(([k]) => !k.startsWith(prefix))
     );
+    const newNotes = Object.fromEntries(
+      Object.entries(current.stagnantNotes ?? {}).filter(([k]) => !k.startsWith(prefix))
+    );
     setStore({
       children: current.children.filter(c => c.id !== id),
       ratings: newRatings,
+      stagnantNotes: newNotes,
     });
   };
 
@@ -112,8 +128,6 @@ export function useStore() {
       delete newRatings[key];
     } else {
       const existing = newRatings[key];
-      // When the status changes, archive the previous state so the full
-      // progression (e.g. E → D → S) is preserved in history.
       let history = existing?.history ?? [];
       if (existing && existing.status && existing.status !== status) {
         history = [...history, { status: existing.status, date: existing.updatedAt }];
@@ -131,13 +145,25 @@ export function useStore() {
     });
   };
 
+  const setStagnantNote = (key: string, note: StagnantNote | null) => {
+    const current = getStore();
+    const notes = { ...(current.stagnantNotes ?? {}) };
+    if (note === null || note.text.trim() === "") {
+      delete notes[key];
+    } else {
+      notes[key] = note;
+    }
+    setStore({ ...current, stagnantNotes: notes });
+  };
+
   return {
     state,
     addChild,
     updateChild,
     deleteChild,
     setRating,
-    importData: (data: StoreState) => setStore(data),
+    setStagnantNote,
+    importData: (data: StoreState) => setStore({ ...initialState, ...data, stagnantNotes: data.stagnantNotes ?? {} }),
     resetAll: () => setStore(initialState),
   };
 }

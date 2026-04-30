@@ -37,6 +37,15 @@ CREATE TABLE IF NOT EXISTS ratings (
   history     TEXT,
   PRIMARY KEY (child_id, area_idx, strand_idx, step_idx, item_key)
 );
+
+CREATE TABLE IF NOT EXISTS stagnant_notes (
+  child_id    TEXT NOT NULL,
+  area_name   TEXT NOT NULL,
+  strand_name TEXT NOT NULL,
+  note_text   TEXT NOT NULL DEFAULT '',
+  note_date   TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (child_id, area_name, strand_name)
+);
 `;
 
 // ── Export ───────────────────────────────────────────────────────────────────
@@ -87,11 +96,28 @@ export async function exportSQLite(): Promise<boolean> {
   }
   insertRating.free();
 
+  const insertNote = db.prepare(
+    `INSERT OR REPLACE INTO stagnant_notes
+       (child_id, area_name, strand_name, note_text, note_date)
+     VALUES (?, ?, ?, ?, ?)`,
+  );
+  for (const [key, note] of Object.entries(store.stagnantNotes ?? {})) {
+    // key = "${childId}::${areaName}::${strandName}"
+    const firstSep = key.indexOf("::");
+    if (firstSep === -1) continue;
+    const childId = key.slice(0, firstSep);
+    const rest = key.slice(firstSep + 2);
+    const secondSep = rest.indexOf("::");
+    if (secondSep === -1) continue;
+    const areaName = rest.slice(0, secondSep);
+    const strandName = rest.slice(secondSep + 2);
+    insertNote.run([childId, areaName, strandName, note.text, note.date]);
+  }
+  insertNote.free();
+
   const data = db.export();
   db.close();
 
-  // db.export() returns Uint8Array<ArrayBufferLike>; copy into a guaranteed
-  // plain ArrayBuffer so Blob constructor accepts it without a type cast.
   const blob = new Blob([new Uint8Array(data)], { type: "application/octet-stream" });
   return saveBlob(blob, `eyit-backup-${todaySlug()}.db`, [
     {
@@ -109,16 +135,18 @@ const MAX_FILE_BYTES = 50 * 1024 * 1024;
 const MAX_CHILDREN = 500;
 /** Maximum number of rating records accepted from a single backup. */
 const MAX_RATINGS = 200_000;
-/** Maximum character length for free-form string fields. */
+/** Maximum character length for standard free-form string fields. */
 const MAX_FIELD_LEN = 2_000;
+/** Maximum character length for practitioner note text. */
+const MAX_NOTE_LEN = 5_000;
 
 /**
- * Open a .db file and return its children + ratings without touching the store.
+ * Open a .db file and return its children + ratings + notes without touching the store.
  * Useful for showing a confirmation preview before committing the import.
  */
 export async function parseSQLite(
   file: File,
-): Promise<Pick<StoreState, "children" | "ratings">> {
+): Promise<Pick<StoreState, "children" | "ratings" | "stagnantNotes">> {
   if (file.size > MAX_FILE_BYTES) {
     throw new Error(
       `Backup file is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum accepted size is ${MAX_FILE_BYTES / 1024 / 1024} MB.`,
@@ -130,10 +158,10 @@ export async function parseSQLite(
   const buffer = await file.arrayBuffer();
   const db = new SQL.Database(new Uint8Array(buffer));
 
-  function assertFieldLen(value: string | null, field: string): void {
-    if (value !== null && value.length > MAX_FIELD_LEN) {
+  function assertFieldLen(value: string | null, field: string, maxLen = MAX_FIELD_LEN): void {
+    if (value !== null && value.length > maxLen) {
       throw new Error(
-        `Field "${field}" exceeds the maximum allowed length of ${MAX_FIELD_LEN} characters.`,
+        `Field "${field}" exceeds the maximum allowed length of ${maxLen} characters.`,
       );
     }
   }
@@ -142,7 +170,7 @@ export async function parseSQLite(
     const tables = db
       .exec(
         `SELECT name FROM sqlite_master
-         WHERE type='table' AND name IN ('children','ratings')`,
+         WHERE type='table' AND name IN ('children','ratings','stagnant_notes')`,
       )
       .flatMap((r: initSqlJs.QueryExecResult) =>
         r.values.map((v: initSqlJs.SqlValue[]) => v[0] as string),
@@ -226,7 +254,31 @@ export async function parseSQLite(
       }
     }
 
-    return { children, ratings };
+    // Stagnant notes — optional table (backward compat with older backups).
+    const stagnantNotes: StoreState["stagnantNotes"] = {};
+    if (tables.includes("stagnant_notes")) {
+      const noteRows = db.exec(
+        "SELECT child_id, area_name, strand_name, note_text, note_date FROM stagnant_notes",
+      );
+      if (noteRows.length > 0) {
+        for (const row of noteRows[0].values) {
+          const childId = row[0] as string;
+          const areaName = row[1] as string;
+          const strandName = row[2] as string;
+          const noteText = (row[3] as string | null) ?? "";
+          const noteDate = (row[4] as string | null) ?? "";
+          assertFieldLen(childId, "stagnant_notes.child_id");
+          assertFieldLen(areaName, "stagnant_notes.area_name");
+          assertFieldLen(strandName, "stagnant_notes.strand_name");
+          assertFieldLen(noteText, "stagnant_notes.note_text", MAX_NOTE_LEN);
+          assertFieldLen(noteDate, "stagnant_notes.note_date");
+          const key = `${childId}::${areaName}::${strandName}`;
+          stagnantNotes[key] = { text: noteText, date: noteDate };
+        }
+      }
+    }
+
+    return { children, ratings, stagnantNotes };
   } finally {
     db.close();
   }
@@ -236,7 +288,7 @@ export async function parseSQLite(
  * Parse a .db file and merge it into the current store.
  */
 export async function importSQLite(file: File): Promise<void> {
-  const { children, ratings } = await parseSQLite(file);
+  const { children, ratings, stagnantNotes } = await parseSQLite(file);
 
   const current = getStore();
   const childMap = new Map(current.children.map((c) => [c.id, c]));
@@ -245,5 +297,6 @@ export async function importSQLite(file: File): Promise<void> {
   setStore({
     children: [...childMap.values()],
     ratings: { ...current.ratings, ...ratings },
+    stagnantNotes: { ...(current.stagnantNotes ?? {}), ...stagnantNotes },
   });
 }
