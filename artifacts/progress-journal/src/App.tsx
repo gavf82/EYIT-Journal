@@ -36,7 +36,7 @@ function App() {
             <Router />
           </Layout>
         </WouterRouter>
-        <Toaster />
+        <div className="no-print"><Toaster /></div>
       </TooltipProvider>
     </QueryClientProvider>
   );

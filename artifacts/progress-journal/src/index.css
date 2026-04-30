@@ -230,6 +230,27 @@
   }
   .no-print { display: none !important; }
 
+  /* ── Hide all portal-rendered floating UI ─────────────────────────────── */
+  /* Radix portals: toasts, dropdowns, tooltips, dialogs, popovers, etc.    */
+  [data-radix-portal],
+  [data-radix-popper-content-wrapper] { display: none !important; }
+  /* Shadcn/Radix toast viewport (fixed, z-[100]) */
+  [data-radix-toast-announce-exclude],
+  [data-radix-toast-announce] { display: none !important; }
+
+  /* ── Hide Replit environment chrome ───────────────────────────────────── */
+  /* Feedback button, badge, dev tools — all injected outside the app tree  */
+  [id^="replit"],
+  [class^="replit-"],
+  [id*="replit-feedback"],
+  [id*="replit-badge"],
+  [id*="__repl"],
+  iframe { display: none !important; }
+
+  /* ── Hide any other fixed/sticky overlays ─────────────────────────────── */
+  /* Catches any positioned element not inside the designated print content */
+  body > *:not(#root):not(script):not(style):not(link) { display: none !important; }
+
   /* Force background colors for the yellow strips and stagnant highlights when printing. */
   .journal-strand-header,
   .journal-step-table,
