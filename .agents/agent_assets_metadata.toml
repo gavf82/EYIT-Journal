@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "PLsY_camJSaJlsjp7Oy0M"
+uri = "file://artifacts/progress-journal/eyit-journal-dist.zip"
+type = "unspecified"
+title = "EYIT Journal — Production Build"
