@@ -1,9 +1,13 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { BookOpen, Settings, Home } from "lucide-react";
+import { BookOpen, Settings, Home, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useSaveAndClose } from "../hooks/use-save-and-close";
+import { SaveAndCloseDialog } from "./save-and-close-dialog";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const { openDialog, hasData, dialogProps } = useSaveAndClose();
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background text-foreground">
@@ -13,19 +17,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <BookOpen className="h-6 w-6" />
             <span className="font-semibold tracking-tight">EYIT Development Journal</span>
           </Link>
-          <nav className="flex items-center gap-6 text-sm font-medium">
-            <Link 
-              href="/" 
+          <nav className="flex items-center gap-2 sm:gap-4 text-sm font-medium">
+            <Link
+              href="/"
               className={`transition-colors hover:text-foreground/80 ${location === "/" ? "text-foreground" : "text-foreground/60"}`}
             >
-              <span className="flex items-center gap-2"><Home className="w-4 h-4"/> Home</span>
+              <span className="flex items-center gap-1.5"><Home className="w-4 h-4"/> Home</span>
             </Link>
-            <Link 
-              href="/settings" 
+            <Link
+              href="/settings"
               className={`transition-colors hover:text-foreground/80 ${location === "/settings" ? "text-foreground" : "text-foreground/60"}`}
             >
-              <span className="flex items-center gap-2"><Settings className="w-4 h-4"/> Settings</span>
+              <span className="flex items-center gap-1.5"><Settings className="w-4 h-4"/> Settings</span>
             </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 ml-2"
+              disabled={!hasData}
+              onClick={openDialog}
+              data-testid="button-save-and-close"
+            >
+              <LogOut className="h-4 w-4" /> Save
+            </Button>
+            <SaveAndCloseDialog {...dialogProps} />
           </nav>
         </div>
       </header>

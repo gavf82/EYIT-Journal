@@ -5,8 +5,6 @@ import { useStore, getRatingKey, type Rating } from "../lib/store";
 import { buildStepVisibility, type StepVisibility } from "../lib/progress";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Printer, LogOut, CheckSquare, Square, Layers } from "lucide-react";
-import { useSaveAndClose } from "../hooks/use-save-and-close";
-import { SaveAndCloseDialog } from "../components/save-and-close-dialog";
 import { ageInMonths, formatAge } from "../lib/age";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "../lib/utils";
@@ -265,7 +263,6 @@ export default function AssessmentPage() {
   const [selectedAreas, setSelectedAreas] = useState<Set<string>>(() => new Set(ALL_AREA_NAMES));
   const [baselineSearch, setBaselineSearch] = useState(false);
   const [baselineDepth, setBaselineDepth] = useState(3);
-  const { openDialog, hasData, dialogProps } = useSaveAndClose();
 
   function handleBaselineToggle(on: boolean) {
     setBaselineSearch(on);
@@ -407,15 +404,6 @@ export default function AssessmentPage() {
                 )}
               </>
             )}
-            <Button
-              variant="outline"
-              className="gap-2"
-              disabled={!hasData}
-              onClick={openDialog}
-            >
-              <LogOut className="h-4 w-4" /> Save and close
-            </Button>
-            <SaveAndCloseDialog {...dialogProps} />
             <Button
               className="gap-2"
               onClick={() => window.print()}

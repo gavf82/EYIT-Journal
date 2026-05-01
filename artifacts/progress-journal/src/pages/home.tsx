@@ -30,8 +30,6 @@ import { Label } from "@/components/ui/label";
 import { Plus, ChevronRight, Calendar, Sparkles, BookText, Upload, LogOut, Search, X, Download, Share } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useToast } from "../hooks/use-toast";
-import { useSaveAndClose } from "../hooks/use-save-and-close";
-import { SaveAndCloseDialog } from "../components/save-and-close-dialog";
 import { ageInMonths, formatAge } from "../lib/age";
 import { useDirty } from "../hooks/use-dirty";
 import { useInstallPrompt } from "../hooks/use-install-prompt";
@@ -445,7 +443,6 @@ function InstallBanner() {
 
 export default function HomePage() {
   const { state } = useStore();
-  const { openDialog, hasData, dialogProps } = useSaveAndClose();
   const [query, setQuery] = useState("");
 
   const sorted = useMemo(
@@ -474,16 +471,6 @@ export default function HomePage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            className="gap-2"
-            disabled={!hasData}
-            onClick={openDialog}
-            data-testid="button-save-and-close"
-          >
-            <LogOut className="h-4 w-4" /> Save and close
-          </Button>
-          <SaveAndCloseDialog {...dialogProps} />
           <ImportButton />
           <AddChildDialog />
         </div>

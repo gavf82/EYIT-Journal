@@ -19,14 +19,12 @@ import { Trash2, Download, Upload, FlaskConical, X, LogOut, Database } from "luc
 import { useDirty } from "../hooks/use-dirty";
 import { useLocation } from "wouter";
 import { seedDemoData, removeDemoData, isDemoLoaded, DEMO_CHILD_ID } from "../lib/seed";
-import { useSaveAndClose } from "../hooks/use-save-and-close";
-import { SaveAndCloseDialog } from "../components/save-and-close-dialog";
 import { exportSQLite, importSQLite } from "../lib/sqlite";
 
 export default function SettingsPage() {
   const { state, resetAll } = useStore();
+  const hasData = state.children.length > 0;
   const { toast } = useToast();
-  const { openDialog, hasData, dialogProps } = useSaveAndClose();
   const [, navigate] = useLocation();
   const sqliteFileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -109,16 +107,6 @@ export default function SettingsPage() {
             Files open in DB Browser for SQLite, Python, Excel, and more.
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              className="gap-2"
-              disabled={!hasData}
-              onClick={openDialog}
-              data-testid="button-save-and-close"
-            >
-              <LogOut className="h-4 w-4" /> Save and close
-            </Button>
-            <SaveAndCloseDialog {...dialogProps} />
             <Button
               variant="outline"
               className="gap-2"

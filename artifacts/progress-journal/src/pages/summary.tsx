@@ -26,8 +26,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useSaveAndClose } from "../hooks/use-save-and-close";
-import { SaveAndCloseDialog } from "../components/save-and-close-dialog";
 import { cn } from "../lib/utils";
 import { useDirty } from "../hooks/use-dirty";
 import { ageInMonths, formatAge } from "../lib/age";
@@ -969,7 +967,6 @@ export default function SummaryPage() {
   const [includeHistory, setIncludeHistory] = useState<boolean>(true);
   const [radarInfoOpen, setRadarInfoOpen] = useState(false);
   const [fullDJPrint, setFullDJPrint] = useState(false);
-  const { openDialog, hasData, dialogProps } = useSaveAndClose();
 
   const [activeSection, setActiveSection] = useState<string>("sec-overview");
   useEffect(() => {
@@ -1137,15 +1134,6 @@ export default function SummaryPage() {
               <span className="font-medium">Include history</span>
             </label>
           )}
-          <Button
-            variant="outline"
-            className="gap-2"
-            disabled={!hasData}
-            onClick={openDialog}
-          >
-            <LogOut className="h-4 w-4" /> Save and close
-          </Button>
-          <SaveAndCloseDialog {...dialogProps} />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button className="gap-2" data-testid="button-print">
