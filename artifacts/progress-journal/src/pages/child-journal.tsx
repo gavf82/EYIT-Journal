@@ -390,8 +390,8 @@ function StrandSection({
       <CollapsibleContent className="px-4 sm:px-5 pb-5 pt-1">
         {visibleSteps.length === 0 ? (
           <p className="text-xs text-muted-foreground italic py-3">
-            No steps in this strand match the current age yet — turn off the age filter to see
-            all steps.
+            No steps in this strand match the child's age yet — toggle "All steps" above to see
+            every step.
           </p>
         ) : (
           <Accordion type="multiple" className="space-y-2">
@@ -447,8 +447,8 @@ function StrandSection({
         )}
         {hiddenCount > 0 && (
           <p className="mt-3 text-[11px] text-muted-foreground italic">
-            {hiddenCount} other step{hiddenCount === 1 ? "" : "s"} hidden — turn off the age
-            filter above to view full history.
+            {hiddenCount} step{hiddenCount === 1 ? "" : "s"} above child's age hidden — toggle
+            "All steps" above to view.
           </p>
         )}
       </CollapsibleContent>
@@ -623,7 +623,7 @@ export default function ChildJournalPage() {
   }
 
   const visibility: StepVisibility = useMemo(
-    () => buildStepVisibility(childId, childMonths, state.ratings, ageFilterOn),
+    () => buildStepVisibility(childId, childMonths, state.ratings, ageFilterOn, true),
     [childId, childMonths, state.ratings, ageFilterOn],
   );
 
@@ -881,11 +881,15 @@ export default function ChildJournalPage() {
               data-testid="toggle-age-filter-label"
             >
               <Switch
-                checked={ageFilterOn}
-                onCheckedChange={setAgeFilterOn}
+                checked={!ageFilterOn}
+                onCheckedChange={(v) => setAgeFilterOn(!v)}
                 data-testid="toggle-age-filter"
               />
-              <span className="font-medium">Age relevant only</span>
+              <span className="font-medium">
+                {ageFilterOn
+                  ? <>Steps up to <span className="text-[#008264]">{childAgeLabel}</span></>
+                  : "All steps"}
+              </span>
             </label>
           )}
           <div className="flex items-center gap-1">
