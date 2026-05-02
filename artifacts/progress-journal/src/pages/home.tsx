@@ -280,6 +280,12 @@ function ChildCard({
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const childMonths = useMemo(() => ageInMonths(dob), [dob]);
+
+  const isStale = useMemo(() => {
+    const lastActivity = getLastActivity(childId, updatedAt, ratings);
+    return Date.now() - new Date(lastActivity).getTime() > THREE_YEARS_MS;
+  }, [childId, updatedAt, ratings]);
+
   const visibility = useMemo(
     () => buildStepVisibility(childId, childMonths, ratings, childMonths !== null, true, baselineStep),
     [childId, childMonths, ratings, baselineStep],
@@ -315,8 +321,11 @@ function ChildCard({
 
       <Card
         className={cn(
-          "h-full transition-all cursor-pointer hover:shadow-md hover:border-primary/40",
-          archived && "opacity-65",
+          "h-full transition-all cursor-pointer hover:shadow-md",
+          archived && !isStale && "opacity-65 hover:border-primary/40",
+          archived && isStale
+            ? "border-amber-400 dark:border-amber-500 bg-amber-50/60 dark:bg-amber-950/20 hover:border-amber-500 dark:hover:border-amber-400"
+            : "hover:border-primary/40",
         )}
         onClick={() => navigate(`/child/${childId}/summary`)}
         data-testid={`card-child-${childId}`}
@@ -334,6 +343,11 @@ function ChildCard({
                 {archived && (
                   <Badge variant="secondary" className="text-[10px] uppercase tracking-wide shrink-0">
                     Archived
+                  </Badge>
+                )}
+                {archived && isStale && (
+                  <Badge variant="outline" className="text-[10px] uppercase tracking-wide shrink-0 gap-1 border-amber-400/70 text-amber-700 bg-amber-50 dark:border-amber-500/50 dark:text-amber-400 dark:bg-amber-950/40 px-1.5">
+                    <AlertTriangle className="h-2.5 w-2.5" /> Due for deletion
                   </Badge>
                 )}
               </div>
