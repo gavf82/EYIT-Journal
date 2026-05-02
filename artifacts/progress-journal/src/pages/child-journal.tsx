@@ -1130,6 +1130,7 @@ export default function ChildJournalPage() {
 
   return (
     <div className="container max-w-screen-2xl px-4 sm:px-6 lg:px-8 py-6 md:py-8 print:py-0 print:px-0 print:max-w-none print:pb-0">
+      <div className="no-print">
       {/* Child navigation */}
       <ChildNav childId={childId} />
 
@@ -1426,6 +1427,7 @@ export default function ChildJournalPage() {
           />
         ))}
       </div>
+      </div>{/* end no-print */}
 
       {/* ── Print-only content — hidden on screen ── */}
 
