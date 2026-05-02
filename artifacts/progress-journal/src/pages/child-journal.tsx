@@ -376,10 +376,10 @@ function StrandSection({
             </div>
           </div>
           <div className="flex flex-wrap gap-1.5 sm:justify-end pl-6 sm:pl-0">
+            <CountChip label="Unset" value={counts.unset} variant="muted" />
             <CountChip label="Emerging" value={counts.emerging} variant="emerging" />
             <CountChip label="Developing" value={counts.developing} variant="developing" />
             <CountChip label="Secure" value={counts.secure} variant="secure" />
-            <CountChip label="Unset" value={counts.unset} variant="muted" />
           </div>
         </div>
         <div className="mt-3 pl-6">
