@@ -1,6 +1,6 @@
 import initSqlJs from "sql.js";
 import wasmUrl from "sql.js/dist/sql-wasm.wasm?url";
-import { getStore, setStore, type StoreState } from "./store";
+import { getStore, setStore, type StoreState, type AcknowledgedEntry } from "./store";
 import { saveBlob, todaySlug } from "./export";
 
 // ── Singleton ────────────────────────────────────────────────────────────────
@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS acknowledged_stagnations (
   step_number INTEGER NOT NULL,
   item_key    TEXT    NOT NULL,
   acked_at    TEXT    NOT NULL,
+  note_text   TEXT    NOT NULL DEFAULT '',
   PRIMARY KEY (child_id, area_name, strand_name, step_number, item_key)
 );
 `;
@@ -125,12 +126,13 @@ export async function exportSQLite(): Promise<boolean> {
   }
   insertNote.free();
 
+  // Upsert: INSERT OR REPLACE includes note_text for full fidelity.
   const insertAcked = db.prepare(
     `INSERT OR REPLACE INTO acknowledged_stagnations
-       (child_id, area_name, strand_name, step_number, item_key, acked_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+       (child_id, area_name, strand_name, step_number, item_key, acked_at, note_text)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
   );
-  for (const [key, ackedAt] of Object.entries(store.acknowledgedStagnations ?? {})) {
+  for (const [key, entry] of Object.entries(store.acknowledgedStagnations ?? {})) {
     // key = "${childId}::${areaName}::${strandName}::${stepNumber}::${itemKey}"
     const parts = key.split("::");
     if (parts.length < 5) continue;
@@ -138,7 +140,7 @@ export async function exportSQLite(): Promise<boolean> {
     const itemKey = itemParts.join("::");
     const stepNumber = parseInt(stepStr, 10);
     if (isNaN(stepNumber)) continue;
-    insertAcked.run([childId, areaName, strandName, stepNumber, itemKey, ackedAt]);
+    insertAcked.run([childId, areaName, strandName, stepNumber, itemKey, entry.ackedAt, entry.note]);
   }
   insertAcked.free();
 
@@ -306,10 +308,19 @@ export async function parseSQLite(
     }
 
     // Acknowledged stagnations — optional table (backward compat with older backups).
+    // The note_text column was added later; detect it before querying.
     const acknowledgedStagnations: StoreState["acknowledgedStagnations"] = {};
     if (tables.includes("acknowledged_stagnations")) {
+      const hasNoteCol =
+        db
+          .exec(`SELECT 1 FROM pragma_table_info('acknowledged_stagnations') WHERE name='note_text'`)
+          .flatMap((r: initSqlJs.QueryExecResult) => r.values)
+          .length > 0;
+
       const ackedRows = db.exec(
-        "SELECT child_id, area_name, strand_name, step_number, item_key, acked_at FROM acknowledged_stagnations",
+        hasNoteCol
+          ? "SELECT child_id, area_name, strand_name, step_number, item_key, acked_at, note_text FROM acknowledged_stagnations"
+          : "SELECT child_id, area_name, strand_name, step_number, item_key, acked_at, '' FROM acknowledged_stagnations",
       );
       if (ackedRows.length > 0) {
         for (const row of ackedRows[0].values) {
@@ -319,12 +330,15 @@ export async function parseSQLite(
           const stepNumber = row[3] as number;
           const itemKey = row[4] as string;
           const ackedAt = (row[5] as string | null) ?? new Date().toISOString();
+          const noteText = (row[6] as string | null) ?? "";
           assertFieldLen(childId, "acknowledged_stagnations.child_id");
           assertFieldLen(areaName, "acknowledged_stagnations.area_name");
           assertFieldLen(strandName, "acknowledged_stagnations.strand_name");
           assertFieldLen(itemKey, "acknowledged_stagnations.item_key");
+          assertFieldLen(noteText, "acknowledged_stagnations.note_text", MAX_NOTE_LEN);
           const key = `${childId}::${areaName}::${strandName}::${stepNumber}::${itemKey}`;
-          acknowledgedStagnations[key] = ackedAt;
+          const entry: AcknowledgedEntry = { ackedAt, note: noteText };
+          acknowledgedStagnations[key] = entry;
         }
       }
     }

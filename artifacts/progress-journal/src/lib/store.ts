@@ -30,6 +30,12 @@ export interface StagnantNote {
   date: string;
 }
 
+/** Acknowledgment entry for a stagnant item — records when it was reviewed and why. */
+export interface AcknowledgedEntry {
+  ackedAt: string;
+  note: string;
+}
+
 export interface StoreState {
   children: Child[];
   ratings: Record<string, Rating>;
@@ -38,9 +44,9 @@ export interface StoreState {
   /**
    * Stagnant items the practitioner has explicitly marked as reviewed.
    * key: `${childId}::${areaName}::${strandName}::${stepNumber}::${itemKey}`
-   * value: ISO datetime string of when it was acknowledged.
+   * value: { ackedAt, note } — note is the practitioner's written reason.
    */
-  acknowledgedStagnations: Record<string, string>;
+  acknowledgedStagnations: Record<string, AcknowledgedEntry>;
 }
 
 const STORE_KEY = 'eyit-journal-store';
@@ -52,16 +58,32 @@ const initialState: StoreState = {
   acknowledgedStagnations: {},
 };
 
+/** Normalise a raw acknowledgedStagnations value from localStorage.
+ *  Old format was a plain ISO string; new format is { ackedAt, note }. */
+function normalizeAckedEntry(v: unknown): AcknowledgedEntry {
+  if (typeof v === 'string') return { ackedAt: v, note: '' };
+  if (typeof v === 'object' && v !== null && 'ackedAt' in v) {
+    const obj = v as Record<string, unknown>;
+    return {
+      ackedAt: typeof obj.ackedAt === 'string' ? obj.ackedAt : new Date().toISOString(),
+      note: typeof obj.note === 'string' ? obj.note : '',
+    };
+  }
+  return { ackedAt: new Date().toISOString(), note: '' };
+}
+
 export function getStore(): StoreState {
   try {
     const data = localStorage.getItem(STORE_KEY);
     const parsed = data ? JSON.parse(data) : initialState;
-    // Backward compat: fields added after initial release default to empty objects.
+    const rawAcked: Record<string, unknown> = parsed.acknowledgedStagnations ?? {};
     return {
       ...initialState,
       ...parsed,
       stagnantNotes: parsed.stagnantNotes ?? {},
-      acknowledgedStagnations: parsed.acknowledgedStagnations ?? {},
+      acknowledgedStagnations: Object.fromEntries(
+        Object.entries(rawAcked).map(([k, v]) => [k, normalizeAckedEntry(v)])
+      ),
     };
   } catch (e) {
     console.error('Failed to load store', e);
@@ -172,11 +194,11 @@ export function useStore() {
     setStore({ ...current, stagnantNotes: notes });
   };
 
-  const setStagnationAcknowledged = (key: string, acknowledged: boolean) => {
+  const setStagnationAcknowledged = (key: string, acknowledged: boolean, note?: string) => {
     const current = getStore();
     const acked = { ...(current.acknowledgedStagnations ?? {}) };
     if (acknowledged) {
-      acked[key] = new Date().toISOString();
+      acked[key] = { ackedAt: new Date().toISOString(), note: note ?? '' };
     } else {
       delete acked[key];
     }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "wouter";
 import { JOURNAL, AREA_COLORS, type JournalArea, type JournalStrand, type Status } from "../data/journal";
 import { useStore, getRatingKey, type Rating, type HistoryEntry } from "../lib/store";
@@ -11,7 +11,16 @@ import {
 } from "../lib/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Printer, LogOut, AlertTriangle, Info, ChevronDown, FileText, BookOpen, CheckCircle2, RotateCcw } from "lucide-react";
+import { Printer, LogOut, AlertTriangle, Info, ChevronDown, FileText, BookOpen, CheckCircle2, RotateCcw, ClipboardCheck } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { ChildNav } from "../components/child-nav";
 import {
   DropdownMenu,
@@ -386,6 +395,8 @@ interface StagnantItem {
   status: "emerging" | "developing";
   updatedAt: string;
   monthsStale: number;
+  /** Populated only for dismissed items — the note entered when acknowledging. */
+  reviewNote?: string;
 }
 
 function monthsBetween(from: Date, to: Date): number {
@@ -444,14 +455,29 @@ function computeStagnantItems(
 interface StagnantItemsSectionProps {
   activeItems: StagnantItem[];
   dismissedItems: StagnantItem[];
-  onAcknowledge: (it: StagnantItem) => void;
+  onAcknowledge: (it: StagnantItem, note: string) => void;
   onUnacknowledge: (it: StagnantItem) => void;
 }
 
 function StagnantItemsSection({ activeItems, dismissedItems, onAcknowledge, onUnacknowledge }: StagnantItemsSectionProps) {
   const [showDismissed, setShowDismissed] = useState(false);
+  const [pendingItem, setPendingItem] = useState<StagnantItem | null>(null);
+  const [noteText, setNoteText] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   if (activeItems.length === 0 && dismissedItems.length === 0) return null;
+
+  function openAcknowledgeDialog(it: StagnantItem) {
+    setPendingItem(it);
+    setNoteText("");
+  }
+
+  function handleDialogSubmit() {
+    if (!pendingItem || noteText.trim() === "") return;
+    onAcknowledge(pendingItem, noteText.trim());
+    setPendingItem(null);
+    setNoteText("");
+  }
 
   function renderItems(items: StagnantItem[], isDismissed: boolean) {
     const byArea = new Map<string, StagnantItem[]>();
@@ -466,11 +492,11 @@ function StagnantItemsSection({ activeItems, dismissedItems, onAcknowledge, onUn
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
           {areaName}
         </p>
-        <ul className="space-y-2">
+        <ul className="space-y-3">
           {areaItems.map((it) => (
             <li
               key={`${it.strandName}::${it.stepNumber}::${it.itemKey}`}
-              className={cn("flex items-start gap-3 text-sm", isDismissed && "opacity-50")}
+              className={cn("flex items-start gap-3 text-sm", isDismissed && "opacity-60")}
             >
               <span
                 className={cn(
@@ -482,11 +508,16 @@ function StagnantItemsSection({ activeItems, dismissedItems, onAcknowledge, onUn
               >
                 {it.status === "emerging" ? "E" : "D"}
               </span>
-              <span className="flex-1 leading-snug">
+              <span className="flex-1 leading-snug min-w-0">
                 <span className="font-medium">{it.strandName}</span>
                 <span className="text-muted-foreground"> · Step {it.stepNumber} ({it.ageRange}) · {it.itemKey})</span>
                 <br />
                 {it.itemText}
+                {isDismissed && it.reviewNote && (
+                  <span className="block mt-1.5 text-xs italic text-muted-foreground border-l-2 border-[#008264]/40 pl-2">
+                    {it.reviewNote}
+                  </span>
+                )}
               </span>
               <span className="shrink-0 text-xs text-muted-foreground tabular-nums whitespace-nowrap text-right">
                 {formatEntryDate(it.updatedAt)}
@@ -503,8 +534,8 @@ function StagnantItemsSection({ activeItems, dismissedItems, onAcknowledge, onUn
                 </button>
               ) : (
                 <button
-                  onClick={() => onAcknowledge(it)}
-                  title="Mark as reviewed — removes from report"
+                  onClick={() => openAcknowledgeDialog(it)}
+                  title="Mark as reviewed — requires a note"
                   className="shrink-0 flex items-center justify-center h-9 w-9 -mr-1 rounded-md text-muted-foreground hover:text-[#008264] hover:bg-[#00826415] transition-colors"
                 >
                   <CheckCircle2 className="h-5 w-5" />
@@ -518,43 +549,92 @@ function StagnantItemsSection({ activeItems, dismissedItems, onAcknowledge, onUn
   }
 
   return (
-    <section>
-      <div className="flex items-center gap-2 mb-3">
-        <AlertTriangle className="h-4 w-4 text-[hsl(38_88%_45%)]" />
-        <h2 className="text-lg font-semibold">Areas without progression</h2>
-        <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-          {activeItems.length} item{activeItems.length !== 1 ? "s" : ""} · no change for 6+ months
-        </span>
-      </div>
-      <Card className="border-[hsl(38_88%_62%)/40]">
-        <CardContent className="p-0 divide-y divide-border">
-          {activeItems.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-              All items have been marked as reviewed.
+    <>
+      <section>
+        <div className="flex items-center gap-2 mb-3">
+          <AlertTriangle className="h-4 w-4 text-[hsl(38_88%_45%)]" />
+          <h2 className="text-lg font-semibold">Areas without progression</h2>
+          <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+            {activeItems.length} item{activeItems.length !== 1 ? "s" : ""} · no change for 6+ months
+          </span>
+        </div>
+        <Card className="border-[hsl(38_88%_62%)/40]">
+          <CardContent className="p-0 divide-y divide-border">
+            {activeItems.length === 0 ? (
+              <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                All items have been marked as reviewed.
+              </div>
+            ) : (
+              renderItems(activeItems, false)
+            )}
+            {dismissedItems.length > 0 && (
+              <div className="px-4 py-2">
+                <button
+                  onClick={() => setShowDismissed((v) => !v)}
+                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5 text-[#008264]" />
+                  {dismissedItems.length} reviewed item{dismissedItems.length !== 1 ? "s" : ""} hidden
+                  <span className="underline underline-offset-2">{showDismissed ? "· Hide" : "· Show"}</span>
+                </button>
+                {showDismissed && (
+                  <div className="mt-2 divide-y divide-border border-t border-border pt-2">
+                    {renderItems(dismissedItems, true)}
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Acknowledge dialog — requires a note before dismissing */}
+      <Dialog
+        open={pendingItem !== null}
+        onOpenChange={(open) => { if (!open) { setPendingItem(null); setNoteText(""); } }}
+      >
+        <DialogContent className="sm:max-w-lg" onOpenAutoFocus={(e) => { e.preventDefault(); textareaRef.current?.focus(); }}>
+          <DialogHeader>
+            <DialogTitle>Mark as reviewed</DialogTitle>
+            <DialogDescription>
+              Record the reason this stagnation is being marked as reviewed. The note will be saved to the journal.
+            </DialogDescription>
+          </DialogHeader>
+          {pendingItem && (
+            <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm space-y-0.5">
+              <p className="font-medium">{pendingItem.strandName} · Step {pendingItem.stepNumber} ({pendingItem.ageRange})</p>
+              <p className="text-muted-foreground text-xs">{pendingItem.itemText}</p>
+              <p className="text-xs text-[hsl(38_88%_45%)] tabular-nums">{pendingItem.monthsStale} months without progression</p>
             </div>
-          ) : (
-            renderItems(activeItems, false)
           )}
-          {dismissedItems.length > 0 && (
-            <div className="px-4 py-2">
-              <button
-                onClick={() => setShowDismissed((v) => !v)}
-                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors"
-              >
-                <CheckCircle2 className="h-3.5 w-3.5 text-[#008264]" />
-                {dismissedItems.length} reviewed item{dismissedItems.length !== 1 ? "s" : ""} hidden
-                <span className="underline underline-offset-2">{showDismissed ? "· Hide" : "· Show"}</span>
-              </button>
-              {showDismissed && (
-                <div className="mt-2 divide-y divide-border border-t border-border pt-2">
-                  {renderItems(dismissedItems, true)}
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </section>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium" htmlFor="ack-note">Review note <span className="text-destructive">*</span></label>
+            <Textarea
+              id="ack-note"
+              ref={textareaRef}
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              placeholder="Describe what actions have been taken or why this has been reviewed…"
+              rows={4}
+              className="resize-none"
+            />
+            <p className="text-xs text-muted-foreground">A note is required before marking as reviewed.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setPendingItem(null); setNoteText(""); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDialogSubmit}
+              disabled={noteText.trim() === ""}
+              className="gap-2"
+            >
+              <CheckCircle2 className="h-4 w-4" /> Mark as reviewed
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -1010,15 +1090,16 @@ export default function SummaryPage() {
     const dismissed: StagnantItem[] = [];
     for (const it of allStagnantItems) {
       const key = `${childId}::${it.areaName}::${it.strandName}::${it.stepNumber}::${it.itemKey}`;
-      if (acked[key]) dismissed.push(it);
+      const entry = acked[key];
+      if (entry) dismissed.push({ ...it, reviewNote: entry.note });
       else active.push(it);
     }
     return { activeStagnantItems: active, dismissedStagnantItems: dismissed };
   }, [allStagnantItems, state.acknowledgedStagnations, childId]);
 
-  const acknowledgeItem = (it: StagnantItem) => {
+  const acknowledgeItem = (it: StagnantItem, note: string) => {
     const key = `${childId}::${it.areaName}::${it.strandName}::${it.stepNumber}::${it.itemKey}`;
-    setStagnationAcknowledged(key, true);
+    setStagnationAcknowledged(key, true, note);
   };
 
   const unacknowledgeItem = (it: StagnantItem) => {
@@ -1520,6 +1601,52 @@ export default function SummaryPage() {
       {/* Journal pages — PDF-style tables, shown on screen and printed */}
       <section id="sec-journal" className="mt-8 print:mt-0">
         <h2 className="text-lg font-semibold mb-3 no-print">Journal pages (print preview)</h2>
+
+        {/* Stagnation review notes — shown on screen and printed */}
+        {dismissedStagnantItems.length > 0 && (
+          <Card className="mb-6 border-[#008264]/30">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <ClipboardCheck className="h-4 w-4 text-[#008264]" />
+                <h3 className="text-sm font-semibold">Stagnation review notes</h3>
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {dismissedStagnantItems.length} item{dismissedStagnantItems.length !== 1 ? "s" : ""} reviewed
+                </span>
+              </div>
+              <div className="space-y-3">
+                {dismissedStagnantItems.map((it) => {
+                  const entry = (state.acknowledgedStagnations ?? {})[
+                    `${childId}::${it.areaName}::${it.strandName}::${it.stepNumber}::${it.itemKey}`
+                  ];
+                  return (
+                    <div
+                      key={`${it.strandName}::${it.stepNumber}::${it.itemKey}`}
+                      className="border-l-2 border-[#008264]/40 pl-3 space-y-1"
+                    >
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        {it.areaName}
+                      </p>
+                      <p className="text-sm font-medium">
+                        {it.strandName} · Step {it.stepNumber} ({it.ageRange})
+                      </p>
+                      <p className="text-xs text-muted-foreground">{it.itemText}</p>
+                      {it.reviewNote ? (
+                        <p className="text-sm">{it.reviewNote}</p>
+                      ) : (
+                        <p className="text-xs italic text-muted-foreground">No note recorded.</p>
+                      )}
+                      {entry?.ackedAt && (
+                        <p className="text-xs text-muted-foreground tabular-nums">
+                          Reviewed {new Date(entry.ackedAt).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* ── Standard summary journal (screen + standard print) ── */}
         {/* NOTE: must be conditionally unmounted (not CSS-hidden) when fullDJPrint is true
