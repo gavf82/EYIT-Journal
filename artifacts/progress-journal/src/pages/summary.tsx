@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "wouter";
-import { JOURNAL, AREA_COLORS, type JournalArea, type JournalStrand, type Status } from "../data/journal";
-import { useStore, getRatingKey, type Rating, type HistoryEntry } from "../lib/store";
+import { JOURNAL, AREA_COLORS, type Status } from "../data/journal";
+import { useStore, getRatingKey, type Rating } from "../lib/store";
 import {
   buildStepVisibility,
   countAll,
@@ -11,7 +11,7 @@ import {
 } from "../lib/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Printer, LogOut, AlertTriangle, Info, ChevronDown, FileText, BookOpen, CheckCircle2, RotateCcw, ClipboardCheck } from "lucide-react";
+import { LogOut, AlertTriangle, Info, CheckCircle2, RotateCcw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -22,14 +22,6 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { ChildNav } from "../components/child-nav";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Tooltip as UITooltip,
   TooltipContent,
@@ -89,7 +81,7 @@ function formatDate(d: string) {
   }
 }
 
-// Compact date for table cells: "27/04/25" — fits narrow columns.
+// Compact date: "27/04/25" — used in stagnation alerts display.
 function formatEntryDate(iso: string) {
   if (!iso) return "";
   try {
@@ -101,283 +93,6 @@ function formatEntryDate(iso: string) {
   } catch {
     return "";
   }
-}
-
-interface RatedItemRow {
-  key: string;
-  text: string;
-  status: Exclude<Status, null>;
-  updatedAt: string;
-  history?: HistoryEntry[];
-}
-
-interface StepBlock {
-  stepNumber: number;
-  ageRange: string;
-  items: RatedItemRow[];
-}
-
-function collectStrandBlocks(
-  area: JournalArea,
-  aIdx: number,
-  strand: JournalStrand,
-  sIdx: number,
-  childId: string,
-  ratings: Record<string, Rating>,
-  visibility: StepVisibility,
-): StepBlock[] {
-  const visibleSet = visibility?.get(`${aIdx}::${sIdx}`) ?? null;
-
-  // Collect every visible step (rated or not) so we can fill gaps later.
-  const allBlocks: StepBlock[] = [];
-  strand.steps.forEach((step, stIdx) => {
-    if (!step.items || step.note) return;
-    const inAgeRange = visibleSet ? visibleSet.has(stIdx) : true;
-    if (!inAgeRange) return;
-    const items: RatedItemRow[] = [];
-    step.items.forEach((item) => {
-      const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
-      const s = r?.status;
-      if (s === "emerging" || s === "developing" || s === "secure") {
-        items.push({ key: item.key, text: item.text, status: s, updatedAt: r!.updatedAt, history: r!.history });
-      }
-    });
-    items.sort((a, b) => a.key.localeCompare(b.key));
-    allBlocks.push({ stepNumber: step.number, ageRange: step.ageRange, items });
-  });
-
-  // Ascending step order so the earliest step sits at the top.
-  allBlocks.sort((a, b) => a.stepNumber - b.stepNumber);
-
-  // Find the first and last steps that actually have rated items.
-  const withItems = allBlocks.filter((b) => b.items.length > 0);
-  if (withItems.length === 0) return [];
-
-  // Include every step in the range, even if empty, so gaps are visible in print.
-  const first = withItems[0].stepNumber;
-  const last = withItems[withItems.length - 1].stepNumber;
-  return allBlocks.filter((b) => b.stepNumber >= first && b.stepNumber <= last);
-}
-
-function StrandTable({
-  area,
-  strand,
-  blocks,
-  stagnantKeys,
-}: {
-  area: JournalArea;
-  strand: JournalStrand;
-  blocks: StepBlock[];
-  stagnantKeys?: Set<string>;
-}) {
-  return (
-    <section
-      className="journal-strand"
-      data-testid={`strand-table-${strand.name}`}
-      style={{ "--area-color": AREA_COLORS[area.area] ?? "#f6c344" } as React.CSSProperties}
-    >
-      <div className="journal-strand-header">
-        <span className="font-semibold">{area.area}: </span>
-        <span className="uppercase tracking-wide">{strand.name}</span>
-      </div>
-      {blocks.map((block) => (
-        <table key={block.stepNumber} className="journal-step-table">
-          <colgroup>
-            <col className="journal-col-text" />
-            <col className="journal-col-status" />
-            <col className="journal-col-status" />
-            <col className="journal-col-status" />
-          </colgroup>
-          <thead>
-            <tr className="journal-step-row">
-              <th scope="col" className="text-left">
-                Step {block.stepNumber} ({block.ageRange})
-              </th>
-              <th scope="col" className="text-center">Emerging</th>
-              <th scope="col" className="text-center">Developing</th>
-              <th scope="col" className="text-center">Secure</th>
-            </tr>
-          </thead>
-          <tbody>
-            {block.items.map((it) => {
-              const sk = `${area.area}::${strand.name}::${block.stepNumber}::${it.key}`;
-              const isStagnant = stagnantKeys?.has(sk) ?? false;
-
-              // Resolve the date for each status stage from current or history.
-              function stageDate(s: "emerging" | "developing" | "secure"): string | null {
-                if (it.status === s) return it.updatedAt;
-                const h = it.history?.find((e) => e.status === s);
-                return h?.date ?? null;
-              }
-
-              const eDate = stageDate("emerging");
-              const dDate = stageDate("developing");
-              const sDate = stageDate("secure");
-
-              return (
-                <tr key={it.key}>
-                  <td>
-                    <span className="font-semibold mr-1">{it.key})</span>
-                    {it.text}
-                  </td>
-                  <td className="text-center text-xs tabular-nums">
-                    {eDate ? (
-                      <span className={isStagnant && it.status === "emerging" ? "stagnant-date" : undefined}>
-                        {formatEntryDate(eDate)}
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="text-center text-xs tabular-nums">
-                    {dDate ? (
-                      <span className={isStagnant && it.status === "developing" ? "stagnant-date" : undefined}>
-                        {formatEntryDate(dDate)}
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="text-center text-xs tabular-nums">
-                    {sDate ? formatEntryDate(sDate) : null}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      ))}
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Full Development Journal (Full DJ) — all steps, all items, for LA submission
-// ---------------------------------------------------------------------------
-
-interface FullDJItemRow {
-  key: string;
-  text: string;
-  status: Exclude<Status, null> | null;
-  updatedAt: string | null;
-  history?: HistoryEntry[];
-}
-
-interface FullDJStepBlock {
-  stepNumber: number;
-  ageRange: string;
-  items: FullDJItemRow[];
-}
-
-function collectFullDJBlocks(
-  area: JournalArea,
-  aIdx: number,
-  strand: JournalStrand,
-  sIdx: number,
-  childId: string,
-  ratings: Record<string, Rating>,
-): FullDJStepBlock[] {
-  const blocks: FullDJStepBlock[] = [];
-  strand.steps.forEach((step, stIdx) => {
-    if (!step.items || step.note) return;
-    const items: FullDJItemRow[] = step.items.map((item) => {
-      const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
-      const s = r?.status ?? null;
-      return {
-        key: item.key,
-        text: item.text,
-        status: s as Exclude<Status, null> | null,
-        updatedAt: r?.updatedAt ?? null,
-        history: r?.history,
-      };
-    });
-    if (items.length > 0) {
-      blocks.push({ stepNumber: step.number, ageRange: step.ageRange, items });
-    }
-  });
-  return blocks;
-}
-
-function FullDJStrandTable({
-  area,
-  strand,
-  blocks,
-  stagnantKeys,
-}: {
-  area: JournalArea;
-  strand: JournalStrand;
-  blocks: FullDJStepBlock[];
-  stagnantKeys?: Set<string>;
-}) {
-  return (
-    <section
-      className="journal-strand"
-      style={{ "--area-color": AREA_COLORS[area.area] ?? "#f6c344" } as React.CSSProperties}
-    >
-      <div className="journal-strand-header">
-        <span className="font-semibold">{area.area}: </span>
-        <span className="uppercase tracking-wide">{strand.name}</span>
-      </div>
-      {blocks.map((block) => (
-        <table key={block.stepNumber} className="journal-step-table">
-          <colgroup>
-            <col className="journal-col-text" />
-            <col className="journal-col-status" />
-            <col className="journal-col-status" />
-            <col className="journal-col-status" />
-          </colgroup>
-          <thead>
-            <tr className="journal-step-row">
-              <th scope="col" className="text-left">
-                Step {block.stepNumber} ({block.ageRange})
-              </th>
-              <th scope="col" className="text-center">Emerging</th>
-              <th scope="col" className="text-center">Developing</th>
-              <th scope="col" className="text-center">Secure</th>
-            </tr>
-          </thead>
-          <tbody>
-            {block.items.map((it) => {
-              const sk = `${area.area}::${strand.name}::${block.stepNumber}::${it.key}`;
-              const isStagnant = stagnantKeys?.has(sk) ?? false;
-
-              function stageDate(s: "emerging" | "developing" | "secure"): string | null {
-                if (it.status === s) return it.updatedAt;
-                const h = it.history?.find((e) => e.status === s);
-                return h?.date ?? null;
-              }
-
-              const eDate = it.status ? stageDate("emerging") : null;
-              const dDate = it.status ? stageDate("developing") : null;
-              const sDate = it.status ? stageDate("secure") : null;
-
-              return (
-                <tr key={it.key}>
-                  <td>
-                    <span className="font-semibold mr-1">{it.key})</span>
-                    {it.text}
-                  </td>
-                  <td className="text-center text-xs tabular-nums">
-                    {eDate ? (
-                      <span className={isStagnant && it.status === "emerging" ? "stagnant-date" : undefined}>
-                        {formatEntryDate(eDate)}
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="text-center text-xs tabular-nums">
-                    {dDate ? (
-                      <span className={isStagnant && it.status === "developing" ? "stagnant-date" : undefined}>
-                        {formatEntryDate(dDate)}
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="text-center text-xs tabular-nums">
-                    {sDate ? formatEntryDate(sDate) : null}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      ))}
-    </section>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -953,9 +668,6 @@ function BestFitStepChart({
           <tr className="text-xs text-muted-foreground uppercase tracking-wide">
             <th className="text-left py-1.5 px-3 font-medium w-[55%]">Strand</th>
             <th className="text-center py-1.5 px-3 font-medium">Best-fit Step</th>
-            <th className="text-left py-1.5 px-3 font-medium text-muted-foreground/60 hidden sm:table-cell">
-              Age range
-            </th>
           </tr>
         </thead>
         <tbody>
@@ -964,7 +676,7 @@ function BestFitStepChart({
               {/* Area header row */}
               <tr key={`area-${area.area}`}>
                 <td
-                  colSpan={3}
+                  colSpan={2}
                   className="py-1 px-3 text-xs font-semibold uppercase tracking-wide"
                   style={{ backgroundColor: AREA_COLORS[area.area] ?? "#eee" }}
                 >
@@ -1006,11 +718,6 @@ function BestFitStepChart({
                       <span className="text-muted-foreground text-xs italic">—</span>
                     )}
                   </td>
-                  <td className="py-1.5 px-3 text-xs text-muted-foreground hidden sm:table-cell">
-                    {row.steps.length > 0
-                      ? row.steps.map((s) => `Step ${s.stepNumber} (${s.ageRange})`).join(", ")
-                      : "—"}
-                  </td>
                 </tr>
               ))}
             </>
@@ -1033,7 +740,6 @@ const SECTIONS = [
   { id: "sec-best-fit", label: "Best-fit" },
   { id: "sec-by-area", label: "By area" },
   { id: "sec-alerts", label: "Alerts" },
-  { id: "sec-journal", label: "Journal" },
 ] as const;
 
 export default function SummaryPage() {
@@ -1045,9 +751,8 @@ export default function SummaryPage() {
   const childMonths = child ? ageInMonths(child.dob) : null;
   const childAgeLabel = child ? formatAge(child.dob) : "";
   const [ageFilterOn, setAgeFilterOn] = useState<boolean>(childMonths !== null);
-  const [includeHistory, setIncludeHistory] = useState<boolean>(true);
+  const [includeHistory, setIncludeHistory] = useState<boolean>(false);
   const [radarInfoOpen, setRadarInfoOpen] = useState(false);
-  const [fullDJPrint, setFullDJPrint] = useState(false);
 
   const [activeSection, setActiveSection] = useState<string>("sec-overview");
   useEffect(() => {
@@ -1114,60 +819,6 @@ export default function SummaryPage() {
   // Lookup set used to highlight stagnant dates in the journal tables.
   // Key format: "${areaName}::${strandName}::${stepNumber}::${itemKey}"
   // Only active (unacknowledged) items get highlighted.
-  const stagnantKeys = useMemo(
-    () => new Set(activeStagnantItems.map((it) => `${it.areaName}::${it.strandName}::${it.stepNumber}::${it.itemKey}`)),
-    [activeStagnantItems],
-  );
-
-  // Build the strand tables once per render — only strands with at least one
-  // rated item appear, so the printout matches the PDF format with only the
-  // user's selections.
-  const strandTables = useMemo(() => {
-    if (!childId) return [];
-    const out: { area: JournalArea; strand: JournalStrand; blocks: StepBlock[] }[] = [];
-    JOURNAL.forEach((area, aIdx) => {
-      area.strands.forEach((strand, sIdx) => {
-        const blocks = collectStrandBlocks(
-          area,
-          aIdx,
-          strand,
-          sIdx,
-          childId,
-          state.ratings,
-          visibility,
-        );
-        if (blocks.length > 0) {
-          out.push({ area, strand, blocks });
-        }
-      });
-    });
-    return out;
-  }, [childId, state.ratings, visibility]);
-
-  // Full DJ tables: every step, every item, no age filter — for LA submission.
-  const fullDJStrandTables = useMemo(() => {
-    if (!childId) return [];
-    const out: { area: JournalArea; strand: JournalStrand; blocks: FullDJStepBlock[] }[] = [];
-    JOURNAL.forEach((area, aIdx) => {
-      area.strands.forEach((strand, sIdx) => {
-        const blocks = collectFullDJBlocks(area, aIdx, strand, sIdx, childId, state.ratings);
-        if (blocks.length > 0) out.push({ area, strand, blocks });
-      });
-    });
-    return out;
-  }, [childId, state.ratings]);
-
-  function handleFullDJPrint() {
-    setFullDJPrint(true);
-    // Two rAF frames ensures React has committed the DOM update before printing.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        window.print();
-        setFullDJPrint(false);
-      });
-    });
-  }
-
   if (!child) {
     return (
       <div className="container max-w-2xl px-4 py-16 text-center">
@@ -1212,41 +863,6 @@ export default function SummaryPage() {
               <span className="font-medium">Include history</span>
             </label>
           )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="gap-2" data-testid="button-print">
-                <Printer className="h-4 w-4" /> Print <ChevronDown className="h-3.5 w-3.5 opacity-70" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-                Choose what to print
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="gap-2 cursor-pointer"
-                onClick={() => window.print()}
-                data-testid="button-print-summary"
-              >
-                <FileText className="h-4 w-4 shrink-0" />
-                <div>
-                  <div className="font-medium">Summary</div>
-                  <div className="text-xs text-muted-foreground">Cover + rated items</div>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="gap-2 cursor-pointer"
-                onClick={handleFullDJPrint}
-                data-testid="button-print-full-dj"
-              >
-                <BookOpen className="h-4 w-4 shrink-0" />
-                <div>
-                  <div className="font-medium">Full DJ</div>
-                  <div className="text-xs text-muted-foreground">All steps — for LA submission</div>
-                </div>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 
@@ -1282,134 +898,6 @@ export default function SummaryPage() {
           )}
         </div>
       </nav>
-
-      {/* Print-only cover page — styled to match the EYIT Development Journal */}
-      <section className="hidden print:flex print-cover eyit-cover">
-        {/* Logo */}
-        <div className="eyit-cover-logo-row">
-          <img
-            src={`${import.meta.env.BASE_URL}eyit-logo.png`}
-            alt="Early Years Inclusion Team"
-            className="eyit-cover-logo"
-          />
-        </div>
-
-        {/* Title block — Gill Sans MT, #008264 */}
-        <div className="eyit-cover-titles">
-          <div className="eyit-cover-h1">Early Years Inclusion Team</div>
-          <div className="eyit-cover-h1">Development Journal</div>
-          <div className="eyit-cover-h2">
-            {fullDJPrint ? "Full Journal Record" : "Summary"} — September 2024
-          </div>
-        </div>
-
-        {/* Child details — Verdana 12pt */}
-        <dl className="eyit-cover-fields">
-          <div className="eyit-cover-field">
-            <dt>Child's Name</dt>
-            <dd>{child.name}</dd>
-          </div>
-          <div className="eyit-cover-field">
-            <dt>Date of Birth</dt>
-            <dd>{formatDate(child.dob)}</dd>
-          </div>
-          {childMonths !== null && (
-            <div className="eyit-cover-field">
-              <dt>Age</dt>
-              <dd>{childAgeLabel}</dd>
-            </div>
-          )}
-          <div className="eyit-cover-field">
-            <dt>Journal Start-Date</dt>
-            <dd>{formatDate(child.startDate)}</dd>
-          </div>
-        </dl>
-
-        <p className="print-footnote">
-          Early Years Inclusion Team adapted from Special Educational Needs &amp; Inclusion Team,
-          Learning Inclusion Service, Leeds City Council.
-        </p>
-      </section>
-
-      {/* Print-only: Areas without progression — page 2 of the printout */}
-      {stagnantItems.length > 0 && (
-        <section className="hidden print:block" style={{ pageBreakAfter: "always", breakAfter: "page", marginBottom: 0 }}>
-          <div className="print-corner">EYIT September 2024</div>
-          <h2 style={{ fontSize: "14pt", fontWeight: 700, marginBottom: "0.5cm", marginTop: "0.3cm" }}>
-            Areas without progression
-          </h2>
-          <p style={{ fontSize: "9pt", color: "#555", marginBottom: "0.4cm" }}>
-            The following items have been rated Emerging or Developing for 6 or more months with no change.
-            Corresponding dates are highlighted in the journal record.
-          </p>
-          {/* Group by area */}
-          {Array.from(
-            stagnantItems.reduce((map, it) => {
-              map.set(it.areaName, [...(map.get(it.areaName) ?? []), it]);
-              return map;
-            }, new Map<string, StagnantItem[]>()),
-          ).map(([areaName, items]) => (
-            <div key={areaName} style={{ marginBottom: "0.35cm" }}>
-              <p style={{ fontSize: "9pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid #ccc", paddingBottom: "2px", marginBottom: "0.2cm" }}>
-                {areaName}
-              </p>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9pt" }}>
-                <colgroup>
-                  <col style={{ width: "18%" }} />
-                  <col style={{ width: "42%" }} />
-                  <col style={{ width: "10%" }} />
-                  <col style={{ width: "10%" }} />
-                  <col style={{ width: "10%" }} />
-                  <col style={{ width: "10%" }} />
-                </colgroup>
-                <thead>
-                  <tr style={{ backgroundColor: "#f3f3f3" }}>
-                    <th style={{ textAlign: "left", padding: "2px 4px", fontWeight: 600 }}>Strand · Step</th>
-                    <th style={{ textAlign: "left", padding: "2px 4px", fontWeight: 600 }}>Statement</th>
-                    <th style={{ textAlign: "center", padding: "2px 4px", fontWeight: 600 }}>Status</th>
-                    <th style={{ textAlign: "center", padding: "2px 4px", fontWeight: 600 }}>Rated</th>
-                    <th style={{ textAlign: "center", padding: "2px 4px", fontWeight: 600 }}>Months</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((it) => (
-                    <tr key={`${it.strandName}::${it.stepNumber}::${it.itemKey}`} style={{ borderBottom: "1px solid #e8e8e8" }}>
-                      <td style={{ padding: "2px 4px", verticalAlign: "top" }}>
-                        <span style={{ fontWeight: 600 }}>{it.strandName}</span>
-                        <br />
-                        <span style={{ color: "#555" }}>Step {it.stepNumber} ({it.ageRange})</span>
-                      </td>
-                      <td style={{ padding: "2px 4px", verticalAlign: "top" }}>
-                        <span style={{ fontWeight: 600 }}>{it.itemKey})</span> {it.itemText}
-                      </td>
-                      <td style={{ textAlign: "center", padding: "2px 4px", verticalAlign: "top" }}>
-                        <span style={{
-                          background: it.status === "emerging" ? "hsl(5 72% 66% / 30%)" : "hsl(38 88% 62% / 30%)",
-                          fontWeight: 700,
-                          padding: "0 4px",
-                          borderRadius: "2px",
-                          WebkitPrintColorAdjust: "exact",
-                          printColorAdjust: "exact",
-                        } as React.CSSProperties}>
-                          {it.status === "emerging" ? "E" : "D"}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: "center", padding: "2px 4px", verticalAlign: "top" }}>
-                        <span style={{ background: "hsl(38 88% 62% / 28%)", fontWeight: 700, padding: "0 3px", borderRadius: "2px", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } as React.CSSProperties}>
-                          {formatEntryDate(it.updatedAt)}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: "center", padding: "2px 4px", verticalAlign: "top", color: "#b45309" }}>
-                        {it.monthsStale} mo
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
-        </section>
-      )}
 
       {/* Screen-only dashboard */}
       <article className="space-y-8 no-print">
@@ -1597,120 +1085,6 @@ export default function SummaryPage() {
           />
         </div>
       </article>
-
-      {/* Journal pages — PDF-style tables, shown on screen and printed */}
-      <section id="sec-journal" className="mt-8 print:mt-0">
-        <h2 className="text-lg font-semibold mb-3 no-print">Journal pages (print preview)</h2>
-
-        {/* Stagnation review notes — shown on screen and printed */}
-        {dismissedStagnantItems.length > 0 && (
-          <Card className="mb-6 border-[#008264]/30">
-            <CardContent className="p-4 space-y-4">
-              <div className="flex items-center gap-2">
-                <ClipboardCheck className="h-4 w-4 text-[#008264]" />
-                <h3 className="text-sm font-semibold">Stagnation review notes</h3>
-                <span className="ml-auto text-xs text-muted-foreground">
-                  {dismissedStagnantItems.length} item{dismissedStagnantItems.length !== 1 ? "s" : ""} reviewed
-                </span>
-              </div>
-              <div className="space-y-3">
-                {dismissedStagnantItems.map((it) => {
-                  const entry = (state.acknowledgedStagnations ?? {})[
-                    `${childId}::${it.areaName}::${it.strandName}::${it.stepNumber}::${it.itemKey}`
-                  ];
-                  return (
-                    <div
-                      key={`${it.strandName}::${it.stepNumber}::${it.itemKey}`}
-                      className="border-l-2 border-[#008264]/40 pl-3 space-y-1"
-                    >
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        {it.areaName}
-                      </p>
-                      <p className="text-sm font-medium">
-                        {it.strandName} · Step {it.stepNumber} ({it.ageRange})
-                      </p>
-                      <p className="text-xs text-muted-foreground">{it.itemText}</p>
-                      {it.reviewNote ? (
-                        <p className="text-sm">{it.reviewNote}</p>
-                      ) : (
-                        <p className="text-xs italic text-muted-foreground">No note recorded.</p>
-                      )}
-                      {entry?.ackedAt && (
-                        <p className="text-xs text-muted-foreground tabular-nums">
-                          Reviewed {new Date(entry.ackedAt).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* ── Standard summary journal (screen + standard print) ── */}
-        {/* NOTE: must be conditionally unmounted (not CSS-hidden) when fullDJPrint is true
-            to avoid duplicate id= attributes on the same IDs used by the Full DJ sections. */}
-        {!fullDJPrint && <div>
-          {/* Print-only section title */}
-          {strandTables.length > 0 && (
-            <div className="hidden print:block print-journal-title">
-              Journal Record — {child.name}
-              <span style={{ fontSize: "9pt", fontWeight: 400, marginLeft: "1cm", color: "#444" }}>
-                {ageFilterOn && childMonths !== null
-                  ? includeHistory
-                    ? `History up to current step (${childAgeLabel})`
-                    : `Current step only (${childAgeLabel})`
-                  : "All steps"}
-              </span>
-            </div>
-          )}
-          {strandTables.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic no-print">
-              No statements have been rated yet — go back to the journal and mark some items to see
-              them here.
-            </p>
-          ) : (
-            <div className="print-pages space-y-6 print:space-y-0">
-              {strandTables.map(({ area, strand, blocks }, idx) => (
-                <div
-                  key={`${area.area}::${strand.name}`}
-                  className="journal-page"
-                  data-testid={`journal-page-${idx}`}
-                >
-                  <div className="hidden print:block print-corner">EYIT September 2024</div>
-                  <StrandTable area={area} strand={strand} blocks={blocks} stagnantKeys={stagnantKeys} />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>}
-
-        {/* ── Full DJ journal (only injected during Full DJ print) ── */}
-        {fullDJPrint && (
-          <div>
-            <div className="hidden print:block print-journal-title">
-              Full Development Journal — {child.name}
-              <span style={{ fontSize: "9pt", fontWeight: 400, marginLeft: "1cm", color: "#444" }}>
-                All steps and statements
-                {childAgeLabel ? ` · Age ${childAgeLabel}` : ""}
-              </span>
-            </div>
-            <div className="print-pages space-y-6 print:space-y-0">
-              {fullDJStrandTables.map(({ area, strand, blocks }, idx) => (
-                <div
-                  key={`fulldj-${area.area}::${strand.name}`}
-                  className="journal-page"
-                  data-testid={`full-dj-page-${idx}`}
-                >
-                  <div className="hidden print:block print-corner">EYIT September 2024</div>
-                  <FullDJStrandTable area={area} strand={strand} blocks={blocks} stagnantKeys={stagnantKeys} />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </section>
 
       <footer className="pt-4 mt-8 border-t border-border text-xs text-muted-foreground no-print">
         Adapted from EYIT Development Journal, September 2024 — Early Years Inclusion Team,

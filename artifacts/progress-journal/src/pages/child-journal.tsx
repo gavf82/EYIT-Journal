@@ -75,6 +75,7 @@ import {
   Pencil,
   Save,
   Info,
+  Printer,
   ChevronDown,
   ChevronsDownUp,
   ChevronsUpDown,
@@ -723,6 +724,16 @@ export default function ChildJournalPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => window.print()}
+            data-testid="button-print"
+          >
+            <Printer className="h-4 w-4" />
+            Print
+          </Button>
           <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" data-testid="button-child-menu" className="relative">
