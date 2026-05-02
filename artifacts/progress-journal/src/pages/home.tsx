@@ -3,7 +3,6 @@ import { Link, useLocation } from "wouter";
 import { useStore } from "../lib/store";
 import type { Child, Rating } from "../lib/store";
 import { parseSQLite } from "../lib/sqlite";
-import { setImportHandle } from "../lib/filehandle-store";
 import { buildStepVisibility, countAll } from "../lib/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -175,14 +174,13 @@ function ImportButton() {
     ratings: ReturnType<typeof useStore>["state"]["ratings"];
     stagnantNotes: ReturnType<typeof useStore>["state"]["stagnantNotes"];
     acknowledgedStagnations: ReturnType<typeof useStore>["state"]["acknowledgedStagnations"];
-    handle: FileSystemFileHandle | null;
   } | null>(null);
 
-  async function onFile(f: File, handle?: FileSystemFileHandle) {
+  async function onFile(f: File) {
     if (ref.current) ref.current.value = "";
     try {
       const data = await parseSQLite(f);
-      setPending({ ...data, handle: handle ?? null });
+      setPending(data);
     } catch (err: any) {
       toast({ title: "Import failed", description: err?.message ?? "Unable to read file.", variant: "destructive" });
     }
@@ -195,7 +193,7 @@ function ImportButton() {
           types: [{ description: "EYIT Journal", accept: { "application/octet-stream": [".db"] } }],
           multiple: false,
         });
-        onFile(await handle.getFile(), handle);
+        onFile(await handle.getFile());
         return;
       } catch (err: unknown) {
         if (err instanceof Error && err.name === "AbortError") return;
@@ -214,7 +212,6 @@ function ImportButton() {
       stagnantNotes: { ...(state.stagnantNotes ?? {}), ...(pending.stagnantNotes ?? {}) },
       acknowledgedStagnations: { ...(state.acknowledgedStagnations ?? {}), ...(pending.acknowledgedStagnations ?? {}) },
     });
-    setImportHandle(pending.handle);
     toast({
       title: "Backup restored",
       description: `${pending.children.length} child${pending.children.length === 1 ? "" : "ren"} merged into your collection.`,

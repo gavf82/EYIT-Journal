@@ -4,7 +4,6 @@ import { ChildNav } from "../components/child-nav";
 import { JOURNAL, AREA_COLORS, JournalArea, JournalStep, JournalStrand, Status } from "../data/journal";
 import { useStore, getRatingKey, type Rating, type HistoryEntry } from "../lib/store";
 import { importSQLite } from "../lib/sqlite";
-import { setImportHandle } from "../lib/filehandle-store";
 import {
   buildStepVisibility,
   countAll,
@@ -970,10 +969,6 @@ export default function ChildJournalPage() {
         const file = await handle.getFile();
         try {
           await importSQLite(file);
-          // Only store the file handle after a successful import so that a
-          // failed or inspected-then-rejected file never becomes the implicit
-          // save destination for future exports.
-          setImportHandle(handle);
           toast({ title: "Journal imported" });
         } catch (err: any) {
           toast({ title: "Import failed", description: err?.message ?? "Could not parse file.", variant: "destructive" });

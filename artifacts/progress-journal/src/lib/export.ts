@@ -1,6 +1,5 @@
 import { getStore } from "./store";
 import { JOURNAL } from "../data/journal";
-import { getImportHandle } from "./filehandle-store";
 
 // ── Shared helpers ──────────────────────────────────────────────────────────
 
@@ -18,29 +17,15 @@ function fallbackDownload(blob: Blob, filename: string) {
 }
 
 // Saves a blob, preferring the following approaches in order:
-//   1. Write back to the file handle captured at import time (no dialog).
-//   2. Show the native "Save As" picker (Chrome / Edge 86+).
-//   3. Trigger an automatic download (Firefox / Safari fallback).
+//   1. Show the native "Save As" picker (Chrome / Edge 86+).
+//   2. Trigger an automatic download (Firefox / Safari fallback).
 // Returns false only if the user explicitly cancelled a picker dialog.
 export async function saveBlob(
   blob: Blob,
   filename: string,
   types: { description: string; accept: Record<string, string[]> }[],
 ): Promise<boolean> {
-  // ── 1. Write back to the original imported file ──────────────────────────
-  const importHandle = getImportHandle();
-  if (importHandle) {
-    try {
-      const writable = await importHandle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-      return true;
-    } catch {
-      // Permission may have been revoked or the file moved — fall through.
-    }
-  }
-
-  // ── 2. "Save As" picker ──────────────────────────────────────────────────
+  // ── 1. "Save As" picker ──────────────────────────────────────────────────
   if ("showSaveFilePicker" in window) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
