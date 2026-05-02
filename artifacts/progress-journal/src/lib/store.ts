@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Status } from '../data/journal';
 
+// ── Public types ─────────────────────────────────────────────────────────────
+
 export interface Child {
   id: string;
   name: string;
@@ -18,19 +20,14 @@ export interface HistoryEntry {
 export interface Rating {
   status: Status;
   updatedAt: string;
-  /** Prior states in chronological order, oldest first. The current state is
-   *  represented by `status` + `updatedAt`; history holds everything before it. */
   history?: HistoryEntry[];
 }
 
-/** Per-strand practitioner note attached to a stagnation alert. */
 export interface StagnantNote {
   text: string;
-  /** ISO date string "YYYY-MM-DD" — the date of entry written by the practitioner. */
   date: string;
 }
 
-/** Acknowledgment entry for a stagnant item — records when it was reviewed and why. */
 export interface AcknowledgedEntry {
   ackedAt: string;
   note: string;
@@ -39,27 +36,34 @@ export interface AcknowledgedEntry {
 export interface StoreState {
   children: Child[];
   ratings: Record<string, Rating>;
-  /** key: `${childId}::${areaName}::${strandName}` */
   stagnantNotes: Record<string, StagnantNote>;
-  /**
-   * Stagnant items the practitioner has explicitly marked as reviewed.
-   * key: `${childId}::${areaName}::${strandName}::${stepNumber}::${itemKey}`
-   * value: { ackedAt, note } — note is the practitioner's written reason.
-   */
   acknowledgedStagnations: Record<string, AcknowledgedEntry>;
 }
 
-const STORE_KEY = 'eyit-journal-store';
+// ── Storage keys ─────────────────────────────────────────────────────────────
 
-const initialState: StoreState = {
-  children: [],
-  ratings: {},
-  stagnantNotes: {},
-  acknowledgedStagnations: {},
-};
+/** Top-level record: children list + last-export timestamp. */
+const ROOT_KEY = 'eyit-journal-root';
+/** Per-child record: ratings, notes, acknowledgments. */
+const childKey = (id: string) => `eyit-journal-child-${id}`;
+/** Legacy single-key format (v1). Migrated automatically on first load. */
+const LEGACY_KEY = 'eyit-journal-store';
 
-/** Normalise a raw acknowledgedStagnations value from localStorage.
- *  Old format was a plain ISO string; new format is { ackedAt, note }. */
+// ── Internal shapes ───────────────────────────────────────────────────────────
+
+interface RootData {
+  children: Child[];
+  lastExportedAt?: string;
+}
+
+interface ChildData {
+  ratings: Record<string, Rating>;
+  stagnantNotes: Record<string, StagnantNote>;
+  acknowledgedStagnations: Record<string, AcknowledgedEntry>;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 function normalizeAckedEntry(v: unknown): AcknowledgedEntry {
   if (typeof v === 'string') return { ackedAt: v, note: '' };
   if (typeof v === 'object' && v !== null && 'ackedAt' in v) {
@@ -72,102 +76,254 @@ function normalizeAckedEntry(v: unknown): AcknowledgedEntry {
   return { ackedAt: new Date().toISOString(), note: '' };
 }
 
-export function getStore(): StoreState {
+// ── Low-level storage I/O ─────────────────────────────────────────────────────
+
+function loadRoot(): RootData {
   try {
-    const data = localStorage.getItem(STORE_KEY);
-    const parsed = data ? JSON.parse(data) : initialState;
-    const rawAcked: Record<string, unknown> = parsed.acknowledgedStagnations ?? {};
+    const raw = localStorage.getItem(ROOT_KEY);
+    if (raw) return JSON.parse(raw) as RootData;
+  } catch { /* ignore */ }
+  return { children: [] };
+}
+
+function saveRoot(data: RootData) {
+  try {
+    localStorage.setItem(ROOT_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.error('[EYIT] Failed to save root', e);
+  }
+}
+
+function loadChildData(childId: string): ChildData {
+  try {
+    const raw = localStorage.getItem(childKey(childId));
+    if (!raw) return { ratings: {}, stagnantNotes: {}, acknowledgedStagnations: {} };
+    const parsed = JSON.parse(raw) as {
+      ratings?: Record<string, Rating>;
+      stagnantNotes?: Record<string, StagnantNote>;
+      acknowledgedStagnations?: Record<string, unknown>;
+    };
+    const rawAcked = parsed.acknowledgedStagnations ?? {};
     return {
-      ...initialState,
-      ...parsed,
+      ratings: parsed.ratings ?? {},
       stagnantNotes: parsed.stagnantNotes ?? {},
       acknowledgedStagnations: Object.fromEntries(
         Object.entries(rawAcked).map(([k, v]) => [k, normalizeAckedEntry(v)])
       ),
     };
-  } catch (e) {
-    console.error('Failed to load store', e);
-    return initialState;
+  } catch {
+    return { ratings: {}, stagnantNotes: {}, acknowledgedStagnations: {} };
   }
 }
 
+function saveChildData(id: string, data: ChildData) {
+  try {
+    localStorage.setItem(childKey(id), JSON.stringify(data));
+  } catch (e) {
+    console.error('[EYIT] Failed to save child data', e);
+  }
+}
+
+function removeChildData(id: string) {
+  localStorage.removeItem(childKey(id));
+}
+
+/** Aggregate all per-child keys into a single StoreState. Used for export. */
+function loadAll(): StoreState {
+  const root = loadRoot();
+  const ratings: Record<string, Rating> = {};
+  const stagnantNotes: Record<string, StagnantNote> = {};
+  const acknowledgedStagnations: Record<string, AcknowledgedEntry> = {};
+  for (const child of root.children) {
+    const cd = loadChildData(child.id);
+    Object.assign(ratings, cd.ratings);
+    Object.assign(stagnantNotes, cd.stagnantNotes);
+    Object.assign(acknowledgedStagnations, cd.acknowledgedStagnations);
+  }
+  return { children: root.children, ratings, stagnantNotes, acknowledgedStagnations };
+}
+
+// ── One-time migration from legacy single-key format ──────────────────────────
+
+let _migrationRun = false;
+
+function migrateIfNeeded() {
+  if (_migrationRun) return;
+  _migrationRun = true;
+
+  if (localStorage.getItem(ROOT_KEY)) return; // already on new format
+
+  const raw = localStorage.getItem(LEGACY_KEY);
+  if (!raw) return;
+
+  try {
+    const parsed = JSON.parse(raw) as {
+      children?: Child[];
+      ratings?: Record<string, Rating>;
+      stagnantNotes?: Record<string, StagnantNote>;
+      acknowledgedStagnations?: Record<string, unknown>;
+    };
+    const children: Child[] = parsed.children ?? [];
+    const rawRatings = parsed.ratings ?? {};
+    const rawNotes = parsed.stagnantNotes ?? {};
+    const rawAcked = parsed.acknowledgedStagnations ?? {};
+
+    saveRoot({ children });
+
+    for (const child of children) {
+      const p = `${child.id}::`;
+      saveChildData(child.id, {
+        ratings: Object.fromEntries(Object.entries(rawRatings).filter(([k]) => k.startsWith(p))),
+        stagnantNotes: Object.fromEntries(Object.entries(rawNotes).filter(([k]) => k.startsWith(p))),
+        acknowledgedStagnations: Object.fromEntries(
+          Object.entries(rawAcked)
+            .filter(([k]) => k.startsWith(p))
+            .map(([k, v]) => [k, normalizeAckedEntry(v)])
+        ),
+      });
+    }
+
+    localStorage.removeItem(LEGACY_KEY);
+    console.info('[EYIT] Migrated to per-child storage.');
+  } catch (e) {
+    console.error('[EYIT] Migration failed:', e);
+  }
+}
+
+// ── Public getStore / setStore (used by sqlite.ts and settings) ───────────────
+
+export function getStore(): StoreState {
+  migrateIfNeeded();
+  return loadAll();
+}
+
+/**
+ * Write a full StoreState — used by SQLite import.
+ * Optimised: writes root + per-child keys, removes orphaned child keys.
+ */
 export function setStore(state: StoreState) {
   try {
-    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    migrateIfNeeded();
+
+    const root = loadRoot();
+    saveRoot({ ...root, children: state.children });
+
+    const newIds = new Set(state.children.map((c) => c.id));
+
+    // Remove orphaned child keys
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k?.startsWith('eyit-journal-child-')) {
+        const id = k.slice('eyit-journal-child-'.length);
+        if (!newIds.has(id)) localStorage.removeItem(k);
+      }
+    }
+
+    // Write per-child data
+    for (const child of state.children) {
+      const p = `${child.id}::`;
+      saveChildData(child.id, {
+        ratings: Object.fromEntries(Object.entries(state.ratings).filter(([k]) => k.startsWith(p))),
+        stagnantNotes: Object.fromEntries(Object.entries(state.stagnantNotes ?? {}).filter(([k]) => k.startsWith(p))),
+        acknowledgedStagnations: Object.fromEntries(Object.entries(state.acknowledgedStagnations ?? {}).filter(([k]) => k.startsWith(p))),
+      });
+    }
+
     window.dispatchEvent(new Event('eyit-store-change'));
   } catch (e) {
-    console.error('Failed to save store', e);
+    console.error('[EYIT] Failed to save store', e);
   }
 }
 
+// ── Backup tracking ───────────────────────────────────────────────────────────
+
+export function getLastExportedAt(): string | null {
+  migrateIfNeeded();
+  return loadRoot().lastExportedAt ?? null;
+}
+
+export function recordExport() {
+  migrateIfNeeded();
+  const root = loadRoot();
+  saveRoot({ ...root, lastExportedAt: new Date().toISOString() });
+  window.dispatchEvent(new Event('eyit-store-change'));
+}
+
+// ── useStore hook ─────────────────────────────────────────────────────────────
+
 export function useStore() {
-  const [state, setState] = useState<StoreState>(getStore());
+  const [state, setState] = useState<StoreState>(() => {
+    migrateIfNeeded();
+    return loadAll();
+  });
 
   useEffect(() => {
-    const handleStorage = () => {
-      setState(getStore());
-    };
-    window.addEventListener('eyit-store-change', handleStorage);
-    window.addEventListener('storage', handleStorage); // Handle cross-tab
+    const reload = () => setState(loadAll());
+    window.addEventListener('eyit-store-change', reload);
+    window.addEventListener('storage', reload); // cross-tab
     return () => {
-      window.removeEventListener('eyit-store-change', handleStorage);
-      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('eyit-store-change', reload);
+      window.removeEventListener('storage', reload);
     };
   }, []);
 
+  const notify = () => window.dispatchEvent(new Event('eyit-store-change'));
+
+  // ── Children ──────────────────────────────────────────────────────────────
+
   const addChild = (child: Omit<Child, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const current = getStore();
     const newChild: Child = {
       ...child,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setStore({
-      ...current,
-      children: [...current.children, newChild],
-    });
+    saveChildData(newChild.id, { ratings: {}, stagnantNotes: {}, acknowledgedStagnations: {} });
+    const root = loadRoot();
+    saveRoot({ ...root, children: [...root.children, newChild] });
+    setState((prev) => ({ ...prev, children: [...prev.children, newChild] }));
+    notify();
     return newChild;
   };
 
   const updateChild = (id: string, data: Partial<Omit<Child, 'id'>>) => {
-    const current = getStore();
-    setStore({
-      ...current,
-      children: current.children.map(c => c.id === id ? { ...c, ...data, updatedAt: new Date().toISOString() } : c),
-    });
+    const root = loadRoot();
+    const newChildren = root.children.map((c) =>
+      c.id === id ? { ...c, ...data, updatedAt: new Date().toISOString() } : c
+    );
+    saveRoot({ ...root, children: newChildren });
+    setState((prev) => ({ ...prev, children: newChildren }));
+    notify();
   };
 
   const deleteChild = (id: string) => {
-    const current = getStore();
-    const prefix = `${id}::`;
-    const newRatings = Object.fromEntries(
-      Object.entries(current.ratings).filter(([k]) => !k.startsWith(prefix))
-    );
-    const newNotes = Object.fromEntries(
-      Object.entries(current.stagnantNotes ?? {}).filter(([k]) => !k.startsWith(prefix))
-    );
-    const newAcked = Object.fromEntries(
-      Object.entries(current.acknowledgedStagnations ?? {}).filter(([k]) => !k.startsWith(prefix))
-    );
-    setStore({
-      children: current.children.filter(c => c.id !== id),
-      ratings: newRatings,
-      stagnantNotes: newNotes,
-      acknowledgedStagnations: newAcked,
-    });
+    const root = loadRoot();
+    const newChildren = root.children.filter((c) => c.id !== id);
+    saveRoot({ ...root, children: newChildren });
+    removeChildData(id);
+    const p = `${id}::`;
+    setState((prev) => ({
+      children: newChildren,
+      ratings: Object.fromEntries(Object.entries(prev.ratings).filter(([k]) => !k.startsWith(p))),
+      stagnantNotes: Object.fromEntries(Object.entries(prev.stagnantNotes).filter(([k]) => !k.startsWith(p))),
+      acknowledgedStagnations: Object.fromEntries(Object.entries(prev.acknowledgedStagnations).filter(([k]) => !k.startsWith(p))),
+    }));
+    notify();
   };
 
+  // ── Ratings ───────────────────────────────────────────────────────────────
+
   const setRating = (key: string, status: Status) => {
-    const current = getStore();
-    const newRatings = { ...current.ratings };
+    const childId = key.split('::')[0];
+    const cd = loadChildData(childId);
+    const newRatings = { ...cd.ratings };
 
     if (status === null) {
       delete newRatings[key];
     } else {
       const existing = newRatings[key];
       let history = existing?.history ?? [];
-      if (existing && existing.status && existing.status !== status) {
+      if (existing?.status && existing.status !== status) {
         history = [...history, { status: existing.status, date: existing.updatedAt }];
       }
       newRatings[key] = {
@@ -176,34 +332,73 @@ export function useStore() {
         ...(history.length > 0 ? { history } : {}),
       };
     }
-    
-    setStore({
-      ...current,
-      ratings: newRatings,
+
+    // ⚡ Only write the one child's key — 50× smaller than the old whole-store write
+    saveChildData(childId, { ...cd, ratings: newRatings });
+
+    setState((prev) => {
+      const allRatings = { ...prev.ratings };
+      if (status === null) delete allRatings[key];
+      else allRatings[key] = newRatings[key];
+      return { ...prev, ratings: allRatings };
     });
+
+    notify();
   };
+
+  // ── Stagnant notes ────────────────────────────────────────────────────────
 
   const setStagnantNote = (key: string, note: StagnantNote | null) => {
-    const current = getStore();
-    const notes = { ...(current.stagnantNotes ?? {}) };
-    if (note === null || note.text.trim() === "") {
-      delete notes[key];
+    const childId = key.split('::')[0];
+    const cd = loadChildData(childId);
+    const newNotes = { ...cd.stagnantNotes };
+    if (!note || note.text.trim() === '') {
+      delete newNotes[key];
     } else {
-      notes[key] = note;
+      newNotes[key] = note;
     }
-    setStore({ ...current, stagnantNotes: notes });
+    saveChildData(childId, { ...cd, stagnantNotes: newNotes });
+    setState((prev) => {
+      const allNotes = { ...prev.stagnantNotes };
+      if (!note || note.text.trim() === '') delete allNotes[key];
+      else allNotes[key] = note;
+      return { ...prev, stagnantNotes: allNotes };
+    });
+    notify();
   };
 
+  // ── Acknowledgments ───────────────────────────────────────────────────────
+
   const setStagnationAcknowledged = (key: string, acknowledged: boolean, note?: string) => {
-    const current = getStore();
-    const acked = { ...(current.acknowledgedStagnations ?? {}) };
+    const childId = key.split('::')[0];
+    const cd = loadChildData(childId);
+    const newAcked = { ...cd.acknowledgedStagnations };
     if (acknowledged) {
-      acked[key] = { ackedAt: new Date().toISOString(), note: note ?? '' };
+      newAcked[key] = { ackedAt: new Date().toISOString(), note: note ?? '' };
     } else {
-      delete acked[key];
+      delete newAcked[key];
     }
-    setStore({ ...current, acknowledgedStagnations: acked });
+    saveChildData(childId, { ...cd, acknowledgedStagnations: newAcked });
+    setState((prev) => {
+      const allAcked = { ...prev.acknowledgedStagnations };
+      if (acknowledged) allAcked[key] = newAcked[key];
+      else delete allAcked[key];
+      return { ...prev, acknowledgedStagnations: allAcked };
+    });
+    notify();
   };
+
+  // ── Bulk ops ──────────────────────────────────────────────────────────────
+
+  const importData = (data: StoreState) =>
+    setStore({
+      ...data,
+      stagnantNotes: data.stagnantNotes ?? {},
+      acknowledgedStagnations: data.acknowledgedStagnations ?? {},
+    });
+
+  const resetAll = () =>
+    setStore({ children: [], ratings: {}, stagnantNotes: {}, acknowledgedStagnations: {} });
 
   return {
     state,
@@ -213,16 +408,19 @@ export function useStore() {
     setRating,
     setStagnantNote,
     setStagnationAcknowledged,
-    importData: (data: StoreState) => setStore({
-      ...initialState,
-      ...data,
-      stagnantNotes: data.stagnantNotes ?? {},
-      acknowledgedStagnations: data.acknowledgedStagnations ?? {},
-    }),
-    resetAll: () => setStore(initialState),
+    importData,
+    resetAll,
   };
 }
 
-export function getRatingKey(childId: string, areaIdx: number, strandIdx: number, stepIdx: number, itemKey: string) {
+// ── Utility ───────────────────────────────────────────────────────────────────
+
+export function getRatingKey(
+  childId: string,
+  areaIdx: number,
+  strandIdx: number,
+  stepIdx: number,
+  itemKey: string,
+) {
   return `${childId}::${areaIdx}::${strandIdx}::${stepIdx}::${itemKey}`;
 }

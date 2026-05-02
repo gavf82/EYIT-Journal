@@ -1,6 +1,6 @@
 import initSqlJs from "sql.js";
 import wasmUrl from "sql.js/dist/sql-wasm.wasm?url";
-import { getStore, setStore, type StoreState, type AcknowledgedEntry } from "./store";
+import { getStore, setStore, recordExport, type StoreState, type AcknowledgedEntry } from "./store";
 import { saveBlob, todaySlug } from "./export";
 
 // ── Singleton ────────────────────────────────────────────────────────────────
@@ -148,12 +148,14 @@ export async function exportSQLite(): Promise<boolean> {
   db.close();
 
   const blob = new Blob([new Uint8Array(data)], { type: "application/octet-stream" });
-  return saveBlob(blob, `eyit-backup-${todaySlug()}.db`, [
+  const saved = await saveBlob(blob, `eyit-backup-${todaySlug()}.db`, [
     {
       description: "SQLite database",
       accept: { "application/octet-stream": [".db"] },
     },
   ]);
+  if (saved) recordExport();
+  return saved;
 }
 
 // ── Import ───────────────────────────────────────────────────────────────────

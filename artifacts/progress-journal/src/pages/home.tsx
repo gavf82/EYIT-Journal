@@ -445,10 +445,15 @@ export default function HomePage() {
   const { state } = useStore();
   const [query, setQuery] = useState("");
 
-  const sorted = useMemo(
-    () => [...state.children].sort((a, b) => a.name.localeCompare(b.name)),
-    [state.children],
-  );
+  const [sortBy, setSortBy] = useState<"name" | "updated">("name");
+
+  const sorted = useMemo(() => {
+    const list = [...state.children];
+    if (sortBy === "updated") {
+      return list.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    }
+    return list.sort((a, b) => a.name.localeCompare(b.name));
+  }, [state.children, sortBy]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -479,24 +484,53 @@ export default function HomePage() {
       <InstallBanner />
 
       {hasChildren && (
-        <div className="relative mb-6 max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search journals by name…"
-            className="pl-8 pr-8"
-            data-testid="input-search"
-          />
-          {query && (
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          <div className="relative max-w-sm flex-1 min-w-0">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search journals by name…"
+              className="pl-8 pr-8"
+              data-testid="input-search"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <span className="text-xs text-muted-foreground mr-1">Sort:</span>
             <button
-              onClick={() => setQuery("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              aria-label="Clear search"
+              onClick={() => setSortBy("name")}
+              className={cn(
+                "px-2.5 py-1 rounded-md text-xs font-medium transition-colors",
+                sortBy === "name"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              )}
+              data-testid="sort-name"
             >
-              <X className="h-3.5 w-3.5" />
+              A–Z
             </button>
-          )}
+            <button
+              onClick={() => setSortBy("updated")}
+              className={cn(
+                "px-2.5 py-1 rounded-md text-xs font-medium transition-colors",
+                sortBy === "updated"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              )}
+              data-testid="sort-updated"
+            >
+              Recently updated
+            </button>
+          </div>
         </div>
       )}
 
