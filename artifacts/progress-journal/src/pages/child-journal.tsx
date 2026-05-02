@@ -416,14 +416,17 @@ function StrandSection({
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         {!step.note && step.items && (
-                          <div className="hidden sm:block w-28">
-                            <ProgressBar counts={sc} />
+                          <div className="flex flex-wrap gap-1 justify-end">
+                            <CountChip label="Unset" value={sc.unset} variant="muted" />
+                            <CountChip label="Emerging" value={sc.emerging} variant="emerging" />
+                            <CountChip label="Developing" value={sc.developing} variant="developing" />
+                            <CountChip label="Secure" value={sc.secure} variant="secure" />
                           </div>
                         )}
                         {sc.percentRated === 100 && sc.total > 0 && (
-                          <CheckCircle2 className="h-4 w-4 text-[hsl(var(--status-secure))]" />
+                          <CheckCircle2 className="h-4 w-4 text-[hsl(var(--status-secure))] shrink-0" />
                         )}
                       </div>
                     </div>
