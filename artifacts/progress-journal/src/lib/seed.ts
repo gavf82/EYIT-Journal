@@ -13,27 +13,35 @@ function iso(year: number, month: number, day: number): string {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
+/** True if a child record is from the demo data loader (current or legacy format). */
+function isDemoChild(c: { id: string; isDemo?: boolean }): boolean {
+  return !!c.isDemo || c.id.startsWith("demo-");
+}
+
 export function isDemoLoaded(): boolean {
-  return getStore().children.some((c) => c.isDemo);
+  return getStore().children.some(isDemoChild);
 }
 
 export function removeDemoData(): void {
   const store = getStore();
-  const demoIds = new Set(store.children.filter((c) => c.isDemo).map((c) => c.id));
+  const demoIds = new Set(store.children.filter(isDemoChild).map((c) => c.id));
+  // Nothing to remove — return without touching the store.
   if (demoIds.size === 0) return;
 
-  const children = store.children.filter((c) => !c.isDemo);
+  const children = store.children.filter((c) => !isDemoChild(c));
 
-  const filter = (record: Record<string, unknown>) =>
+  const stripDemo = (record: Record<string, unknown>) =>
     Object.fromEntries(
-      Object.entries(record).filter(([k]) => !Array.from(demoIds).some((id) => k.startsWith(id + "::")))
+      Object.entries(record).filter(
+        ([k]) => !Array.from(demoIds).some((id) => k.startsWith(id + "::"))
+      )
     );
 
   setStore({
     children,
-    ratings: filter(store.ratings) as Record<string, Rating>,
-    stagnantNotes: filter(store.stagnantNotes ?? {}) as Record<string, never>,
-    acknowledgedStagnations: filter(store.acknowledgedStagnations ?? {}) as Record<string, never>,
+    ratings: stripDemo(store.ratings) as Record<string, Rating>,
+    stagnantNotes: stripDemo(store.stagnantNotes ?? {}) as Record<string, never>,
+    acknowledgedStagnations: stripDemo(store.acknowledgedStagnations ?? {}) as Record<string, never>,
   });
 }
 
