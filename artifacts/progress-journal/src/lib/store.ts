@@ -10,6 +10,10 @@ export interface Child {
   startDate: string;
   createdAt: string;
   updatedAt: string;
+  /** 'active' (default) or 'archived' — archived children are hidden from the main list. */
+  status?: 'active' | 'archived';
+  /** ISO timestamp when the child was archived. */
+  archivedAt?: string;
 }
 
 export interface HistoryEntry {

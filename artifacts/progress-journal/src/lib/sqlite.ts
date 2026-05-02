@@ -23,7 +23,9 @@ CREATE TABLE IF NOT EXISTS children (
   dob         TEXT,
   start_date  TEXT,
   created_at  TEXT,
-  updated_at  TEXT
+  updated_at  TEXT,
+  status      TEXT NOT NULL DEFAULT 'active',
+  archived_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS ratings (
@@ -70,8 +72,8 @@ export async function exportSQLite(): Promise<boolean> {
 
   const insertChild = db.prepare(
     `INSERT OR REPLACE INTO children
-       (id, name, dob, start_date, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+       (id, name, dob, start_date, created_at, updated_at, status, archived_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   for (const child of store.children) {
     insertChild.run([
@@ -81,6 +83,8 @@ export async function exportSQLite(): Promise<boolean> {
       child.startDate ?? null,
       child.createdAt ?? null,
       child.updatedAt ?? null,
+      child.status ?? 'active',
+      child.archivedAt ?? null,
     ]);
   }
   insertChild.free();
@@ -232,9 +236,18 @@ export async function parseSQLite(
       );
     }
 
+    // Check for optional columns added in later schema versions.
+    const hasStatusCol =
+      db
+        .exec(`SELECT 1 FROM pragma_table_info('children') WHERE name='status'`)
+        .flatMap((r: initSqlJs.QueryExecResult) => r.values)
+        .length > 0;
+
     const children: StoreState["children"] = [];
     const childRows = db.exec(
-      "SELECT id, name, dob, start_date, created_at, updated_at FROM children",
+      hasStatusCol
+        ? "SELECT id, name, dob, start_date, created_at, updated_at, status, archived_at FROM children"
+        : "SELECT id, name, dob, start_date, created_at, updated_at, 'active', NULL FROM children",
     );
     if (childRows.length > 0) {
       for (const row of childRows[0].values) {
@@ -244,11 +257,13 @@ export async function parseSQLite(
         const startDate = (row[3] as string | null) ?? "";
         const createdAt = (row[4] as string | null) ?? new Date().toISOString();
         const updatedAt = (row[5] as string | null) ?? new Date().toISOString();
+        const status = ((row[6] as string | null) ?? 'active') as 'active' | 'archived';
+        const archivedAt = (row[7] as string | null) ?? undefined;
         assertFieldLen(id, "children.id");
         assertFieldLen(name, "children.name");
         assertFieldLen(dob, "children.dob");
         assertFieldLen(startDate, "children.start_date");
-        children.push({ id, name, dob, startDate, createdAt, updatedAt });
+        children.push({ id, name, dob, startDate, createdAt, updatedAt, status, archivedAt });
       }
     }
 
