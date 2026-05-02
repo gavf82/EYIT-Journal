@@ -789,26 +789,6 @@ export default function ChildJournalPage() {
           </div>
         </div>
 
-        {/* Overall progress */}
-        <Card>
-          <CardContent className="p-4 md:p-5">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 items-center">
-              <div className="md:col-span-2">
-                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-                  <span>Overall progress</span>
-                  <span className="font-medium text-foreground tabular-nums">
-                    {overall.percentRated}%
-                  </span>
-                </div>
-                <ProgressBar counts={overall} />
-              </div>
-              <CountChip label="Emerging" value={overall.emerging} variant="emerging" />
-              <CountChip label="Developing" value={overall.developing} variant="developing" />
-              <CountChip label="Secure" value={overall.secure} variant="secure" />
-            </div>
-          </CardContent>
-        </Card>
-
       {/* Missing DOB notice */}
       {childMonths === null && (
         <div className="mb-5 rounded-lg border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700/40 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -942,7 +922,7 @@ export default function ChildJournalPage() {
             filter={filter}
             ratings={state.ratings}
             setRating={setRating}
-            open={openStrands[`${areaIdx}::${sIdx}`] ?? true}
+            open={openStrands[`${areaIdx}::${sIdx}`] ?? false}
             onOpenChange={(open) => toggleStrand(areaIdx, sIdx, open)}
             childMonths={childMonths}
             ageFilterOn={ageFilterOn}
