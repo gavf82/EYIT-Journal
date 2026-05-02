@@ -384,6 +384,11 @@
     border-bottom: 1.5px solid #333;
   }
 
+  /* Make the print-only journal pages container visible (hidden on-screen via inline style). */
+  .print-pages {
+    display: block !important;
+  }
+
   /* Strands flow continuously with minimal gaps. No forced breaks between
      strands or step tables — content fills each page naturally. */
   .print-pages > .journal-page {

@@ -2,7 +2,17 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { Link, useParams, useLocation } from "wouter";
 import { ChildNav } from "../components/child-nav";
 import { JOURNAL, AREA_COLORS, JournalArea, JournalStep, JournalStrand, Status } from "../data/journal";
-import { useStore, getRatingKey, type Rating } from "../lib/store";
+import { useStore, getRatingKey, type Rating, type HistoryEntry } from "../lib/store";
+import {
+  StrandTable,
+  FullDJStrandTable,
+  type StepBlock,
+  type FullDJStepBlock,
+  collectStrandBlocks,
+  collectFullDJBlocks,
+  PrintStagnationPage,
+} from "../components/journal-print";
+import { type StagnantItem, computeStagnantItems } from "../lib/stagnation";
 import { importSQLite } from "../lib/sqlite";
 import { setImportHandle } from "../lib/filehandle-store";
 import {
@@ -79,6 +89,9 @@ import {
   ChevronDown,
   ChevronsDownUp,
   ChevronsUpDown,
+  FileText,
+  BookOpen,
+  ClipboardCheck,
 } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 import { cn } from "../lib/utils";
@@ -595,6 +608,23 @@ export default function ChildJournalPage() {
   const [filter, setFilter] = useState<FilterValue>("all");
   const [editOpen, setEditOpen] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
+  const [fullDJPrint, setFullDJPrint] = useState(false);
+
+  function formatDate(iso: string) {
+    if (!iso) return "—";
+    try {
+      const d = new Date(iso);
+      return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+    } catch { return iso; }
+  }
+
+  function handleFullDJPrint() {
+    setFullDJPrint(true);
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => setFullDJPrint(false), 300);
+    }, 50);
+  }
 
   async function openImportPicker() {
     if ("showOpenFilePicker" in window) {
@@ -672,6 +702,45 @@ export default function ChildJournalPage() {
     [childId, state.ratings, visibilityForStats],
   );
 
+  const stagnantItems = useMemo(
+    () => (childId ? computeStagnantItems(childId, state.ratings, visibility) : []),
+    [childId, state.ratings, visibility],
+  );
+
+  const stagnantKeys = useMemo(
+    () =>
+      new Set(
+        stagnantItems.map(
+          (it) => `${it.areaName}::${it.strandName}::${it.stepNumber}::${it.itemKey}`,
+        ),
+      ),
+    [stagnantItems],
+  );
+
+  const strandTables = useMemo(() => {
+    if (!childId) return [];
+    return JOURNAL.flatMap((area, aIdx) =>
+      area.strands
+        .map((strand, sIdx) => ({
+          area,
+          strand,
+          blocks: collectStrandBlocks(area, aIdx, strand, sIdx, childId, state.ratings, visibility),
+        }))
+        .filter((x) => x.blocks.length > 0),
+    );
+  }, [childId, state.ratings, visibility]);
+
+  const fullDJStrandTables = useMemo(() => {
+    if (!childId) return [];
+    return JOURNAL.flatMap((area, aIdx) =>
+      area.strands.map((strand, sIdx) => ({
+        area,
+        strand,
+        blocks: collectFullDJBlocks(area, aIdx, strand, sIdx, childId, state.ratings),
+      })),
+    );
+  }, [childId, state.ratings]);
+
   if (!child) {
     return (
       <div className="container max-w-2xl px-4 py-16 text-center">
@@ -704,7 +773,47 @@ export default function ChildJournalPage() {
 
   return (
     <div className="container max-w-screen-2xl px-4 sm:px-6 lg:px-8 py-6 md:py-8">
-      {/* Child navigation */}
+      {/* Print-only cover page */}
+      <div className="print-cover eyit-cover" style={{ display: "none" }}>
+        <div className="eyit-cover-titles print-cover-inner">
+          <h1 className="eyit-cover-h1">EYIT Development Journal</h1>
+          <h2 className="eyit-cover-h2">September 2024</h2>
+        </div>
+        <dl className="eyit-cover-fields">
+          <div className="eyit-cover-field">
+            <dt>Child&apos;s name:</dt>
+            <dd>{child.name}</dd>
+          </div>
+          <div className="eyit-cover-field">
+            <dt>Date of birth:</dt>
+            <dd>{formatDate(child.dob)}</dd>
+          </div>
+          <div className="eyit-cover-field">
+            <dt>Start date:</dt>
+            <dd>{child.startDate ? formatDate(child.startDate) : "—"}</dd>
+          </div>
+          <div className="eyit-cover-field">
+            <dt>Print date:</dt>
+            <dd>{formatDate(new Date().toISOString())}</dd>
+          </div>
+        </dl>
+        <div className="eyit-cover-areas">
+          {Object.entries(AREA_COLORS).map(([area, color]) => (
+            <div
+              key={area}
+              className="eyit-cover-area"
+              style={{ background: color, WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" } as React.CSSProperties}
+            >
+              {area}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Print-only stagnation review page */}
+      <PrintStagnationPage stagnantItems={stagnantItems} />
+
+      {/* Child navigation (screen only) */}
       <ChildNav childId={childId} />
 
       {/* Header */}
@@ -724,16 +833,23 @@ export default function ChildJournalPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => window.print()}
-            data-testid="button-print"
-          >
-            <Printer className="h-4 w-4" />
-            Print
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2" data-testid="button-print">
+                <Printer className="h-4 w-4" />
+                Print
+                <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem onSelect={() => window.print()}>
+                <FileText className="h-4 w-4 mr-2" /> Summary only
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleFullDJPrint}>
+                <BookOpen className="h-4 w-4 mr-2" /> Full Development Journal
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" data-testid="button-child-menu" className="relative">
@@ -980,6 +1096,34 @@ export default function ChildJournalPage() {
         open={editOpen}
         onOpenChange={setEditOpen}
       />
+
+      {/* Print-only journal pages */}
+      <div className="print-pages" style={{ display: "none" }}>
+        <h2 className="print-journal-title">
+          {fullDJPrint ? "Full Development Journal" : "Progress Summary"}
+        </h2>
+        {fullDJPrint
+          ? fullDJStrandTables.map(({ area, strand, blocks }, i) => (
+              <div key={i} className="journal-page">
+                <FullDJStrandTable
+                  area={area}
+                  strand={strand}
+                  blocks={blocks}
+                  stagnantKeys={stagnantKeys}
+                />
+              </div>
+            ))
+          : strandTables.map(({ area, strand, blocks }, i) => (
+              <div key={i} className="journal-page">
+                <StrandTable
+                  area={area}
+                  strand={strand}
+                  blocks={blocks}
+                  stagnantKeys={stagnantKeys}
+                />
+              </div>
+            ))}
+      </div>
     </div>
   );
 }

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "wouter";
 import { JOURNAL, AREA_COLORS, type Status } from "../data/journal";
 import { useStore, getRatingKey, type Rating } from "../lib/store";
+import { formatEntryDate } from "../components/journal-print";
+import { type StagnantItem, monthsBetween, computeStagnantItems } from "../lib/stagnation";
 import {
   buildStepVisibility,
   countAll,
@@ -81,91 +83,6 @@ function formatDate(d: string) {
   }
 }
 
-// Compact date: "27/04/25" — used in stagnation alerts display.
-function formatEntryDate(iso: string) {
-  if (!iso) return "";
-  try {
-    const d = new Date(iso);
-    const dd = String(d.getDate()).padStart(2, "0");
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const yy = String(d.getFullYear()).slice(2);
-    return `${dd}/${mm}/${yy}`;
-  } catch {
-    return "";
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Stagnation detection — items rated Emerging/Developing with no progress
-// for more than 6 calendar months.
-// ---------------------------------------------------------------------------
-
-interface StagnantItem {
-  areaName: string;
-  strandName: string;
-  stepNumber: number;
-  ageRange: string;
-  itemKey: string;
-  itemText: string;
-  status: "emerging" | "developing";
-  updatedAt: string;
-  monthsStale: number;
-  /** Populated only for dismissed items — the note entered when acknowledging. */
-  reviewNote?: string;
-}
-
-function monthsBetween(from: Date, to: Date): number {
-  return (
-    (to.getFullYear() - from.getFullYear()) * 12 +
-    (to.getMonth() - from.getMonth())
-  );
-}
-
-function computeStagnantItems(
-  childId: string,
-  ratings: Record<string, Rating>,
-  visibility: StepVisibility,
-): StagnantItem[] {
-  const now = new Date();
-  const result: StagnantItem[] = [];
-
-  JOURNAL.forEach((area, aIdx) => {
-    area.strands.forEach((strand, sIdx) => {
-      const visibleSet = visibility?.get(`${aIdx}::${sIdx}`) ?? null;
-      strand.steps.forEach((step, stIdx) => {
-        if (!step.items || step.note) return;
-        if (visibleSet && !visibleSet.has(stIdx)) return;
-        step.items.forEach((item) => {
-          const r = ratings[getRatingKey(childId, aIdx, sIdx, stIdx, item.key)];
-          if (!r || !r.status || r.status === "secure") return;
-          const updated = new Date(r.updatedAt);
-          if (isNaN(updated.getTime())) return;
-          const months = monthsBetween(updated, now);
-          if (months < 6) return;
-          result.push({
-            areaName: area.area,
-            strandName: strand.name,
-            stepNumber: step.number,
-            ageRange: step.ageRange,
-            itemKey: item.key,
-            itemText: item.text,
-            status: r.status as "emerging" | "developing",
-            updatedAt: r.updatedAt,
-            monthsStale: months,
-          });
-        });
-      });
-    });
-  });
-
-  // Sort: longest stale first, then by area/strand/item
-  result.sort((a, b) =>
-    b.monthsStale - a.monthsStale ||
-    a.areaName.localeCompare(b.areaName) ||
-    a.strandName.localeCompare(b.strandName),
-  );
-  return result;
-}
 
 interface StagnantItemsSectionProps {
   activeItems: StagnantItem[];
