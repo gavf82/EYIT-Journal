@@ -647,6 +647,12 @@ export default function HomePage() {
   // Sort + filter
   const archivedCount = state.children.filter((c) => c.status === "archived").length;
 
+  // If the last archived child is restored/deleted while the archive view is
+  // open, flip back to active automatically so the user is never left stranded.
+  useEffect(() => {
+    if (archivedCount === 0 && showArchived) setShowArchived(false);
+  }, [archivedCount, showArchived]);
+
   const sorted = useMemo(() => {
     const list = [...state.children];
     if (sortBy === "updated") return list.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
