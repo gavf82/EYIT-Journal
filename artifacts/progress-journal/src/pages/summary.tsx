@@ -11,7 +11,8 @@ import {
 } from "../lib/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Printer, LogOut, AlertTriangle, Info, ChevronDown, FileText, BookOpen, CheckCircle2, RotateCcw } from "lucide-react";
+import { Printer, LogOut, AlertTriangle, Info, ChevronDown, FileText, BookOpen, CheckCircle2, RotateCcw } from "lucide-react";
+import { ChildNav } from "../components/child-nav";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1100,13 +1101,9 @@ export default function SummaryPage() {
   return (
     <div className="container max-w-4xl px-4 sm:px-6 lg:px-8 py-8 pb-20 print:py-0 print:px-0 print:max-w-none print:pb-0">
       {/* Toolbar (screen only) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6 no-print">
-        <Link
-          href={`/child/${childId}`}
-          className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to journal
-        </Link>
+      <ChildNav childId={childId} />
+
+      <div className="flex flex-wrap items-center justify-end gap-3 mb-6 no-print">
         <div className="flex flex-wrap items-center gap-2">
           {childMonths !== null && (
             <label

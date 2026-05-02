@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import { Link, useParams, useLocation } from "wouter";
+import { ChildNav } from "../components/child-nav";
 import { JOURNAL, AREA_COLORS, JournalArea, JournalStep, JournalStrand, Status } from "../data/journal";
 import { useStore, getRatingKey, type Rating } from "../lib/store";
 import { importSQLite } from "../lib/sqlite";
@@ -64,12 +65,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  ArrowLeft,
   Filter,
   LogOut,
   MoreVertical,
-  Printer,
-  ClipboardList,
   Trash2,
   Upload,
   RotateCcw,
@@ -674,43 +672,27 @@ export default function ChildJournalPage() {
 
   return (
     <div className="container max-w-screen-2xl px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+      {/* Child navigation */}
+      <ChildNav childId={childId} />
+
       {/* Header */}
-      <div className="flex flex-col gap-4 mb-6">
-        <Link
-          href="/"
-          className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 w-fit"
-          data-testid="link-back-home"
-        >
-          <ArrowLeft className="h-4 w-4" /> All children
-        </Link>
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight" data-testid="text-child-name">
+            {child.name}
+            {childAgeLabel && (
+              <span className="ml-2.5 text-lg md:text-xl font-normal text-muted-foreground">
+                {childAgeLabel}
+              </span>
+            )}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {overall.rated} of {overall.total} statements rated · {overall.percentRated}% complete
+          </p>
+        </div>
 
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight" data-testid="text-child-name">
-              {child.name}
-              {childAgeLabel && (
-                <span className="ml-2.5 text-lg md:text-xl font-normal text-muted-foreground">
-                  {childAgeLabel}
-                </span>
-              )}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {overall.rated} of {overall.total} statements rated · {overall.percentRated}% complete
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" className="gap-2">
-              <Link href={`/child/${childId}/summary`} data-testid="link-summary">
-                <Printer className="h-4 w-4" /> Summary
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="gap-2">
-              <Link href={`/child/${childId}/assessment`} data-testid="link-assessment">
-                <ClipboardList className="h-4 w-4" /> Assessment
-              </Link>
-            </Button>
-            <DropdownMenu>
+        <div className="flex flex-wrap gap-2">
+          <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" data-testid="button-child-menu" className="relative">
                   <MoreVertical className="h-4 w-4" />
@@ -826,7 +808,6 @@ export default function ChildJournalPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
       {/* Missing DOB notice */}
       {childMonths === null && (

@@ -4,7 +4,8 @@ import { JOURNAL, AREA_COLORS, type JournalArea, type JournalStrand, type Status
 import { useStore, getRatingKey, type Rating } from "../lib/store";
 import { buildStepVisibility, type StepVisibility } from "../lib/progress";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Printer, LogOut, CheckSquare, Square, Layers } from "lucide-react";
+import { Printer, LogOut, CheckSquare, Square, Layers } from "lucide-react";
+import { ChildNav } from "../components/child-nav";
 import { ageInMonths, formatAge } from "../lib/age";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "../lib/utils";
@@ -367,13 +368,8 @@ export default function AssessmentPage() {
 
       {/* ── Toolbar (screen only) ── */}
       <div className="no-print space-y-3 mb-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link
-            href={`/child/${childId}`}
-            className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back to journal
-          </Link>
+        <ChildNav childId={childId} />
+        <div className="flex flex-wrap items-center justify-end gap-3">
           <div className="flex flex-wrap items-center gap-2">
             {childMonths !== null && (
               <>

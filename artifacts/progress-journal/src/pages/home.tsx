@@ -277,7 +277,7 @@ function ChildCard({ childId, name, dob, startDate, updatedAt, ratings }: ChildC
   );
   const counts = useMemo(() => countAll(childId, ratings, visibility), [childId, ratings, visibility]);
   return (
-    <Link href={`/child/${childId}`} className="block group" data-testid={`card-child-${childId}`}>
+    <Link href={`/child/${childId}/summary`} className="block group" data-testid={`card-child-${childId}`}>
       <Card className="h-full transition-all hover:shadow-md hover:border-primary/40">
         <CardHeader>
           <div className="flex items-start justify-between gap-3">
