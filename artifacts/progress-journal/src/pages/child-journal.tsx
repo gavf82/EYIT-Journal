@@ -91,7 +91,6 @@ import {
   ChevronsUpDown,
   FileText,
   BookOpen,
-  ClipboardCheck,
 } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 import { cn } from "../lib/utils";
@@ -863,10 +862,10 @@ export default function ChildJournalPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuItem onSelect={() => window.print()}>
-                <FileText className="h-4 w-4 mr-2" /> Summary only
+                <FileText className="h-4 w-4 mr-2" /> Summary
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={handleFullDJPrint}>
-                <BookOpen className="h-4 w-4 mr-2" /> Full Development Journal
+                <BookOpen className="h-4 w-4 mr-2" /> Full DJ
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -3,7 +3,7 @@ import { Link, useParams } from "wouter";
 import { JOURNAL, AREA_COLORS, type Status } from "../data/journal";
 import { useStore, getRatingKey, type Rating } from "../lib/store";
 import { formatEntryDate } from "../components/journal-print";
-import { type StagnantItem, monthsBetween, computeStagnantItems } from "../lib/stagnation";
+import { type StagnantItem, computeStagnantItems } from "../lib/stagnation";
 import {
   buildStepVisibility,
   countAll,
