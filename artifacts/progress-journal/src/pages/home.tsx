@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState, useRef, useEffect, useCallback, memo } from "react";
 import { Link, useLocation } from "wouter";
 import { useStore } from "../lib/store";
 import type { Child, Rating } from "../lib/store";
@@ -78,6 +78,39 @@ function formatDate(d: string) {
     return d;
   }
 }
+
+// ── SearchBar ─────────────────────────────────────────────────────────────────
+
+interface SearchBarProps {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}
+
+const SearchBar = memo(function SearchBar({ value, onChange, placeholder }: SearchBarProps) {
+  return (
+    <div className="relative max-w-sm flex-1 min-w-0">
+      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="pl-8 pr-8"
+        autoComplete="off"
+        data-testid="input-search"
+      />
+      {value && (
+        <button
+          onClick={() => onChange("")}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          aria-label="Clear search"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  );
+});
 
 // ── AddChildDialog ────────────────────────────────────────────────────────────
 
@@ -617,6 +650,7 @@ export default function HomePage() {
   const { state, updateChild, deleteChild } = useStore();
   const { toast } = useToast();
   const [query, setQuery] = useState("");
+  const handleSearchChange = useCallback((v: string) => setQuery(v), []);
   const [sortBy, setSortBy] = useState<"name" | "updated">("name");
   const [showArchived, setShowArchived] = useState(false);
 
@@ -723,25 +757,11 @@ export default function HomePage() {
 
       {hasChildren && (
         <div className="flex flex-wrap items-center gap-3 mb-6">
-          <div className="relative max-w-sm flex-1 min-w-0">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={showArchived ? "Search archived journals…" : "Search journals by name…"}
-              className="pl-8 pr-8"
-              data-testid="input-search"
-            />
-            {query && (
-              <button
-                onClick={() => setQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                aria-label="Clear search"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+          <SearchBar
+            value={query}
+            onChange={handleSearchChange}
+            placeholder={showArchived ? "Search archived journals…" : "Search journals by name…"}
+          />
 
           <div className="flex items-center gap-1 shrink-0">
             <span className="text-xs text-muted-foreground mr-1">Sort:</span>
