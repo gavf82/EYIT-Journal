@@ -10,7 +10,7 @@ Assumptions for this scan: the mockup sandbox is never deployed to production, p
 
 - **Child profile data** — names, dates of birth, journal start dates, and derived age information stored in the browser or backup files. This is personal data about children and should not be exposed to unauthorized parties.
 - **Assessment records** — per-statement progress ratings and rating history. These records may reveal sensitive developmental information and must retain integrity.
-- **Local backup files** — exported SQLite files that contain the full journal dataset. They are portable copies of the sensitive records above and are easy to leak if mishandled.
+- **Local backup files** — exported SQLite and CSV files that contain journal records. SQLite backups contain the full dataset; CSV exports may be opened in spreadsheet tools. These are portable copies of sensitive records and can also become integrity/availability risks if exports overwrite the user's only clean backup.
 - **Application availability and integrity** — the browser app must not allow malformed local data imports to corrupt the journal state or make the UI unsafe to use.
 - **Server runtime and logs** — if `artifacts/api-server` is deployed, request logs and server configuration become security-relevant even though the current route surface is minimal.
 
@@ -18,6 +18,7 @@ Assumptions for this scan: the mockup sandbox is never deployed to production, p
 
 - **Browser UI to local persistence** — user input crosses from the React UI into `localStorage` and exported backup files. The browser storage layer is not private from other code running in the same origin.
 - **Imported file to application state** — `.db` files opened through the browser file APIs are untrusted input and cross into the in-memory and persisted store after parsing.
+- **Application export to local files** — exported backups cross from trusted in-browser state into local filesystem files. Any retained File System Access API handles must not silently redirect later exports to a previously imported file unless the user explicitly chooses that behavior.
 - **Browser route params and query state to rendering** — child IDs, names, and imported record fields are rendered back into the UI and used to construct internal links.
 - **Frontend bundle to optional API server** — the shared client and API libraries can issue network requests if the placeholder server grows into a real backend.
 - **Public internet to Express server** — `artifacts/api-server` accepts unauthenticated HTTP requests. Even the current `/api/healthz` route must avoid leaking internals, logging secrets, or enabling unsafe defaults that become exploitable as routes are added.
@@ -25,7 +26,7 @@ Assumptions for this scan: the mockup sandbox is never deployed to production, p
 ## Scan Anchors
 
 - **Production entry points**: `artifacts/progress-journal/src/main.tsx`, `artifacts/api-server/src/index.ts`
-- **Highest-risk code areas**: `artifacts/progress-journal/src/lib/store.ts`, `artifacts/progress-journal/src/lib/sqlite.ts`, `artifacts/progress-journal/src/lib/export.ts`, `artifacts/progress-journal/src/pages/home.tsx`, `artifacts/progress-journal/src/pages/settings.tsx`, `artifacts/api-server/src/app.ts`, `artifacts/api-server/src/lib/logger.ts`
+- **Highest-risk code areas**: `artifacts/progress-journal/src/lib/store.ts`, `artifacts/progress-journal/src/lib/sqlite.ts`, `artifacts/progress-journal/src/lib/export.ts`, `artifacts/progress-journal/src/lib/filehandle-store.ts`, `artifacts/progress-journal/src/pages/home.tsx`, `artifacts/progress-journal/src/pages/settings.tsx`, `artifacts/api-server/src/app.ts`, `artifacts/api-server/src/lib/logger.ts`
 - **Public vs authenticated vs admin surfaces**: all current production routes are effectively public/local-only; there is no auth boundary and no admin surface today
 - **Usually dev-only / out of scope**: `artifacts/mockup-sandbox/**`, `scripts/**`, generated type packages unless production reachability is shown
 
