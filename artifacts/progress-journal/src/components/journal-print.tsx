@@ -90,6 +90,7 @@ export function StrandTable({
       data-testid={`strand-table-${strand.name}`}
       style={{ "--area-color": AREA_COLORS[area.area] ?? "#f6c344" } as React.CSSProperties}
     >
+      <div className="print-corner">EYIT September 2024</div>
       <div className="journal-strand-header">
         <span className="font-semibold">{area.area}: </span>
         <span className="uppercase tracking-wide">{strand.name}</span>
@@ -223,6 +224,7 @@ export function FullDJStrandTable({
       className="journal-strand"
       style={{ "--area-color": AREA_COLORS[area.area] ?? "#f6c344" } as React.CSSProperties}
     >
+      <div className="print-corner">EYIT September 2024</div>
       <div className="journal-strand-header">
         <span className="font-semibold">{area.area}: </span>
         <span className="uppercase tracking-wide">{strand.name}</span>

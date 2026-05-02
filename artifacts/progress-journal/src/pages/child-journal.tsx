@@ -620,10 +620,12 @@ export default function ChildJournalPage() {
 
   function handleFullDJPrint() {
     setFullDJPrint(true);
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => setFullDJPrint(false), 300);
-    }, 50);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+        setFullDJPrint(false);
+      });
+    });
   }
 
   async function openImportPicker() {
@@ -703,18 +705,27 @@ export default function ChildJournalPage() {
   );
 
   const stagnantItems = useMemo(
-    () => (childId ? computeStagnantItems(childId, state.ratings, visibility) : []),
-    [childId, state.ratings, visibility],
+    () => (childId ? computeStagnantItems(childId, state.ratings, null) : []),
+    [childId, state.ratings],
+  );
+
+  const activeStagnantItems = useMemo(
+    () =>
+      stagnantItems.filter((it) => {
+        const ackKey = `${childId}::${it.areaName}::${it.strandName}::${it.stepNumber}::${it.itemKey}`;
+        return !state.acknowledgedStagnations?.[ackKey];
+      }),
+    [stagnantItems, childId, state.acknowledgedStagnations],
   );
 
   const stagnantKeys = useMemo(
     () =>
       new Set(
-        stagnantItems.map(
+        activeStagnantItems.map(
           (it) => `${it.areaName}::${it.strandName}::${it.stepNumber}::${it.itemKey}`,
         ),
       ),
-    [stagnantItems],
+    [activeStagnantItems],
   );
 
   const strandTables = useMemo(() => {
@@ -772,9 +783,14 @@ export default function ChildJournalPage() {
   }
 
   return (
-    <div className="container max-w-screen-2xl px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+    <div className="container max-w-screen-2xl px-4 sm:px-6 lg:px-8 py-6 md:py-8 print:py-0 print:px-0 print:max-w-none">
       {/* Print-only cover page */}
       <div className="print-cover eyit-cover" style={{ display: "none" }}>
+        <div className="eyit-cover-logo-row">
+          <span className="eyit-cover-logo" style={{ display: "inline-block", fontFamily: "'Gill Sans MT','Gill Sans',Optima,Calibri,sans-serif", fontSize: "28pt", fontWeight: 700, color: "#008264", letterSpacing: "0.06em" }}>
+            EYIT
+          </span>
+        </div>
         <div className="eyit-cover-titles print-cover-inner">
           <h1 className="eyit-cover-h1">EYIT Development Journal</h1>
           <h2 className="eyit-cover-h2">September 2024</h2>
@@ -787,6 +803,10 @@ export default function ChildJournalPage() {
           <div className="eyit-cover-field">
             <dt>Date of birth:</dt>
             <dd>{formatDate(child.dob)}</dd>
+          </div>
+          <div className="eyit-cover-field">
+            <dt>Age:</dt>
+            <dd>{childAgeLabel || "—"}</dd>
           </div>
           <div className="eyit-cover-field">
             <dt>Start date:</dt>
@@ -811,7 +831,7 @@ export default function ChildJournalPage() {
       </div>
 
       {/* Print-only stagnation review page */}
-      <PrintStagnationPage stagnantItems={stagnantItems} />
+      <PrintStagnationPage stagnantItems={activeStagnantItems} />
 
       {/* Child navigation (screen only) */}
       <ChildNav childId={childId} />
