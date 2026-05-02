@@ -24,8 +24,9 @@ CREATE TABLE IF NOT EXISTS children (
   start_date  TEXT,
   created_at  TEXT,
   updated_at  TEXT,
-  status      TEXT NOT NULL DEFAULT 'active',
-  archived_at TEXT
+  status        TEXT NOT NULL DEFAULT 'active',
+  archived_at   TEXT,
+  baseline_step INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS ratings (
@@ -72,8 +73,8 @@ export async function exportSQLite(): Promise<boolean> {
 
   const insertChild = db.prepare(
     `INSERT OR REPLACE INTO children
-       (id, name, dob, start_date, created_at, updated_at, status, archived_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, name, dob, start_date, created_at, updated_at, status, archived_at, baseline_step)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   for (const child of store.children) {
     insertChild.run([
@@ -85,6 +86,7 @@ export async function exportSQLite(): Promise<boolean> {
       child.updatedAt ?? null,
       child.status ?? 'active',
       child.archivedAt ?? null,
+      child.baselineStep ?? null,
     ]);
   }
   insertChild.free();
@@ -237,17 +239,24 @@ export async function parseSQLite(
     }
 
     // Check for optional columns added in later schema versions.
-    const hasStatusCol =
-      db
-        .exec(`SELECT 1 FROM pragma_table_info('children') WHERE name='status'`)
-        .flatMap((r: initSqlJs.QueryExecResult) => r.values)
-        .length > 0;
+    function hasPragmaCol(table: string, col: string): boolean {
+      return (
+        db
+          .exec(`SELECT 1 FROM pragma_table_info('${table}') WHERE name='${col}'`)
+          .flatMap((r: initSqlJs.QueryExecResult) => r.values)
+          .length > 0
+      );
+    }
+    const hasStatusCol = hasPragmaCol("children", "status");
+    const hasBaselineStepCol = hasStatusCol && hasPragmaCol("children", "baseline_step");
 
     const children: StoreState["children"] = [];
     const childRows = db.exec(
-      hasStatusCol
-        ? "SELECT id, name, dob, start_date, created_at, updated_at, status, archived_at FROM children"
-        : "SELECT id, name, dob, start_date, created_at, updated_at, 'active', NULL FROM children",
+      hasStatusCol && hasBaselineStepCol
+        ? "SELECT id, name, dob, start_date, created_at, updated_at, status, archived_at, baseline_step FROM children"
+        : hasStatusCol
+          ? "SELECT id, name, dob, start_date, created_at, updated_at, status, archived_at, NULL FROM children"
+          : "SELECT id, name, dob, start_date, created_at, updated_at, 'active', NULL, NULL FROM children",
     );
     if (childRows.length > 0) {
       for (const row of childRows[0].values) {
@@ -259,11 +268,12 @@ export async function parseSQLite(
         const updatedAt = (row[5] as string | null) ?? new Date().toISOString();
         const status = ((row[6] as string | null) ?? 'active') as 'active' | 'archived';
         const archivedAt = (row[7] as string | null) ?? undefined;
+        const baselineStep = (row[8] as number | null) ?? undefined;
         assertFieldLen(id, "children.id");
         assertFieldLen(name, "children.name");
         assertFieldLen(dob, "children.dob");
         assertFieldLen(startDate, "children.start_date");
-        children.push({ id, name, dob, startDate, createdAt, updatedAt, status, archivedAt });
+        children.push({ id, name, dob, startDate, createdAt, updatedAt, status, archivedAt, baselineStep });
       }
     }
 

@@ -266,6 +266,7 @@ interface ChildCardProps {
   ratings: Record<string, Rating>;
   archived: boolean;
   isDemo?: boolean;
+  baselineStep?: number;
   onArchive: () => void;
   onUnarchive: () => void;
   onDelete: () => void;
@@ -273,15 +274,15 @@ interface ChildCardProps {
 
 function ChildCard({
   childId, name, dob, startDate, updatedAt, ratings,
-  archived, isDemo, onArchive, onUnarchive, onDelete,
+  archived, isDemo, baselineStep, onArchive, onUnarchive, onDelete,
 }: ChildCardProps) {
   const [, navigate] = useLocation();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const childMonths = useMemo(() => ageInMonths(dob), [dob]);
   const visibility = useMemo(
-    () => buildStepVisibility(childId, childMonths, ratings, childMonths !== null, true),
-    [childId, childMonths, ratings],
+    () => buildStepVisibility(childId, childMonths, ratings, childMonths !== null, true, baselineStep),
+    [childId, childMonths, ratings, baselineStep],
   );
   const counts = useMemo(
     () => countAll(childId, ratings, visibility),
@@ -832,6 +833,7 @@ export default function HomePage() {
               ratings={state.ratings}
               archived={c.status === "archived"}
               isDemo={c.isDemo}
+              baselineStep={c.baselineStep}
               onArchive={() => archiveChild(c.id)}
               onUnarchive={() => unarchiveChild(c.id)}
               onDelete={() => handleDelete(c.id)}

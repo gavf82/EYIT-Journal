@@ -456,6 +456,12 @@ function StrandSection({
   );
 }
 
+// Step labels derived from the first strand — shared across all strands.
+const STEP_OPTIONS = JOURNAL[0].strands[0].steps.map((step, i) => ({
+  idx: i,
+  label: `Step ${step.number} (${step.ageRange})`,
+}));
+
 function EditChildDialog({
   childId,
   initial,
@@ -463,7 +469,7 @@ function EditChildDialog({
   onOpenChange,
 }: {
   childId: string;
-  initial: { name: string; dob: string; startDate: string };
+  initial: { name: string; dob: string; startDate: string; baselineStep?: number };
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
@@ -471,12 +477,14 @@ function EditChildDialog({
   const [name, setName] = useState(initial.name);
   const [dob, setDob] = useState(initial.dob);
   const [startDate, setStartDate] = useState(initial.startDate);
+  const [baselineStep, setBaselineStep] = useState<number | undefined>(initial.baselineStep);
 
   useEffect(() => {
     if (open) {
       setName(initial.name);
       setDob(initial.dob);
       setStartDate(initial.startDate);
+      setBaselineStep(initial.baselineStep);
     }
   }, [open, initial]);
 
@@ -487,7 +495,7 @@ function EditChildDialog({
           onSubmit={(e) => {
             e.preventDefault();
             if (!name.trim() || !dob) return;
-            updateChild(childId, { name: name.trim(), dob, startDate });
+            updateChild(childId, { name: name.trim(), dob, startDate, baselineStep });
             onOpenChange(false);
           }}
           className="space-y-4"
@@ -535,6 +543,29 @@ function EditChildDialog({
                 Age today: <span className="font-medium text-foreground">{formatAge(dob)}</span>
               </p>
             )}
+            <div className="space-y-1.5">
+              <Label>Baseline assessment step</Label>
+              <Select
+                value={baselineStep !== undefined ? String(baselineStep) : "auto"}
+                onValueChange={(v) => setBaselineStep(v === "auto" ? undefined : Number(v))}
+              >
+                <SelectTrigger data-testid="select-baseline-step">
+                  <SelectValue placeholder="Auto — use first rated step" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Auto — use first rated step</SelectItem>
+                  {STEP_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.idx} value={String(opt.idx)}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                The step where the baseline assessment began. Progress bars count from here to the
+                child's current age. Leave as 'Auto' to use the first step where a rating is recorded.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
@@ -623,13 +654,13 @@ export default function ChildJournalPage() {
   }
 
   const visibility: StepVisibility = useMemo(
-    () => buildStepVisibility(childId, childMonths, state.ratings, ageFilterOn, true),
-    [childId, childMonths, state.ratings, ageFilterOn],
+    () => buildStepVisibility(childId, childMonths, state.ratings, ageFilterOn, true, child?.baselineStep),
+    [childId, childMonths, state.ratings, ageFilterOn, child?.baselineStep],
   );
 
   const visibilityForStats: StepVisibility = useMemo(
-    () => buildStepVisibility(childId, childMonths, state.ratings, ageFilterOn, true),
-    [childId, childMonths, state.ratings, ageFilterOn],
+    () => buildStepVisibility(childId, childMonths, state.ratings, ageFilterOn, true, child?.baselineStep),
+    [childId, childMonths, state.ratings, ageFilterOn, child?.baselineStep],
   );
 
   const overall = useMemo(
@@ -934,7 +965,7 @@ export default function ChildJournalPage() {
 
       <EditChildDialog
         childId={childId}
-        initial={{ name: child.name, dob: child.dob, startDate: child.startDate }}
+        initial={{ name: child.name, dob: child.dob, startDate: child.startDate, baselineStep: child.baselineStep }}
         open={editOpen}
         onOpenChange={setEditOpen}
       />

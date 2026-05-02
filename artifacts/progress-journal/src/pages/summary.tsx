@@ -1066,8 +1066,8 @@ export default function SummaryPage() {
   }, []);
 
   const visibility: StepVisibility = useMemo(
-    () => buildStepVisibility(childId, childMonths, state.ratings, ageFilterOn, includeHistory),
-    [childId, childMonths, state.ratings, ageFilterOn, includeHistory],
+    () => buildStepVisibility(childId, childMonths, state.ratings, ageFilterOn, includeHistory, child?.baselineStep),
+    [childId, childMonths, state.ratings, ageFilterOn, includeHistory, child?.baselineStep],
   );
 
   const overall = useMemo(

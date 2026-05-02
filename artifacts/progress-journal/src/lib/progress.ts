@@ -38,6 +38,7 @@ export function visibleStepIndicesForStrand(
   ratings: StoreState["ratings"],
   ageFilterOn: boolean,
   includeHistory = false,
+  baselineStepIdx?: number,
 ): Set<number> {
   if (!ageFilterOn || childMonths === null) {
     return new Set(strand.steps.map((_, i) => i));
@@ -49,12 +50,14 @@ export function visibleStepIndicesForStrand(
     }
   });
   let highestRated = -1;
+  let lowestRated = Infinity;
   strand.steps.forEach((step, i) => {
     if (step.items) {
       for (const item of step.items) {
         const key = getRatingKey(childId, aIdx, sIdx, i, item.key);
         if (ratings[key]) {
           highestRated = Math.max(highestRated, i);
+          lowestRated = Math.min(lowestRated, i);
           break;
         }
       }
@@ -62,10 +65,19 @@ export function visibleStepIndicesForStrand(
   });
   const focus = Math.max(currentIdx, highestRated);
   if (focus < 0) return new Set();
-  // History mode: expose every step from 0 up to (and including) focus so that
-  // any rated entries from earlier steps appear alongside the current one.
   if (includeHistory) {
-    return new Set(Array.from({ length: focus + 1 }, (_, i) => i));
+    // Floor priority:
+    //   1. Explicit baseline step set by the practitioner.
+    //   2. Lowest step that has any recorded rating (auto-detect).
+    //   3. The focus step itself — keeps strands with no ratings clean.
+    const floor =
+      baselineStepIdx !== undefined
+        ? baselineStepIdx
+        : lowestRated !== Infinity
+          ? lowestRated
+          : focus;
+    const start = Math.min(floor, focus);
+    return new Set(Array.from({ length: focus - start + 1 }, (_, i) => start + i));
   }
   return new Set([focus]);
 }
@@ -76,6 +88,7 @@ export function buildStepVisibility(
   ratings: StoreState["ratings"],
   ageFilterOn: boolean,
   includeHistory = false,
+  baselineStepIdx?: number,
 ): StepVisibility {
   if (!ageFilterOn || childMonths === null) return null;
   const map = new Map<string, Set<number>>();
@@ -92,6 +105,7 @@ export function buildStepVisibility(
           ratings,
           ageFilterOn,
           includeHistory,
+          baselineStepIdx,
         ),
       );
     });

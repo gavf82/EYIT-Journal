@@ -16,6 +16,12 @@ export interface Child {
   archivedAt?: string;
   /** True for children added by the built-in demo data loader. */
   isDemo?: boolean;
+  /**
+   * Step index (0-based) at which the practitioner began their baseline assessment.
+   * Progress bars count from this step upward to the child's current age.
+   * When absent, the floor auto-detects as the lowest step that has any rating.
+   */
+  baselineStep?: number;
 }
 
 export interface HistoryEntry {
