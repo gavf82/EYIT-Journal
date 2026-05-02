@@ -39,7 +39,7 @@ import { Label } from "@/components/ui/label";
 import {
   Plus, ChevronRight, Calendar, Sparkles, BookText, Upload,
   Search, X, Download, Share, Archive, ArchiveRestore,
-  MoreHorizontal, Trash2, AlertTriangle,
+  MoreHorizontal, Trash2, AlertTriangle, FlaskConical,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useToast } from "../hooks/use-toast";
@@ -265,6 +265,7 @@ interface ChildCardProps {
   updatedAt: string;
   ratings: Record<string, Rating>;
   archived: boolean;
+  isDemo?: boolean;
   onArchive: () => void;
   onUnarchive: () => void;
   onDelete: () => void;
@@ -272,7 +273,7 @@ interface ChildCardProps {
 
 function ChildCard({
   childId, name, dob, startDate, updatedAt, ratings,
-  archived, onArchive, onUnarchive, onDelete,
+  archived, isDemo, onArchive, onUnarchive, onDelete,
 }: ChildCardProps) {
   const [, navigate] = useLocation();
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -324,6 +325,11 @@ function ChildCard({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <CardTitle className="text-xl">{name}</CardTitle>
+                {isDemo && (
+                  <Badge variant="outline" className="text-[10px] uppercase tracking-wide shrink-0 gap-1 border-amber-400/60 text-amber-700 bg-amber-50 dark:border-amber-500/40 dark:text-amber-400 dark:bg-amber-950/40 px-1.5">
+                    <FlaskConical className="h-2.5 w-2.5" /> Demo
+                  </Badge>
+                )}
                 {archived && (
                   <Badge variant="secondary" className="text-[10px] uppercase tracking-wide shrink-0">
                     Archived
@@ -819,6 +825,7 @@ export default function HomePage() {
               updatedAt={c.updatedAt}
               ratings={state.ratings}
               archived={c.status === "archived"}
+              isDemo={c.isDemo}
               onArchive={() => archiveChild(c.id)}
               onUnarchive={() => unarchiveChild(c.id)}
               onDelete={() => handleDelete(c.id)}

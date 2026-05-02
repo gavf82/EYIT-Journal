@@ -14,6 +14,8 @@ export interface Child {
   status?: 'active' | 'archived';
   /** ISO timestamp when the child was archived. */
   archivedAt?: string;
+  /** True for children added by the built-in demo data loader. */
+  isDemo?: boolean;
 }
 
 export interface HistoryEntry {

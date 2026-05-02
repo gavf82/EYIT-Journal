@@ -143,8 +143,8 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Demo data</CardTitle>
           <CardDescription>
-            Load a sample child — Amelia Thompson, 18 months — with realistic ratings spanning
-            from 8 months old, including stagnant entries to demonstrate the progression alerts.
+            Load six sample children — three active, three archived (two of those overdue for
+            deletion) — with realistic ratings to demonstrate the full range of journal features.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
@@ -153,9 +153,9 @@ export default function SettingsPage() {
               <Button
                 variant="outline"
                 className="gap-2"
-                onClick={() => navigate(`/child/${DEMO_CHILD_ID}/summary`)}
+                onClick={() => navigate("/")}
               >
-                <FlaskConical className="h-4 w-4" /> View Amelia's summary
+                <FlaskConical className="h-4 w-4" /> View demo children
               </Button>
               <Button
                 variant="outline"
