@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ClerkProvider, SignIn, SignUp, useClerk } from "@clerk/react";
-import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,21 +21,16 @@ const queryClient = new QueryClient();
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-// Resolve the publishable key from window.location.hostname so the same
-// build can serve multiple Clerk custom domains. Falls back to
-// VITE_CLERK_PUBLISHABLE_KEY when the host doesn't map to a custom domain.
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
+// Use the publishable key directly from the environment variable so it is
+// always the key the app owner configured — not a hostname-resolved key that
+// could return a stale Replit-managed key for this domain.
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
 
-// In production VITE_CLERK_PROXY_URL is automatically injected by Replit.
-// The proxy only works with live keys (pk_live_). When dev keys (pk_test_) are
-// in use — e.g. a personal Clerk account without a production instance — skip
-// the proxy so Clerk talks directly to its FAPI instead.
-const isDevKey = (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? "").startsWith("pk_test_");
-const clerkProxyUrl: string | undefined =
-  isDevKey ? undefined : (import.meta.env.VITE_CLERK_PROXY_URL as string | undefined) || undefined;
+// Never use Replit's auto-injected proxy URL. The proxy only works with
+// Clerk production (pk_live_) keys and breaks when using a personal Clerk
+// account with development keys (pk_test_). Clerk will talk directly to its
+// FAPI from the browser instead, which works for all key types.
+const clerkProxyUrl: string | undefined = undefined;
 
 function stripBase(path: string): string {
   return basePath && path.startsWith(basePath)
