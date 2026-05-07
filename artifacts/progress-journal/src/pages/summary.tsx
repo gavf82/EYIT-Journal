@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "wouter";
 import { JOURNAL, AREA_COLORS, type JournalArea, type JournalStrand, type Status } from "../data/journal";
 import { useStore, getRatingKey, type Rating } from "../lib/store";
@@ -538,9 +538,9 @@ function BestFitStepChart({
         </thead>
         <tbody>
           {byArea.map(({ area, rows }) => (
-            <>
+            <React.Fragment key={area.area}>
               {/* Area header row */}
-              <tr key={`area-${area.area}`}>
+              <tr>
                 <td
                   colSpan={3}
                   className="py-1 px-3 text-xs font-semibold uppercase tracking-wide"
@@ -591,7 +591,7 @@ function BestFitStepChart({
                   </td>
                 </tr>
               ))}
-            </>
+            </React.Fragment>
           ))}
         </tbody>
       </table>
@@ -695,9 +695,11 @@ export default function SummaryPage() {
   }
 
   return (
-    <div className="container max-w-4xl px-4 sm:px-6 lg:px-8 py-8 pb-20">
-      {/* Toolbar (screen only) */}
+    <>
+    <div className="no-print container max-w-screen-2xl px-4 sm:px-6 lg:px-8 pt-8">
       <ChildNav childId={childId} />
+    </div>
+    <div className="container max-w-4xl px-4 sm:px-6 lg:px-8 pb-20">
 
       <div className="flex flex-wrap items-center justify-end gap-3 mb-6 no-print">
         <div className="flex flex-wrap items-center gap-2">
@@ -913,5 +915,6 @@ export default function SummaryPage() {
         Leeds City Council.
       </footer>
     </div>
+    </>
   );
 }

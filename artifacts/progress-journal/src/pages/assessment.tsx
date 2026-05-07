@@ -364,11 +364,14 @@ export default function AssessmentPage() {
   });
 
   return (
-    <div className="assessment-print container max-w-4xl px-4 sm:px-6 lg:px-8 py-8 pb-20 print:py-0 print:px-0 print:max-w-none print:pb-0">
+    <>
+    <div className="no-print container max-w-screen-2xl px-4 sm:px-6 lg:px-8 pt-8">
+      <ChildNav childId={childId} />
+    </div>
+    <div className="assessment-print container max-w-4xl px-4 sm:px-6 lg:px-8 py-4 pb-20 print:py-0 print:px-0 print:max-w-none print:pb-0">
 
       {/* ── Toolbar (screen only) ── */}
       <div className="no-print space-y-3 mb-6">
-        <ChildNav childId={childId} />
         <div className="flex flex-wrap items-center justify-end gap-3">
           <div className="flex flex-wrap items-center gap-2">
             {childMonths !== null && (
@@ -587,5 +590,6 @@ export default function AssessmentPage() {
         </button>
       )}
     </div>
+    </>
   );
 }
