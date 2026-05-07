@@ -2120,6 +2120,14 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "c",
                 "text": "Compare sizes, weights, etc. using gesture and language: ‘bigger/little/smaller’, ‘high/low’, ‘tall’, ‘heavy’."
+              },
+              {
+                "key": "d",
+                "text": "Responds to a sequence of instructions with multiple actions: for example, wash your hands then get your coats and then line up to go outside."
+              },
+              {
+                "key": "e",
+                "text": "Is able to follow a story without pictures or props."
               }
             ]
           },
