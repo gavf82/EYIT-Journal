@@ -608,7 +608,6 @@ const SECTIONS = [
   { id: "sec-overview", label: "Overview" },
   { id: "sec-progress", label: "Progress" },
   { id: "sec-best-fit", label: "Best-fit" },
-  { id: "sec-by-area", label: "By area" },
   { id: "sec-alerts", label: "Alerts" },
 ] as const;
 
@@ -838,6 +837,30 @@ export default function SummaryPage() {
                   <div className="font-semibold text-2xl tabular-nums">{overall.secure}</div>
                 </div>
               </div>
+              <div className="border-t border-border pt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                {JOURNAL.map((area, aIdx) => {
+                  const ac = countArea(childId, aIdx, area, state.ratings, visibility);
+                  return (
+                    <div key={aIdx} className="flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className="text-xs font-medium leading-snug truncate"
+                          style={{ color: AREA_COLORS[area.area] ?? undefined }}
+                        >
+                          {area.area}
+                        </span>
+                        <span className="text-xs tabular-nums text-muted-foreground shrink-0">
+                          {ac.percentRated}%
+                        </span>
+                      </div>
+                      <ProgressBar counts={ac} />
+                      <div className="text-[10px] text-muted-foreground tabular-nums">
+                        E {ac.emerging} · D {ac.developing} · S {ac.secure} · – {ac.unset}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
         </section>
@@ -873,32 +896,6 @@ export default function SummaryPage() {
               />
             </CardContent>
           </Card>
-        </section>
-
-        <section id="sec-by-area">
-          <h2 className="text-lg font-semibold mb-3">By area</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {JOURNAL.map((area, aIdx) => {
-              const ac = countArea(childId, aIdx, area, state.ratings, visibility);
-              return (
-                <Card key={aIdx} style={{ borderLeft: `4px solid ${AREA_COLORS[area.area] ?? "transparent"}` }}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <h3 className="font-medium text-sm leading-snug">{area.area}</h3>
-                      <span className="text-xs tabular-nums font-medium shrink-0">
-                        {ac.percentRated}%
-                      </span>
-                    </div>
-                    <ProgressBar counts={ac} />
-                    <div className="mt-2 text-xs text-muted-foreground tabular-nums">
-                      E {ac.emerging} · D {ac.developing} · S {ac.secure} · –{" "}
-                      {ac.unset}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
         </section>
 
         <div id="sec-alerts">
