@@ -19,8 +19,7 @@ run = "pnpm --filter @workspace/progress-journal run dev"
 
 [services.production]
 build = [ "pnpm", "--filter", "@workspace/progress-journal", "run", "build" ]
-publicDir = "artifacts/progress-journal/dist/public"
-serve = "static"
+run = [ "pnpm", "--filter", "@workspace/progress-journal", "run", "serve" ]
 
 [[services.production.rewrites]]
 from = "/*"
