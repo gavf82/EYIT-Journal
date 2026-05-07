@@ -2295,6 +2295,26 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "e",
                 "text": "Copies gestures as part of games and familiar routines: for example, clapping hands, waving ‘bye’, blowing kisses, open hands for ‘where is it’ or ‘all gone’."
+              },
+              {
+                "key": "f",
+                "text": "Communicates for a range of different purposes: for example, to greet, to request, to protest, to label."
+              },
+              {
+                "key": "g",
+                "text": "Can choose between two presented objects using gesture, pointing or words/sign: \"Do you want the ball or the car?\""
+              },
+              {
+                "key": "h",
+                "text": "Produces symbolic noises and baby words spontaneously: for example, ‘aahh’ when cuddling toy, ‘brmm’ for car."
+              },
+              {
+                "key": "i",
+                "text": "Vocalises in attempts to copy words and sounds."
+              },
+              {
+                "key": "j",
+                "text": "Imitates familiar consonants and vowel sounds associated with frequently used toys and/or pictures: for example, ‘baa-baa’ for a sheep, ‘moo-moo’ for a cow."
               }
             ]
           },
@@ -2369,6 +2389,30 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "a",
                 "text": "Beginning to develop expressive language at a one-word level: for example, uses at least 10 words."
+              },
+              {
+                "key": "b",
+                "text": "Uses verbs and adjective-type words: for example, ‘go’, ‘sleep’, ‘hot’, ‘bit’."
+              },
+              {
+                "key": "c",
+                "text": "Uses words to comment on what’s happening: for example, says/signs ‘bird’ if sees one in the garden."
+              },
+              {
+                "key": "d",
+                "text": "Has favourite phrases/signs that they use often: for example, ‘that one’."
+              },
+              {
+                "key": "e",
+                "text": "Signs/sings along with favourite action rhyme; words may be unclear."
+              },
+              {
+                "key": "f",
+                "text": "Comments on something that has just happened: for example, says/signs ‘doggy’ if saw a dog on the way home, or ‘fall down’ if blocks have just crashed over."
+              },
+              {
+                "key": "g",
+                "text": "Uses a wide range of intonation patterns and rhythms to reflect mood: for example, excitement, interest, involvement."
               }
             ]
           },
@@ -2439,6 +2483,46 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "b",
                 "text": "Points to and names simple pictures."
+              },
+              {
+                "key": "c",
+                "text": "Combines words/signs into familiar phrases in the appropriate context: for example, ‘Daddy come’, ‘There it is’, ‘Play with car’, ‘Me got one’, ‘Mummy gone’."
+              },
+              {
+                "key": "d",
+                "text": "Uses ‘me’ to refer to self."
+              },
+              {
+                "key": "e",
+                "text": "Asks simple questions using speech/sign with quizzical face."
+              },
+              {
+                "key": "f",
+                "text": "Indicates ‘no’ through gestures, signs or speech."
+              },
+              {
+                "key": "g",
+                "text": "Talks aloud when playing with others."
+              },
+              {
+                "key": "h",
+                "text": "Says ‘please’ and ‘thank you’ with prompts."
+              },
+              {
+                "key": "i",
+                "text": "Uses words to alert adults to needs: for example, ‘hungry’, ‘thirsty’, ‘tired’, to ask for help, etc."
+              },
+              {
+                "key": "j",
+                "text": "Tries saying the actual word or making a close match: for example, ‘um-beya’ for umbrella."
+              },
+              {
+                "key": "k",
+                "text": "Majority of single words or short phrases are intelligible to unfamiliar listeners."
+              },
+              {
+                "key": "l",
+                "text": "Repeats words or phrases from familiar stories."
               }
             ]
           },
@@ -2497,7 +2581,56 @@ export const JOURNAL: JournalArea[] = [
             "number": 11,
             "ageRange": "30-36 months",
             "title": "Step 11 (30-36 months)",
-            "items": []
+            "items": [
+              {
+                "key": "a",
+                "text": "Beginning to develop expressive language at a three-word level: for example, uses longer sentences of three to four words, such as ‘Mummy go shops now.’"
+              },
+              {
+                "key": "b",
+                "text": "Retells a simple past event in correct order: for example, ‘went down slide, hurt finger’."
+              },
+              {
+                "key": "c",
+                "text": "Gives information about own life and favourite things."
+              },
+              {
+                "key": "d",
+                "text": "Uses language to share feeling, experiences and thoughts."
+              },
+              {
+                "key": "e",
+                "text": "Asks increasingly detailed questions to find out information."
+              },
+              {
+                "key": "f",
+                "text": "Answers questions more fully, providing more than one piece of information."
+              },
+              {
+                "key": "g",
+                "text": "Holds a conversation, jumping from topic to topic."
+              },
+              {
+                "key": "h",
+                "text": "Uses words/signs at a three-word level for: Giving reasons; Saying what they want; Playing with others; Directing others; Telling others about things."
+              },
+              {
+                "key": "i",
+                "text": "Retells a simple story, recalling events and characters, not necessarily in the correct sequence."
+              },
+              {
+                "key": "j",
+                "text": "Beginning to use word endings: for example, going, finished."
+              },
+              {
+                "key": "k",
+                "text": "Realises the correct volume to talk at: not too loud or quiet."
+              },
+              {
+                "key": "l",
+                "text": "Likes saying learnt expressions, such as name, age or address."
+              }
+            ]
           },
           {
             "number": 12,
@@ -2545,7 +2678,24 @@ export const JOURNAL: JournalArea[] = [
             "number": 14,
             "ageRange": "50-60 months+",
             "title": "Step 14 (50-60 months+)",
-            "items": []
+            "items": [
+              {
+                "key": "a",
+                "text": "Extends vocabulary especially by grouping and naming and exploring the meaning and sounds of new words."
+              },
+              {
+                "key": "b",
+                "text": "Uses language in play to imagine and recreate roles and experiences they hear in their community and culture."
+              },
+              {
+                "key": "c",
+                "text": "Links statements and sticks to a main theme or intention."
+              },
+              {
+                "key": "d",
+                "text": "Uses talk to organise, sequence, and clarify thinking, ideas, feeling, and events."
+              }
+            ]
           }
         ]
       }
@@ -2658,6 +2808,18 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "d",
                 "text": "Pulls to standing from crawling, holding on to furniture or person for support."
+              },
+              {
+                "key": "e",
+                "text": "Can move from a sitting position to hands and knees (crawl position)."
+              },
+              {
+                "key": "f",
+                "text": "Lifts items to mouth to orally explore them."
+              },
+              {
+                "key": "g",
+                "text": "Moves around on the floor by wriggling on tummy, often moving backwards before going forwards."
               }
             ]
           },
@@ -2851,6 +3013,18 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "f",
                 "text": "Spins self, rolls, and independently use ropes and swings."
+              },
+              {
+                "key": "g",
+                "text": "Starts to catch a large ball by using two hands and their chest to trap it."
+              },
+              {
+                "key": "h",
+                "text": "Uses wheeled toys with increasing skill, such as pedalling, balancing, holding handlebars, and sitting stride."
+              },
+              {
+                "key": "i",
+                "text": "May be beginning to show preference for dominant hand and/or leg/foot."
               }
             ]
           },
@@ -3044,6 +3218,26 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "b",
                 "text": "Uses index finger to point at objects, sharing attention with adult."
+              },
+              {
+                "key": "c",
+                "text": "Puts toys and objects in and out of containers."
+              },
+              {
+                "key": "d",
+                "text": "Picks up small objects easily between thumb and index finger using a pincer grip."
+              },
+              {
+                "key": "e",
+                "text": "Removes pieces from inset puzzle and large pegs from a peg board with either hand."
+              },
+              {
+                "key": "f",
+                "text": "Helps turn pages of a book."
+              },
+              {
+                "key": "g",
+                "text": "Holds pen or crayon using a palmar grasp and spontaneously makes scribble marks."
               }
             ]
           },
@@ -3125,6 +3319,22 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "d",
                 "text": "Uses whole arm when markmaking."
+              },
+              {
+                "key": "e",
+                "text": "When holding crayons, chalks, etc., makes connections between their movements and the marks they make: draws vertical lines; produces circular scribble; produces side-to-side and to-and–fro scribble."
+              },
+              {
+                "key": "f",
+                "text": "Participates in finger and action rhymes, songs, and games, imitating the movements and anticipating actions."
+              },
+              {
+                "key": "g",
+                "text": "Hands start to operate independently during a task so that each hand is used to do something different at the same time: for example, holding a block in one hand and steadying the other block with the other hand."
+              },
+              {
+                "key": "h",
+                "text": "Looks closely at small items and creatures, and can also see items at substantial distance, comfortably changing focus from one to another."
               }
             ]
           },
@@ -3206,7 +3416,36 @@ export const JOURNAL: JournalArea[] = [
             "number": 11,
             "ageRange": "30-36 months",
             "title": "Step 11 (30-36 months)",
-            "items": []
+            "items": [
+              {
+                "key": "a",
+                "text": "Builds a tower of ten or more blocks."
+              },
+              {
+                "key": "b",
+                "text": "Imitates making a train of cubes."
+              },
+              {
+                "key": "c",
+                "text": "Holds books the correct way up and turns pages one at a time."
+              },
+              {
+                "key": "d",
+                "text": "Cuts paper with scissors, making one or two snips, although hand position may not be quite correct."
+              },
+              {
+                "key": "e",
+                "text": "Can undo large buttons."
+              },
+              {
+                "key": "f",
+                "text": "Holds pencil near its tip between first two fingers and thumb and uses it with good control to draw."
+              },
+              {
+                "key": "g",
+                "text": "Starts to copy some simple horizontal and vertical letters and numbers: for example, E, F, H, T, L and 1, 7, 4."
+              }
+            ]
           },
           {
             "number": 12,
@@ -3394,6 +3633,14 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "a",
                 "text": "Enjoys listening to the same story over and over again."
+              },
+              {
+                "key": "b",
+                "text": "Enjoys picture books and simple repetitive stories: for example, lift the flap books."
+              },
+              {
+                "key": "c",
+                "text": "Handles books and printed and digital reading materials with interest."
               }
             ]
           },
@@ -3692,6 +3939,10 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "e",
                 "text": "Makes attempts at reading familiar words in picture books."
+              },
+              {
+                "key": "f",
+                "text": "Reads individual letters (grapheme) by saying sounds (phoneme) for them: for example, when the child sees the grapheme ‘t’ they say the phoneme /t/ - this is known as a grapheme-phoneme correspondence (GPC)."
               }
             ]
           },
@@ -3891,6 +4142,14 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "c",
                 "text": "Scribble writes, including ‘V’ shape and vertical lines."
+              },
+              {
+                "key": "d",
+                "text": "Enjoys drawing freely."
+              },
+              {
+                "key": "e",
+                "text": "Makes marks on their paper to stand for their name."
               }
             ]
           },
@@ -3984,6 +4243,10 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "g",
                 "text": "Includes mark making and early writing in their play."
+              },
+              {
+                "key": "h",
+                "text": "Imitates adult’s writing by making continuous lines of shapes and symbols, working from left-to-right, right-to-left, or top-to-bottom, dependent upon the writing forms being used by the home/setting."
               }
             ]
           },
@@ -4179,6 +4442,22 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "c",
                 "text": "Watches toy being hidden under a cloth and finds it immediately: showing awareness of object permanence."
+              },
+              {
+                "key": "d",
+                "text": "Drops toys deliberately and repeatedly and watches them fall to the ground."
+              },
+              {
+                "key": "e",
+                "text": "Looks in the right place for things which have moved/fallen out of sight: showing awareness of object permanence."
+              },
+              {
+                "key": "f",
+                "text": "Tries to get objects that are out of reach: for example, pulls a mat towards them to make toy come closer."
+              },
+              {
+                "key": "g",
+                "text": "Anticipates what will happen next: for example, may become distressed if the expected routine doesn’t happen."
               }
             ]
           },
@@ -4270,6 +4549,10 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "d",
                 "text": "Uses some number language in play to compare quantity (such as, ‘all gone’, ‘more’, ‘lots’, or ‘same’): for example, ‘milk all gone’, or ‘lots of worms’ when digging in the mud."
+              },
+              {
+                "key": "e",
+                "text": "Remembers a sequence of activities and events: for example: says ‘Mummy train ice-cream’."
               }
             ]
           },
@@ -4471,7 +4754,7 @@ export const JOURNAL: JournalArea[] = [
             "items": [
               {
                 "key": "a",
-                "text": "Looks in the right place for toys that fall out of sight: demonstrates awareness of object permanence. Awareness"
+                "text": "Looks in the right place for toys that fall out of sight: demonstrates awareness of object permanence."
               },
               {
                 "key": "b",
@@ -4479,7 +4762,7 @@ export const JOURNAL: JournalArea[] = [
               },
               {
                 "key": "c",
-                "text": "Removes pieces from inset puzzles and large pegs from pegboard. Shape"
+                "text": "Removes pieces from inset puzzles and large pegs from pegboard."
               },
               {
                 "key": "d",
@@ -4491,7 +4774,7 @@ export const JOURNAL: JournalArea[] = [
               },
               {
                 "key": "f",
-                "text": "Explores differently sized and shaped objects. Measure"
+                "text": "Explores differently sized and shaped objects."
               },
               {
                 "key": "g",
@@ -4518,7 +4801,7 @@ export const JOURNAL: JournalArea[] = [
             "items": [
               {
                 "key": "a",
-                "text": "Intensely curious: exploring objects, rooms, outside areas, or, if not mobile, shows curiosity by pointing or Spatial looking at areas/objects they would like to explore."
+                "text": "Intensely curious: exploring objects, rooms, outside areas, or, if not mobile, shows curiosity by pointing or looking at areas/objects they would like to explore."
               },
               {
                 "key": "b",
@@ -4534,7 +4817,7 @@ export const JOURNAL: JournalArea[] = [
               },
               {
                 "key": "e",
-                "text": "Joins in with repeated actions in songs and stories. Pattern"
+                "text": "Joins in with repeated actions in songs and stories."
               },
               {
                 "key": "f",
@@ -4549,7 +4832,47 @@ export const JOURNAL: JournalArea[] = [
             "items": [
               {
                 "key": "a",
-                "text": "Finds toy when hidden under one of two/three identical covers laid out in a row, using visual memory to find Spatial the right cover."
+                "text": "Finds toy when hidden under one of two/three identical covers laid out in a row, using visual memory to find the right cover."
+              },
+              {
+                "key": "b",
+                "text": "Remembers where objects belong: for example, puts toys away in right place and then finds them later."
+              },
+              {
+                "key": "c",
+                "text": "Solves simple problems independently: for example, retrieving out-of-reach toys."
+              },
+              {
+                "key": "d",
+                "text": "Investigates fitting themselves inside and moving through spaces."
+              },
+              {
+                "key": "e",
+                "text": "Stacks objects using flat surfaces."
+              },
+              {
+                "key": "f",
+                "text": "Able to sort real objects with adult support: for example, puts all the big balls together."
+              },
+              {
+                "key": "g",
+                "text": "Begin to match items in meaningful contexts: for example, finds a matching pair of shoes."
+              },
+              {
+                "key": "h",
+                "text": "Enjoys filling and emptying containers."
+              },
+              {
+                "key": "i",
+                "text": "Enjoys playing with objects of different sizes that go together and learning about the relative size of objects."
+              },
+              {
+                "key": "j",
+                "text": "Shows an interest in objects of contrasting sizes in meaningful contexts."
+              },
+              {
+                "key": "k",
+                "text": "Gets to know and enjoys daily routines."
               }
             ]
           },
@@ -4572,7 +4895,7 @@ export const JOURNAL: JournalArea[] = [
               },
               {
                 "key": "d",
-                "text": "Uses experience to predict simple cause and effect: for example, straightens tower of blocks if it wobbles. Pattern"
+                "text": "Uses experience to predict simple cause and effect: for example, straightens tower of blocks if it wobbles."
               },
               {
                 "key": "e",
@@ -4587,11 +4910,11 @@ export const JOURNAL: JournalArea[] = [
             "items": [
               {
                 "key": "a",
-                "text": "Tries to work out problems by thinking first: for example, how to get something out of reach. Awareness"
+                "text": "Tries to work out problems by thinking first: for example, how to get something out of reach."
               },
               {
                 "key": "b",
-                "text": "Self-corrects during an activity without adult prompting: for example, tries to fit a puzzle piece in the wrong Shape space then changes to the right space."
+                "text": "Self-corrects during an activity without adult prompting: for example, tries to fit a puzzle piece in the wrong space then changes to the right space."
               },
               {
                 "key": "c",
@@ -4604,6 +4927,22 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "e",
                 "text": "Becoming familiar with patterns in daily routines: for example, ‘it’s snack time now and outdoor play next’."
+              },
+              {
+                "key": "f",
+                "text": "Remembers a sequence of activities and events: for example, to wash their hands before sitting for lunch."
+              },
+              {
+                "key": "g",
+                "text": "Joins in with and predicts what comes next in a story or rhyme."
+              },
+              {
+                "key": "h",
+                "text": "Beginning to arrange items in their own patterns: for example, lining up toys."
+              },
+              {
+                "key": "i",
+                "text": "Beginning to understand some talk about immediate past and future: for example, ‘story time finished, home time soon.’"
               }
             ]
           },
@@ -4614,7 +4953,7 @@ export const JOURNAL: JournalArea[] = [
             "items": [
               {
                 "key": "a",
-                "text": "Moves their body and toys around objects and explores fitting into spaces. Awareness"
+                "text": "Moves their body and toys around objects and explores fitting into spaces."
               },
               {
                 "key": "b",
@@ -4662,7 +5001,7 @@ export const JOURNAL: JournalArea[] = [
               },
               {
                 "key": "m",
-                "text": "Anticipates specific time-based events, such as mealtimes or home time. Pattern"
+                "text": "Anticipates specific time-based events, such as mealtimes or home time."
               },
               {
                 "key": "n",
@@ -4682,6 +5021,26 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "b",
                 "text": "Responds to some spatial and positional language."
+              },
+              {
+                "key": "c",
+                "text": "Explores how things look from different viewpoints, including things that are near or far away: for example, looking at a train-track when standing over it and then lying next to it; looking at a large construction made from hollow blocks/crates in the outdoor area close-up and then from the far-side of the outdoor space."
+              },
+              {
+                "key": "d",
+                "text": "Recognises that two objects have the same shape."
+              },
+              {
+                "key": "e",
+                "text": "Matches objects by size."
+              },
+              {
+                "key": "f",
+                "text": "Understands consequences of own actions: for example, if cup is knocked over the juice is spilt, etc."
+              },
+              {
+                "key": "g",
+                "text": "Joins in and anticipates repeated sound and action patterns: for example, in familiar action songs, plays with musical instruments."
               }
             ]
           },
@@ -4692,11 +5051,11 @@ export const JOURNAL: JournalArea[] = [
             "items": [
               {
                 "key": "a",
-                "text": "Responds to and uses language of position and direction. Spatial"
+                "text": "Responds to and uses language of position and direction."
               },
               {
                 "key": "b",
-                "text": "Predicts, moves, and rotates objects to fit the space or create the shape they would like. Awareness"
+                "text": "Predicts, moves, and rotates objects to fit the space or create the shape they would like."
               },
               {
                 "key": "c",
@@ -4736,7 +5095,7 @@ export const JOURNAL: JournalArea[] = [
               },
               {
                 "key": "l",
-                "text": "Talks about and identifies the patterns around them: for example, stripes on clothes, designs on rugs, etc. Pattern"
+                "text": "Talks about and identifies the patterns around them: for example, stripes on clothes, designs on rugs, etc."
               },
               {
                 "key": "m",
@@ -4756,6 +5115,38 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "b",
                 "text": "Uses spatial language to describe position and give directions: for example, ‘above’, ‘beside’, ‘behind’, etc."
+              },
+              {
+                "key": "c",
+                "text": "Describes a familiar route."
+              },
+              {
+                "key": "d",
+                "text": "Beginning to use mathematical terms to name and describe ‘solid’ 3D shapes and ‘flat’ 2-D shapes."
+              },
+              {
+                "key": "e",
+                "text": "Attempts to create arches and enclosures when building, using trial and improvement to select blocks."
+              },
+              {
+                "key": "f",
+                "text": "Compares sizes, weights, etc. using gesture and language: ‘bigger/little/smaller’, ‘high/low’, ‘tall’, ‘heavy’."
+              },
+              {
+                "key": "g",
+                "text": "Puts three items in the right order by length or height."
+              },
+              {
+                "key": "h",
+                "text": "Puts two items in the right order by weight or capacity."
+              },
+              {
+                "key": "i",
+                "text": "Continues, copies, and creates repeating patterns: for example, stick, leaf, stick, leaf."
+              },
+              {
+                "key": "j",
+                "text": "Begins to describe a sequence of events, real or fictional, using words such as ‘first’, ‘then...’"
               }
             ]
           },
@@ -4766,7 +5157,7 @@ export const JOURNAL: JournalArea[] = [
             "items": [
               {
                 "key": "a",
-                "text": "Investigates turning and flipping objects in order to make shapes fit and creates models: predicting and Spatial visualising how they will look (spatial reasoning)."
+                "text": "Investigates turning and flipping objects in order to make shapes fit and creates models: predicting and visualising how they will look (spatial reasoning)."
               },
               {
                 "key": "b",
@@ -4794,7 +5185,7 @@ export const JOURNAL: JournalArea[] = [
               },
               {
                 "key": "h",
-                "text": "Enjoys tackling problems involving prediction and engages in discussions involving comparisons by length, weight, or capacity, paying attention to fair-testing and accuracy: for example, in considering how many Measure buckets of water it will take to fill a wheelbarrow, recognises we need to make sure the bucket is full to the same level when counting them."
+                "text": "Enjoys tackling problems involving prediction and engages in discussions involving comparisons by length, weight, or capacity, paying attention to fair-testing and accuracy: for example, in considering how many buckets of water it will take to fill a wheelbarrow, recognises we need to make sure the bucket is full to the same level when counting them."
               },
               {
                 "key": "i",
@@ -5020,6 +5411,10 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "e",
                 "text": "Uses real object for pretend play on self or another: for example, drinks from a cup, brushes someone’s hair."
+              },
+              {
+                "key": "f",
+                "text": "Accepts adult varying a game or pretend play and imitates and joins in with new actions/routines: for example, the child may tip toy-food on to the floor but would copy the adult then placing them into a bag."
               }
             ]
           },
