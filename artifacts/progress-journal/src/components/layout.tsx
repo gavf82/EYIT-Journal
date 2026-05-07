@@ -97,26 +97,38 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <BookOpen className="h-6 w-6" />
             <span className="font-semibold tracking-tight">EYIT Development Journal</span>
           </Link>
-          <nav className="flex items-center gap-2 sm:gap-4 text-sm font-medium">
+          <nav className="flex items-center gap-1 sm:gap-4 text-sm font-medium">
             <Link
               href="/"
-              className={`transition-colors hover:text-foreground/80 ${location === "/" ? "text-foreground" : "text-foreground/60"}`}
+              className={`transition-colors hover:text-foreground/80 p-1 sm:p-0 ${location === "/" ? "text-foreground" : "text-foreground/60"}`}
+              title="Home"
             >
-              <span className="flex items-center gap-1.5"><Home className="w-4 h-4"/> Home</span>
+              <span className="flex items-center gap-1.5">
+                <Home className="w-4 h-4 shrink-0"/>
+                <span className="hidden sm:inline">Home</span>
+              </span>
             </Link>
             <Link
               href="/settings"
-              className={`transition-colors hover:text-foreground/80 ${location === "/settings" ? "text-foreground" : "text-foreground/60"}`}
+              className={`transition-colors hover:text-foreground/80 p-1 sm:p-0 ${location === "/settings" ? "text-foreground" : "text-foreground/60"}`}
+              title="Settings"
             >
-              <span className="flex items-center gap-1.5"><Settings className="w-4 h-4"/> Settings</span>
+              <span className="flex items-center gap-1.5">
+                <Settings className="w-4 h-4 shrink-0"/>
+                <span className="hidden sm:inline">Settings</span>
+              </span>
             </Link>
             <Link
               href="/contact"
-              className={`transition-colors hover:text-foreground/80 ${location === "/contact" ? "text-foreground" : "text-foreground/60"}`}
+              className={`transition-colors hover:text-foreground/80 p-1 sm:p-0 ${location === "/contact" ? "text-foreground" : "text-foreground/60"}`}
+              title="Contact"
             >
-              <span className="flex items-center gap-1.5"><Mail className="w-4 h-4"/> Contact</span>
+              <span className="flex items-center gap-1.5">
+                <Mail className="w-4 h-4 shrink-0"/>
+                <span className="hidden sm:inline">Contact</span>
+              </span>
             </Link>
-            <div className="flex flex-col items-end gap-0.5 ml-2">
+            <div className="flex flex-col items-end gap-0.5 ml-1 sm:ml-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -124,8 +136,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 disabled={!hasData}
                 onClick={openDialog}
                 data-testid="button-save-and-close"
+                title="Save backup"
               >
-                <LogOut className="h-4 w-4" /> Save
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Save</span>
               </Button>
               <BackupIndicator />
             </div>
