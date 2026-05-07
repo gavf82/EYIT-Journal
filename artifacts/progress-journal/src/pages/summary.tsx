@@ -11,7 +11,7 @@ import {
 } from "../lib/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { LogOut, AlertTriangle, Info, CheckCircle2, RotateCcw, ClipboardCheck } from "lucide-react";
+import { LogOut, AlertTriangle, Info, CheckCircle2, RotateCcw, ClipboardCheck, ChevronDown, ChevronRight } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -178,8 +178,19 @@ function StagnantItemsSection({ activeItems, dismissedItems, onAcknowledge, onUn
   const [pendingItem, setPendingItem] = useState<StagnantItem | null>(null);
   const [noteText, setNoteText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // All areas collapsed by default — openAreas tracks which are expanded
+  const [openAreas, setOpenAreas] = useState<Set<string>>(new Set());
 
   if (activeItems.length === 0 && dismissedItems.length === 0) return null;
+
+  function toggleArea(key: string) {
+    setOpenAreas((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   function openAcknowledgeDialog(it: StagnantItem) {
     setPendingItem(it);
@@ -193,7 +204,7 @@ function StagnantItemsSection({ activeItems, dismissedItems, onAcknowledge, onUn
     setNoteText("");
   }
 
-  function renderItems(items: StagnantItem[], isDismissed: boolean) {
+  function renderItems(items: StagnantItem[], isDismissed: boolean, keyPrefix: string) {
     const byArea = new Map<string, StagnantItem[]>();
     items.forEach((it) => {
       const list = byArea.get(it.areaName) ?? [];
@@ -201,65 +212,86 @@ function StagnantItemsSection({ activeItems, dismissedItems, onAcknowledge, onUn
       byArea.set(it.areaName, list);
     });
 
-    return Array.from(byArea.entries()).map(([areaName, areaItems]) => (
-      <div key={areaName} className="px-4 py-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-          {areaName}
-        </p>
-        <ul className="space-y-3">
-          {areaItems.map((it) => (
-            <li
-              key={`${it.strandName}::${it.stepNumber}::${it.itemKey}`}
-              className={cn("flex items-start gap-3 text-sm", isDismissed && "opacity-60")}
-            >
-              <span
-                className={cn(
-                  "mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                  it.status === "emerging"
-                    ? "bg-[hsl(5_72%_66%/20%)] text-[hsl(5_72%_40%)]"
-                    : "bg-[hsl(38_88%_62%/20%)] text-[hsl(38_88%_35%)]",
-                )}
-              >
-                {it.status === "emerging" ? "E" : "D"}
-              </span>
-              <span className="flex-1 leading-snug min-w-0">
-                <span className="font-medium">{it.strandName}</span>
-                <span className="text-muted-foreground"> · Step {it.stepNumber} ({it.ageRange}) · {it.itemKey})</span>
-                <br />
-                {it.itemText}
-                {isDismissed && it.reviewNote && (
-                  <span className="block mt-1.5 text-xs italic text-muted-foreground border-l-2 border-[#008264]/40 pl-2">
-                    {it.reviewNote}
+    return Array.from(byArea.entries()).map(([areaName, areaItems]) => {
+      const areaKey = `${keyPrefix}::${areaName}`;
+      const isOpen = openAreas.has(areaKey);
+      const color = AREA_COLORS[areaName] ?? "#ccc";
+      return (
+        <div key={areaName}>
+          <button
+            type="button"
+            onClick={() => toggleArea(areaKey)}
+            className="w-full flex items-center gap-2 px-4 py-1.5 text-left hover:brightness-95 transition-all"
+            style={{ backgroundColor: color }}
+          >
+            {isOpen
+              ? <ChevronDown className="h-3.5 w-3.5 shrink-0" style={{ color: "#111" }} />
+              : <ChevronRight className="h-3.5 w-3.5 shrink-0" style={{ color: "#111" }} />
+            }
+            <span className="text-[11px] font-semibold uppercase tracking-wide flex-1" style={{ color: "#111" }}>
+              {areaName}
+            </span>
+            <span className="text-[11px] tabular-nums" style={{ color: "#333" }}>
+              {areaItems.length} item{areaItems.length !== 1 ? "s" : ""}
+            </span>
+          </button>
+          {isOpen && (
+            <ul className="divide-y divide-border/50 bg-muted/10">
+              {areaItems.map((it) => (
+                <li
+                  key={`${it.strandName}::${it.stepNumber}::${it.itemKey}`}
+                  className={cn("flex items-start gap-3 text-sm px-4 py-3", isDismissed && "opacity-60")}
+                >
+                  <span
+                    className={cn(
+                      "mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                      it.status === "emerging"
+                        ? "bg-[hsl(5_72%_66%/20%)] text-[hsl(5_72%_40%)]"
+                        : "bg-[hsl(38_88%_62%/20%)] text-[hsl(38_88%_35%)]",
+                    )}
+                  >
+                    {it.status === "emerging" ? "E" : "D"}
                   </span>
-                )}
-              </span>
-              <span className="shrink-0 text-xs text-muted-foreground tabular-nums whitespace-nowrap text-right">
-                {formatEntryDate(it.updatedAt)}
-                <br />
-                <span className="text-[hsl(38_88%_45%)]">{it.monthsStale} mo ago</span>
-              </span>
-              {isDismissed ? (
-                <button
-                  onClick={() => onUnacknowledge(it)}
-                  title="Remove reviewed mark"
-                  className="shrink-0 flex items-center justify-center h-9 w-9 -mr-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </button>
-              ) : (
-                <button
-                  onClick={() => openAcknowledgeDialog(it)}
-                  title="Mark as reviewed — requires a note"
-                  className="shrink-0 flex items-center justify-center h-9 w-9 -mr-1 rounded-md text-muted-foreground hover:text-[#008264] hover:bg-[#00826415] transition-colors"
-                >
-                  <CheckCircle2 className="h-5 w-5" />
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
-    ));
+                  <span className="flex-1 leading-snug min-w-0">
+                    <span className="font-medium">{it.strandName}</span>
+                    <span className="text-muted-foreground"> · Step {it.stepNumber} ({it.ageRange}) · {it.itemKey})</span>
+                    <br />
+                    {it.itemText}
+                    {isDismissed && it.reviewNote && (
+                      <span className="block mt-1.5 text-xs italic text-muted-foreground border-l-2 border-[#008264]/40 pl-2">
+                        {it.reviewNote}
+                      </span>
+                    )}
+                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums whitespace-nowrap text-right">
+                    {formatEntryDate(it.updatedAt)}
+                    <br />
+                    <span className="text-[hsl(38_88%_45%)]">{it.monthsStale} mo ago</span>
+                  </span>
+                  {isDismissed ? (
+                    <button
+                      onClick={() => onUnacknowledge(it)}
+                      title="Remove reviewed mark"
+                      className="shrink-0 flex items-center justify-center h-9 w-9 -mr-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => openAcknowledgeDialog(it)}
+                      title="Mark as reviewed — requires a note"
+                      className="shrink-0 flex items-center justify-center h-9 w-9 -mr-1 rounded-md text-muted-foreground hover:text-[#008264] hover:bg-[#00826415] transition-colors"
+                    >
+                      <CheckCircle2 className="h-5 w-5" />
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      );
+    });
   }
 
   return (
@@ -279,7 +311,7 @@ function StagnantItemsSection({ activeItems, dismissedItems, onAcknowledge, onUn
                 All items have been marked as reviewed.
               </div>
             ) : (
-              renderItems(activeItems, false)
+              renderItems(activeItems, false, "active")
             )}
             {dismissedItems.length > 0 && (
               <div className="px-4 py-2">
@@ -293,7 +325,7 @@ function StagnantItemsSection({ activeItems, dismissedItems, onAcknowledge, onUn
                 </button>
                 {showDismissed && (
                   <div className="mt-2 divide-y divide-border border-t border-border pt-2">
-                    {renderItems(dismissedItems, true)}
+                    {renderItems(dismissedItems, true, "dismissed")}
                   </div>
                 )}
               </div>
