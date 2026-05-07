@@ -212,7 +212,12 @@ function StagnantItemsSection({ activeItems, dismissedItems, onAcknowledge, onUn
       byArea.set(it.areaName, list);
     });
 
-    return Array.from(byArea.entries()).map(([areaName, areaItems]) => {
+    // Preserve JOURNAL area order (same as best-fit table)
+    const orderedEntries = JOURNAL
+      .map((area) => [area.area, byArea.get(area.area)] as [string, StagnantItem[] | undefined])
+      .filter((entry): entry is [string, StagnantItem[]] => entry[1] !== undefined && entry[1].length > 0);
+
+    return orderedEntries.map(([areaName, areaItems]) => {
       const areaKey = `${keyPrefix}::${areaName}`;
       const isOpen = openAreas.has(areaKey);
       const color = AREA_COLORS[areaName] ?? "#ccc";
