@@ -1,6 +1,5 @@
 import { useState, useRef } from "react";
-import { useStore } from "../lib/store";
-import { cn } from "../lib/utils";
+import { useStore, getStore, setStore, type StoreState } from "../lib/store";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,11 +14,18 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "../hooks/use-toast";
-import { Trash2, Download, Upload, FlaskConical, X, LogOut, Database } from "lucide-react";
-import { useDirty } from "../hooks/use-dirty";
+import { Trash2, Upload, FlaskConical, X, Database } from "lucide-react";
 import { useLocation } from "wouter";
-import { seedDemoData, removeDemoData, isDemoLoaded, DEMO_CHILD_ID } from "../lib/seed";
-import { exportSQLite, importSQLite } from "../lib/sqlite";
+import { seedDemoData, removeDemoData, isDemoLoaded } from "../lib/seed";
+import { exportSQLite, parseSQLite } from "../lib/sqlite";
+
+interface PendingImport {
+  parsed: Pick<StoreState, "children" | "ratings" | "stagnantNotes" | "acknowledgedStagnations">;
+  overlappingChildCount: number;
+  replacedRatingCount: number;
+  totalIncomingRatings: number;
+}
+
 export default function SettingsPage() {
   const { state, resetAll } = useStore();
   const hasData = state.children.length > 0;
@@ -28,6 +34,7 @@ export default function SettingsPage() {
   const sqliteFileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [demoLoaded, setDemoLoaded] = useState(isDemoLoaded);
+  const [pendingImport, setPendingImport] = useState<PendingImport | null>(null);
 
   async function handleExportSQLite() {
     setBusy(true);
@@ -47,8 +54,27 @@ export default function SettingsPage() {
   async function handleImportSQLite(file: File) {
     setBusy(true);
     try {
-      await importSQLite(file);
-      toast({ title: "SQLite backup restored", description: "Your journals have been imported." });
+      const parsed = await parseSQLite(file);
+
+      const current = getStore();
+      const existingChildIds = new Set(current.children.map((c) => c.id));
+      const existingRatingKeys = new Set(Object.keys(current.ratings));
+
+      const overlappingChildren = parsed.children.filter((c) => existingChildIds.has(c.id));
+      const overlappingChildIds = new Set(overlappingChildren.map((c) => c.id));
+
+      const incomingRatingKeys = Object.keys(parsed.ratings);
+      const totalIncomingRatings = incomingRatingKeys.length;
+      const replacedRatingCount = incomingRatingKeys.filter(
+        (k) => existingRatingKeys.has(k) && overlappingChildIds.has(k.split("::")[0]),
+      ).length;
+
+      setPendingImport({
+        parsed,
+        overlappingChildCount: overlappingChildren.length,
+        replacedRatingCount,
+        totalIncomingRatings,
+      });
     } catch (e: any) {
       toast({
         title: "Import failed",
@@ -58,6 +84,36 @@ export default function SettingsPage() {
     } finally {
       setBusy(false);
       if (sqliteFileRef.current) sqliteFileRef.current.value = "";
+    }
+  }
+
+  function confirmImport() {
+    if (!pendingImport) return;
+    try {
+      const { parsed } = pendingImport;
+      const current = getStore();
+      const childMap = new Map(current.children.map((c) => [c.id, c]));
+      parsed.children.forEach((c) => childMap.set(c.id, c));
+
+      setStore({
+        children: [...childMap.values()],
+        ratings: { ...current.ratings, ...parsed.ratings },
+        stagnantNotes: { ...(current.stagnantNotes ?? {}), ...parsed.stagnantNotes },
+        acknowledgedStagnations: {
+          ...(current.acknowledgedStagnations ?? {}),
+          ...parsed.acknowledgedStagnations,
+        },
+      });
+
+      toast({ title: "Backup restored", description: "Your journals have been imported." });
+    } catch (e: any) {
+      toast({
+        title: "Import failed",
+        description: e?.message ?? "Could not apply backup.",
+        variant: "destructive",
+      });
+    } finally {
+      setPendingImport(null);
     }
   }
 
@@ -137,6 +193,61 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Import confirmation dialog */}
+      <AlertDialog open={!!pendingImport} onOpenChange={(open) => { if (!open) setPendingImport(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Import this backup?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  This backup contains{" "}
+                  <strong className="text-foreground">
+                    {pendingImport?.parsed.children.length ?? 0}{" "}
+                    {(pendingImport?.parsed.children.length ?? 0) === 1 ? "child" : "children"}
+                  </strong>{" "}
+                  and{" "}
+                  <strong className="text-foreground">
+                    {pendingImport?.totalIncomingRatings ?? 0}{" "}
+                    {(pendingImport?.totalIncomingRatings ?? 0) === 1 ? "rating" : "ratings"}
+                  </strong>
+                  .
+                </p>
+                {(pendingImport?.overlappingChildCount ?? 0) > 0 && (
+                  <p>
+                    {pendingImport!.overlappingChildCount}{" "}
+                    {pendingImport!.overlappingChildCount === 1
+                      ? "child already exists"
+                      : "children already exist"}{" "}
+                    in your journal.{" "}
+                    {pendingImport!.replacedRatingCount > 0 ? (
+                      <>
+                        Importing will overwrite{" "}
+                        <strong className="text-foreground">
+                          {pendingImport!.replacedRatingCount}{" "}
+                          {pendingImport!.replacedRatingCount === 1 ? "rating" : "ratings"}
+                        </strong>{" "}
+                        for{" "}
+                        {pendingImport!.overlappingChildCount === 1 ? "that child" : "those children"}.
+                      </>
+                    ) : (
+                      "No existing ratings will be overwritten."
+                    )}
+                  </p>
+                )}
+                <p>New children and ratings will be merged in alongside any existing data.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmImport} data-testid="button-confirm-import">
+              Import
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Card>
         <CardHeader>
