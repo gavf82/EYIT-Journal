@@ -170,3 +170,5 @@ overrides:
   "yaml@2": "^2.8.3"
   # Security: fix XSS vulnerability (GHSA-qx2v-qp2m-jg93) in postcss
   postcss: "^8.5.10"
+  # Security: fix RCE (GHSA-5c6j-r48x-rmvq) and DoS (GHSA-qj8w-gfj5-8c6v) vulnerabilities in serialize-javascript
+  serialize-javascript: "^7.0.5"
