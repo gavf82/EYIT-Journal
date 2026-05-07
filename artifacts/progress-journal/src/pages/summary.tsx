@@ -528,12 +528,9 @@ function BestFitStepChart({
     <div className="space-y-2">
       <table className="w-full text-sm border-collapse">
         <thead>
-          <tr className="text-xs text-muted-foreground uppercase tracking-wide">
-            <th className="text-left py-1.5 px-3 font-medium w-[55%]">Strand</th>
-            <th className="text-center py-1.5 px-3 font-medium">Best-fit Step</th>
-            <th className="text-left py-1.5 px-3 font-medium text-muted-foreground/60 hidden sm:table-cell">
-              Age range
-            </th>
+          <tr className="text-[11px] text-muted-foreground uppercase tracking-wide border-b border-border">
+            <th className="text-left py-1 px-3 font-medium w-[65%]">Strand</th>
+            <th className="text-center py-1 px-3 font-medium">Best-fit Step</th>
           </tr>
         </thead>
         <tbody>
@@ -542,8 +539,8 @@ function BestFitStepChart({
               {/* Area header row */}
               <tr>
                 <td
-                  colSpan={3}
-                  className="py-1 px-3 text-xs font-semibold uppercase tracking-wide"
+                  colSpan={2}
+                  className="py-0.5 px-3 text-[11px] font-semibold uppercase tracking-wide"
                   style={{ backgroundColor: AREA_COLORS[area.area] ?? "#eee" }}
                 >
                   {area.area}
@@ -553,19 +550,19 @@ function BestFitStepChart({
               {rows.map((row) => (
                 <tr
                   key={row.label}
-                  className="border-b border-border/40 hover:bg-muted/30 transition-colors"
+                  className="border-b border-border/30 hover:bg-muted/30 transition-colors"
                 >
-                  <td className="py-1.5 px-3">{row.label}</td>
-                  <td className="py-1.5 px-3 text-center">
+                  <td className="py-[3px] px-3 text-[12px]">{row.label}</td>
+                  <td className="py-[3px] px-3 text-center">
                     {row.bestFit !== null ? (
                       <TooltipProvider>
                         <UITooltip>
                           <TooltipTrigger asChild>
                             <span
-                              className="inline-flex items-center justify-center min-w-[2.8rem] rounded-md px-2 py-0.5 font-semibold tabular-nums cursor-help text-sm border border-border/50 hover:border-border transition-colors"
+                              className="inline-flex items-center justify-center min-w-[2.4rem] rounded px-1.5 py-0 font-semibold tabular-nums cursor-help text-[11px] border border-border/40 hover:border-border transition-colors"
                               style={{
                                 backgroundColor: row.areaColor,
-                                opacity: 0.92,
+                                opacity: 0.85,
                               }}
                             >
                               Step {row.bestFit}
@@ -583,11 +580,6 @@ function BestFitStepChart({
                     ) : (
                       <span className="text-muted-foreground text-xs italic">—</span>
                     )}
-                  </td>
-                  <td className="py-1.5 px-3 text-xs text-muted-foreground hidden sm:table-cell">
-                    {row.steps.length > 0
-                      ? row.steps.map((s) => `Step ${s.stepNumber} (${s.ageRange})`).join(", ")
-                      : "—"}
                   </td>
                 </tr>
               ))}
