@@ -389,21 +389,17 @@ function toTitleCase(s: string): string {
 function computeBestFitData(
   childId: string,
   ratings: Record<string, Rating>,
-  visibility: StepVisibility,
 ): StrandBestFitRow[] {
   const rows: StrandBestFitRow[] = [];
   JOURNAL.forEach((area, aIdx) => {
     const areaColor = AREA_COLORS[area.area] ?? "#ccc";
     area.strands.forEach((strand, sIdx) => {
-      const visibleSet = visibility?.get(`${aIdx}::${sIdx}`) ?? null;
       let weightedSum = 0;
       let totalWeight = 0;
       const steps: StepBreakdown[] = [];
 
       strand.steps.forEach((step, stIdx) => {
         if (!step.items || step.note) return;
-        const inRange = visibleSet ? visibleSet.has(stIdx) : true;
-        if (!inRange) return;
 
         let e = 0, d = 0, sc = 0;
         step.items.forEach((item) => {
@@ -503,15 +499,13 @@ function BestFitBreakdownTip({ row }: { row: StrandBestFitRow }) {
 function BestFitStepChart({
   childId,
   ratings,
-  visibility,
 }: {
   childId: string;
   ratings: ReturnType<typeof useStore>["state"]["ratings"];
-  visibility: StepVisibility;
 }) {
   const data = useMemo(
-    () => computeBestFitData(childId, ratings, visibility),
-    [childId, ratings, visibility],
+    () => computeBestFitData(childId, ratings),
+    [childId, ratings],
   );
 
   const hasAnyData = data.some((d) => d.bestFit !== null);
@@ -519,7 +513,7 @@ function BestFitStepChart({
   if (!hasAnyData) {
     return (
       <p className="text-sm text-muted-foreground italic py-6 text-center">
-        Rate statements in the age-relevant steps to see best-fit steps.
+        Rate statements across any steps to see best-fit steps.
       </p>
     );
   }
@@ -741,8 +735,7 @@ export default function SummaryPage() {
       <nav className="no-print fixed bottom-0 left-0 right-0 z-20 bg-background/95 backdrop-blur border-t border-border px-4 sm:px-6 lg:px-8">
         <div className="flex gap-0.5 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {SECTIONS.map((s) =>
-            (s.id === "sec-alerts" && stagnantItems.length === 0) ||
-            (s.id === "sec-best-fit" && !ageFilterOn) ? null : (
+            (s.id === "sec-alerts" && stagnantItems.length === 0) ? null : (
               <button
                 key={s.id}
                 onClick={() => {
@@ -849,43 +842,38 @@ export default function SummaryPage() {
           </Card>
         </section>
 
-        {/* Best-fit step chart — only when age filter is active */}
-        {ageFilterOn && (
-          <section id="sec-best-fit">
-            <div className="flex items-center gap-2 mb-3">
-              <h2 className="text-lg font-semibold">Best-fit step by strand</h2>
-              <TooltipProvider>
-                <UITooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      aria-label="How is best-fit step calculated?"
-                      className="rounded-full p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <Info className="h-4 w-4 shrink-0" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="max-w-72 text-xs leading-relaxed">
-                    For each of the 18 strands, all rated items within the age-relevant
-                    range are combined into a single weighted average step number.
-                    Emerging counts as 1 point, Developing as 2, Secure as 3 — so a
-                    strand where most items are Secure will show a higher step than one
-                    where items are Emerging. Strands with no ratings in range are omitted.
-                  </TooltipContent>
-                </UITooltip>
-              </TooltipProvider>
-            </div>
-            <Card>
-              <CardContent className="p-5">
-                <BestFitStepChart
-                  childId={childId}
-                  ratings={state.ratings}
-                  visibility={visibility}
-                />
-              </CardContent>
-            </Card>
-          </section>
-        )}
+        <section id="sec-best-fit">
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-lg font-semibold">Best-fit step by strand</h2>
+            <TooltipProvider>
+              <UITooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="How is best-fit step calculated?"
+                    className="rounded-full p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Info className="h-4 w-4 shrink-0" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-72 text-xs leading-relaxed">
+                  For each of the 18 strands, all rated items across every step are
+                  combined into a single weighted average step number — regardless of age
+                  filter or history settings. Emerging counts as 1 point, Developing as 2,
+                  Secure as 3. Strands with no ratings are omitted.
+                </TooltipContent>
+              </UITooltip>
+            </TooltipProvider>
+          </div>
+          <Card>
+            <CardContent className="p-5">
+              <BestFitStepChart
+                childId={childId}
+                ratings={state.ratings}
+              />
+            </CardContent>
+          </Card>
+        </section>
 
         <section id="sec-by-area">
           <h2 className="text-lg font-semibold mb-3">By area</h2>
