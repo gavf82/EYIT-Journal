@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { BookOpen, Settings, Home, LogOut, AlertTriangle } from "lucide-react";
+import { BookOpen, Settings, Home, LogOut, AlertTriangle, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSaveAndClose } from "../hooks/use-save-and-close";
 import { SaveAndCloseDialog } from "./save-and-close-dialog";
@@ -109,6 +109,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
               className={`transition-colors hover:text-foreground/80 ${location === "/settings" ? "text-foreground" : "text-foreground/60"}`}
             >
               <span className="flex items-center gap-1.5"><Settings className="w-4 h-4"/> Settings</span>
+            </Link>
+            <Link
+              href="/contact"
+              className={`transition-colors hover:text-foreground/80 ${location === "/contact" ? "text-foreground" : "text-foreground/60"}`}
+            >
+              <span className="flex items-center gap-1.5"><Mail className="w-4 h-4"/> Contact</span>
             </Link>
             <div className="flex flex-col items-end gap-0.5 ml-2">
               <Button

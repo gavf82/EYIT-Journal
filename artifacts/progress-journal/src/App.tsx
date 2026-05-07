@@ -11,6 +11,7 @@ import ChildJournal from "@/pages/child-journal";
 import SummaryPage from "@/pages/summary";
 import AssessmentPage from "@/pages/assessment";
 import SettingsPage from "@/pages/settings";
+import ContactPage from "@/pages/contact";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/child/:id/summary" component={SummaryPage} />
       <Route path="/child/:id/assessment" component={AssessmentPage} />
       <Route path="/settings" component={SettingsPage} />
+      <Route path="/contact" component={ContactPage} />
       <Route component={NotFound} />
     </Switch>
   );
