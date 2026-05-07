@@ -172,6 +172,10 @@ const MAX_FILE_BYTES = 50 * 1024 * 1024;
 const MAX_CHILDREN = 500;
 /** Maximum number of rating records accepted from a single backup. */
 const MAX_RATINGS = 200_000;
+/** Maximum number of stagnant-note records accepted from a single backup. */
+const MAX_STAGNANT_NOTES = 10_000;
+/** Maximum number of acknowledged-stagnation records accepted from a single backup. */
+const MAX_ACKNOWLEDGED_STAGNATIONS = 100_000;
 /** Maximum character length for standard free-form string fields. */
 const MAX_FIELD_LEN = 2_000;
 /** Maximum character length for practitioner note text. */
@@ -422,6 +426,14 @@ export async function parseSQLite(
     // Stagnant notes — optional table (backward compat with older backups).
     const stagnantNotes: StoreState["stagnantNotes"] = {};
     if (tables.includes("stagnant_notes")) {
+      const noteCount = (
+        db.exec("SELECT COUNT(*) FROM stagnant_notes")[0]?.values[0]?.[0] as number ?? 0
+      );
+      if (noteCount > MAX_STAGNANT_NOTES) {
+        throw new Error(
+          `Backup contains too many stagnant note rows (${noteCount}). Maximum accepted is ${MAX_STAGNANT_NOTES.toLocaleString()}.`,
+        );
+      }
       const noteRows = db.exec(
         "SELECT child_id, area_name, strand_name, note_text, note_date FROM stagnant_notes",
       );
@@ -447,6 +459,14 @@ export async function parseSQLite(
     // The note_text column was added later; detect it before querying.
     const acknowledgedStagnations: StoreState["acknowledgedStagnations"] = {};
     if (tables.includes("acknowledged_stagnations")) {
+      const ackedCount = (
+        db.exec("SELECT COUNT(*) FROM acknowledged_stagnations")[0]?.values[0]?.[0] as number ?? 0
+      );
+      if (ackedCount > MAX_ACKNOWLEDGED_STAGNATIONS) {
+        throw new Error(
+          `Backup contains too many acknowledged stagnation rows (${ackedCount}). Maximum accepted is ${MAX_ACKNOWLEDGED_STAGNATIONS.toLocaleString()}.`,
+        );
+      }
       const hasNoteCol =
         db
           .exec(`SELECT 1 FROM pragma_table_info('acknowledged_stagnations') WHERE name='note_text'`)

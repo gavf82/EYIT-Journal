@@ -2,8 +2,8 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { Link, useParams, useLocation } from "wouter";
 import { ChildNav } from "../components/child-nav";
 import { JOURNAL, AREA_COLORS, JournalArea, JournalStep, JournalStrand, Status } from "../data/journal";
-import { useStore, getRatingKey, type Rating, type HistoryEntry } from "../lib/store";
-import { importSQLite } from "../lib/sqlite";
+import { useStore, getStore, setStore, getRatingKey, type Rating, type HistoryEntry, type StoreState } from "../lib/store";
+import { parseSQLite } from "../lib/sqlite";
 import {
   buildStepVisibility,
   countAll,
@@ -958,6 +958,65 @@ export default function ChildJournalPage() {
   const [editOpen, setEditOpen] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
+  const [pendingImport, setPendingImport] = useState<Pick<StoreState, "children" | "ratings" | "stagnantNotes" | "acknowledgedStagnations"> | null>(null);
+
+  async function handleImportFile(file: File) {
+    if (!child) return;
+    const cid = child.id;
+    try {
+      const parsed = await parseSQLite(file);
+
+      // Scope all tables to the active child only, regardless of what the backup
+      // contains. Any rows keyed to other child IDs are dropped — a crafted
+      // backup cannot silently overwrite unrelated journals this way.
+      const scopedChildren = parsed.children.filter((c) => c.id === cid);
+      const scopedRatings = Object.fromEntries(
+        Object.entries(parsed.ratings).filter(([k]) => k.startsWith(`${cid}::`)),
+      );
+      const scopedNotes = Object.fromEntries(
+        Object.entries(parsed.stagnantNotes ?? {}).filter(([k]) => k.startsWith(`${cid}::`)),
+      );
+      const scopedAcked = Object.fromEntries(
+        Object.entries(parsed.acknowledgedStagnations ?? {}).filter(([k]) => k.startsWith(`${cid}::`)),
+      );
+
+      if (scopedChildren.length === 0 && Object.keys(scopedRatings).length === 0) {
+        toast({
+          title: "Nothing to import",
+          description: "The backup file contains no data for this child.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setPendingImport({
+        children: scopedChildren,
+        ratings: scopedRatings,
+        stagnantNotes: scopedNotes,
+        acknowledgedStagnations: scopedAcked,
+      });
+    } catch (err: any) {
+      toast({ title: "Import failed", description: err?.message ?? "Could not parse file.", variant: "destructive" });
+    }
+  }
+
+  function applyImport(scoped: Pick<StoreState, "children" | "ratings" | "stagnantNotes" | "acknowledgedStagnations">) {
+    try {
+      const current = getStore();
+      const childMap = new Map(current.children.map((c) => [c.id, c]));
+      scoped.children.forEach((c) => childMap.set(c.id, c));
+      setStore({
+        children: [...childMap.values()],
+        ratings: { ...current.ratings, ...scoped.ratings },
+        stagnantNotes: { ...(current.stagnantNotes ?? {}), ...scoped.stagnantNotes },
+        acknowledgedStagnations: { ...(current.acknowledgedStagnations ?? {}), ...scoped.acknowledgedStagnations },
+      });
+      toast({ title: "Journal imported" });
+    } catch (err: any) {
+      toast({ title: "Import failed", description: err?.message ?? "Could not apply backup.", variant: "destructive" });
+    }
+  }
+
   async function openImportPicker() {
     if ("showOpenFilePicker" in window) {
       try {
@@ -967,12 +1026,7 @@ export default function ChildJournalPage() {
           multiple: false,
         });
         const file = await handle.getFile();
-        try {
-          await importSQLite(file);
-          toast({ title: "Journal imported" });
-        } catch (err: any) {
-          toast({ title: "Import failed", description: err?.message ?? "Could not parse file.", variant: "destructive" });
-        }
+        await handleImportFile(file);
         return;
       } catch (err: unknown) {
         if (err instanceof Error && err.name === "AbortError") return;
@@ -1200,7 +1254,7 @@ export default function ChildJournalPage() {
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Data</DropdownMenuLabel>
                 <DropdownMenuItem onSelect={openImportPicker}>
-                  <Upload className="h-4 w-4 mr-2" /> Import JSON
+                  <Upload className="h-4 w-4 mr-2" /> Import backup (.db)
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Reset</DropdownMenuLabel>
@@ -1263,20 +1317,38 @@ export default function ChildJournalPage() {
               onChange={async (e) => {
                 const f = e.target.files?.[0];
                 if (!f) return;
-                try {
-                  await importSQLite(f);
-                  toast({ title: "Journal imported" });
-                } catch (err: any) {
-                  toast({
-                    title: "Import failed",
-                    description: err?.message ?? "Could not parse file.",
-                    variant: "destructive",
-                  });
-                } finally {
-                  if (importRef.current) importRef.current.value = "";
-                }
+                await handleImportFile(f);
+                if (importRef.current) importRef.current.value = "";
               }}
             />
+
+            {pendingImport && (
+              <AlertDialog open onOpenChange={(open) => { if (!open) setPendingImport(null); }}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Import this backup?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will restore {child?.name}&apos;s ratings and notes from the backup
+                      file. Any existing ratings for {child?.name} that overlap with the backup
+                      will be overwritten. Only data for this child will be affected — records for
+                      other children in the file are ignored.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setPendingImport(null)}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => {
+                        const imp = pendingImport;
+                        setPendingImport(null);
+                        applyImport(imp);
+                      }}
+                    >
+                      Import
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         </div>
 
