@@ -570,19 +570,21 @@ export default function AssessmentPage() {
               )),
             )}
           </div>
-          {baselineSearch && strands.some(({ blocks }) => blocks.length > 0 && blocks[blocks.length - 1].stepNumber > 1) && (
-            <div className="print:hidden flex justify-center pt-4 pb-8">
-              <Button
-                variant="outline"
-                className="gap-2 text-sm"
-                onClick={() => setBaselineDepth((d) => d + 3)}
-              >
-                <Layers className="h-4 w-4" />
-                Show 3 more steps
-              </Button>
-            </div>
-          )}
         </>
+      )}
+      {/* ── Floating "show more steps" button (baseline mode only) ── */}
+      {baselineSearch && strands.some(({ blocks }) => blocks.length > 0 && blocks[blocks.length - 1].stepNumber > 1) && (
+        <button
+          type="button"
+          onClick={() => setBaselineDepth((d) => d + 3)}
+          className="print:hidden fixed right-0 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-1.5 rounded-l-xl border border-r-0 border-border bg-card px-2.5 py-4 shadow-md text-xs font-medium text-foreground hover:bg-muted transition-colors"
+          aria-label="Show 3 more steps"
+        >
+          <Layers className="h-4 w-4 shrink-0" />
+          <span style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
+            Show 3 more steps
+          </span>
+        </button>
       )}
     </div>
   );
