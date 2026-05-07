@@ -141,7 +141,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <LogOut className="h-4 w-4" />
                 <span className="hidden sm:inline">Save</span>
               </Button>
-              <BackupIndicator />
             </div>
             <SaveAndCloseDialog {...dialogProps} />
           </nav>
