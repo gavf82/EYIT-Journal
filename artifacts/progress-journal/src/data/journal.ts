@@ -127,6 +127,18 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "a",
                 "text": "Makes body stiff and vocalises when protesting."
+              },
+              {
+                "key": "b",
+                "text": "Is aware of other's feelings: for example, looks concerned if hears crying; looks excited if hears a familiar happy voice."
+              },
+              {
+                "key": "c",
+                "text": "May become distressed and anxious if left somewhere without parent/carer."
+              },
+              {
+                "key": "d",
+                "text": "Seeks physical and emotional comfort by snuggling in to trusted adults."
               }
             ]
           },
@@ -208,6 +220,22 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "d",
                 "text": "Asserts their own agenda strongly and may display frustration with having to comply with others’ agendas and with change and boundaries."
+              },
+              {
+                "key": "e",
+                "text": "Experiences a wide range of feelings with great intensity, such as anger and frustration, which can be overwhelming and result in losing control of feelings, body, and thinking."
+              },
+              {
+                "key": "f",
+                "text": "Shows embarrassment."
+              },
+              {
+                "key": "g",
+                "text": "Clings for affection when tired or afraid."
+              },
+              {
+                "key": "h",
+                "text": "Alternates between clinging and resistance to familiar adult."
               }
             ]
           },
@@ -492,6 +520,18 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "b",
                 "text": "Expresses awareness of their physical self through their own movements, gestures, and expressions and by touching their own and other’s faces, eyes, and mouth in play and care events."
+              },
+              {
+                "key": "c",
+                "text": "Is becoming aware of self as they imitate sounds and expressions that are mirrored back to them by close adults: for example, laughing and gurgling during physical interactions."
+              },
+              {
+                "key": "d",
+                "text": "Sleeps consistently for several hours during the night. Sleeps for 14-16 hours a day with several short naps."
+              },
+              {
+                "key": "e",
+                "text": "Tolerates hair and face washing."
               }
             ]
           },
@@ -570,6 +610,38 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "a",
                 "text": "Expresses feelings (such as joy, distress, frustration, and fear) and communicates them through gesture, facial expression, movements, body language, and vocalisations."
+              },
+              {
+                "key": "b",
+                "text": "Explores new toys but looks back to parent/carer regularly to ‘check in’."
+              },
+              {
+                "key": "c",
+                "text": "Builds relationships with special people: for example, shows affection or holds your attention by vocalising."
+              },
+              {
+                "key": "d",
+                "text": "Responds to their own name and enjoys finding own nose, eyes, or tummy as part of interactive games."
+              },
+              {
+                "key": "e",
+                "text": "Sleeps through the night consistently."
+              },
+              {
+                "key": "f",
+                "text": "Begins actively participating in bathing: for example, laying still for dressing/undressing. Chews on baby toothbrush."
+              },
+              {
+                "key": "g",
+                "text": "Actively cooperates with nappy changing: for example, lies still, holds legs up."
+              },
+              {
+                "key": "h",
+                "text": "Holds bottle or sipper cup."
+              },
+              {
+                "key": "i",
+                "text": "Opens mouth for spoon."
               }
             ]
           },
@@ -636,6 +708,38 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "f",
                 "text": "Shows pride and pleasure in new accomplishments."
+              },
+              {
+                "key": "g",
+                "text": "Shows growing self-confidence through playing freely and with involvement."
+              },
+              {
+                "key": "h",
+                "text": "Shows an emerging autonomy through asserting choices and preferences, such as different tastes, and rejects things they do not want, for example by pushing them away."
+              },
+              {
+                "key": "i",
+                "text": "Shows rapid changes in energy levels, from highly active to a sudden need for adult support in order to restore equilibrium."
+              },
+              {
+                "key": "j",
+                "text": "Accepts new textures and tastes: for example, larger pieces of food and different types."
+              },
+              {
+                "key": "k",
+                "text": "Sleeps for 11-15 hours a day, with naps appropriate to the child. Self-soothes and can sleep when conditions are right."
+              },
+              {
+                "key": "l",
+                "text": "Takes off easily removed clothes."
+              },
+              {
+                "key": "m",
+                "text": "Signals wet or soiled nappy or pants through facial expression, body language, sign or words, such as ‘wee’ or ‘poo’."
+              },
+              {
+                "key": "n",
+                "text": "Develops own likes and dislikes in food and drink and may refuse disliked food or drink."
               }
             ]
           },
@@ -698,6 +802,34 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "d",
                 "text": "Enjoys hugs and cuddles, and seeks comfort from attachment figure when they feel the need."
+              },
+              {
+                "key": "e",
+                "text": "Sleeps for 12-14 hours a day, possibly with one/two naps. (Daytime sleeping continues to be important for healthy development.)"
+              },
+              {
+                "key": "f",
+                "text": "Puts on hat and slip-on shoes."
+              },
+              {
+                "key": "g",
+                "text": "Indicates need for toilet by behaviour: for example, dancing movements or holding self."
+              },
+              {
+                "key": "h",
+                "text": "Tolerates sitting on the toilet/potty."
+              },
+              {
+                "key": "i",
+                "text": "Generally, has up to 16 teeth; helps adult with brushing teeth."
+              },
+              {
+                "key": "j",
+                "text": "Feeds self competently with spoon."
+              },
+              {
+                "key": "k",
+                "text": "Drinks well without spilling."
               }
             ]
           },
@@ -764,6 +896,26 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "d",
                 "text": "Can increasingly express their thoughts and emotions through words as well as continuing to use facial expression."
+              },
+              {
+                "key": "e",
+                "text": "Pulls up own trousers and pulls up zipper."
+              },
+              {
+                "key": "f",
+                "text": "Develops some independence in self-care and shows an awareness of routines such as handwashing or teeth cleaning but still often needs adult support."
+              },
+              {
+                "key": "g",
+                "text": "Develops increasing understanding of and control of their bowel and bladder urges and starts to communicate their need for the preferred choice of potty or toilet."
+              },
+              {
+                "key": "h",
+                "text": "Knows difference between bowel and bladder function and can show this."
+              },
+              {
+                "key": "i",
+                "text": "Stabs food with fork."
               }
             ]
           },
@@ -837,7 +989,23 @@ export const JOURNAL: JournalArea[] = [
               },
               {
                 "key": "e",
-                "text": "Gains more bowel and bladder control and can attend to toileting needs most of the time themselves. Reliably dry and clean"
+                "text": "Gains more bowel and bladder control and can attend to toileting needs most of the time themselves. Reliably dry and clean during the day."
+              },
+              {
+                "key": "f",
+                "text": "Eats competently with knife and fork."
+              },
+              {
+                "key": "g",
+                "text": "Willing to try a range of different textures and tastes and expresses a preference."
+              },
+              {
+                "key": "h",
+                "text": "Observes and can describe in words or actions the effects of physical activity on their bodies."
+              },
+              {
+                "key": "i",
+                "text": "Takes practical action to reduce risk, showing their understanding that equipment and tools can be used safely."
               }
             ]
           },
@@ -909,6 +1077,14 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "a",
                 "text": "Attention attracted/held if adult uses lively facial expressions and speech (varied tone/volume)."
+              },
+              {
+                "key": "b",
+                "text": "Responds when talked to: for example, moves arms and legs, changes facial expression, moves body, sticks out tongue, widening eyes."
+              },
+              {
+                "key": "c",
+                "text": "Enjoys the company of others and seeks contact with others from birth."
               }
             ]
           },
@@ -1001,6 +1177,10 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "d",
                 "text": "Looks back as they crawl or walk away from their key person."
+              },
+              {
+                "key": "e",
+                "text": "Looks for clues about how to respond to something interesting: for example, by copying an adult when they show surprise by taking a sharp intake of breath, drawing their open-hand to their mouth, and then pointing at the thing of interest (with the adult then exclaiming ‘Look!’)."
               }
             ]
           },
@@ -1089,6 +1269,10 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "c",
                 "text": "Responds positively to a variety of familiar carers."
+              },
+              {
+                "key": "d",
+                "text": "Searches out adult when hurt or distressed."
               }
             ]
           },
@@ -1184,7 +1368,19 @@ export const JOURNAL: JournalArea[] = [
               },
               {
                 "key": "b",
-                "text": "In favourable conditions, shows increasing consideration of other people’s needs and gradually exercises more impulse"
+                "text": "In favourable conditions, shows increasing consideration of other people’s needs and gradually exercises more impulse control: for example, giving up a toy to another who wants it."
+              },
+              {
+                "key": "c",
+                "text": "Is more outgoing towards strangers and more confident in new social situations: for example, plays within a group but may be anxious at first, taking time to settle into a new environment."
+              },
+              {
+                "key": "d",
+                "text": "Can express wishes and needs clearly and understands when these are not immediately met."
+              },
+              {
+                "key": "e",
+                "text": "Talk with others to solve conflicts."
               }
             ]
           },
@@ -2005,7 +2201,32 @@ export const JOURNAL: JournalArea[] = [
             "number": 3,
             "ageRange": "4-7 months",
             "title": "Step 3 (4-7 months)",
-            "items": []
+            "items": [
+              {
+                "key": "a",
+                "text": "Uses voice, gesture, eye contact, and facial expression to make contact with people and keep their attention."
+              },
+              {
+                "key": "b",
+                "text": "Begins to develop and use the vowel sounds of the language used at home."
+              },
+              {
+                "key": "c",
+                "text": "Babbles by repeating a series of the same sounds (reduplicated babbling): for example, 'ba-ba-ba', 'ma-ma-ma'."
+              },
+              {
+                "key": "d",
+                "text": "Begins to develop and use some consonant sounds: for example, 'g-g', 'mmm', 'h', 'd-d'."
+              },
+              {
+                "key": "e",
+                "text": "Makes sounds for pleasure: for example, vocalises with a tuneful voice to self when lying in cot or at play."
+              },
+              {
+                "key": "f",
+                "text": "Uses voice or gesture to refuse: for example, pushes object away, shaking head."
+              }
+            ]
           },
           {
             "number": 4,
@@ -4048,7 +4269,7 @@ export const JOURNAL: JournalArea[] = [
               },
               {
                 "key": "d",
-                "text": "Uses some number language in play to compare quantity (such as, ‘all gone’, ‘more’, ‘lots’, or ‘same’): for example, ‘milk all"
+                "text": "Uses some number language in play to compare quantity (such as, ‘all gone’, ‘more’, ‘lots’, or ‘same’): for example, ‘milk all gone’, or ‘lots of worms’ when digging in the mud."
               }
             ]
           },
@@ -4703,7 +4924,20 @@ export const JOURNAL: JournalArea[] = [
             "number": 12,
             "ageRange": "35-41 months",
             "title": "Step 12 (35-41 months)",
-            "items": []
+            "items": [
+              {
+                "key": "a",
+                "text": "Remembers and talks about significant events in their own experience."
+              },
+              {
+                "key": "b",
+                "text": "Shows interest in the lives of people who are familiar to them."
+              },
+              {
+                "key": "c",
+                "text": "Enjoys joining in with family customs and routines."
+              }
+            ]
           },
           {
             "number": 13,
@@ -4978,6 +5212,34 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "b",
                 "text": "Recognise some similarities and differences between life in this country and life in other countries."
+              },
+              {
+                "key": "c",
+                "text": "Recognise that people have different beliefs and celebrate special times in different ways."
+              },
+              {
+                "key": "d",
+                "text": "Understand that some places are special to members of their community."
+              },
+              {
+                "key": "e",
+                "text": "Talk about members of their immediate family and community."
+              },
+              {
+                "key": "f",
+                "text": "Name and describe people who are familiar to them."
+              },
+              {
+                "key": "g",
+                "text": "Draw information from a simple map."
+              },
+              {
+                "key": "h",
+                "text": "Knows about similarities and differences between themselves and others, and among families, communities, cultures, and traditions."
+              },
+              {
+                "key": "i",
+                "text": "Knows that other children do not always enjoy the same things, and is sensitive to this."
               }
             ]
           }
@@ -5045,6 +5307,26 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "d",
                 "text": "Reacts with abrupt behaviour change when a face or object disappears suddenly from view."
+              },
+              {
+                "key": "e",
+                "text": "Looks from one object to another and back again: 'shifting visual attention'. Objects may be moving or still."
+              },
+              {
+                "key": "f",
+                "text": "Reacts to familiar sounds or sights by changes in behaviour: for example, extends arms/legs, smiles, searches with eyes when hears the vacuum cleaner, running bath, footsteps, etc."
+              },
+              {
+                "key": "g",
+                "text": "Moves eyes, then head, to follow nearby moving objects."
+              },
+              {
+                "key": "h",
+                "text": "Shows interest in small objects or the detail of a toy: for example, will gaze at small beads in a rattle."
+              },
+              {
+                "key": "i",
+                "text": "Smiles with pleasure at recognisable playthings."
               }
             ]
           },
@@ -5122,6 +5404,26 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "a",
                 "text": "Explores new objects systematically: for example, first banging, then mouthing, then turning over. (This helps understanding and awareness of cause and effect.)"
+              },
+              {
+                "key": "b",
+                "text": "Watches toy being completely hidden and tries to find it; watches intently where a spider has scuttled away under leaves, demonstrating an awareness of object permanence."
+              },
+              {
+                "key": "c",
+                "text": "Understands the meaning of some sounds: for example, hears a telephone ringing and looks at the telephone."
+              },
+              {
+                "key": "d",
+                "text": "Explore natural materials, indoors and outside."
+              },
+              {
+                "key": "e",
+                "text": "Explore materials with different properties: for example, textured toys."
+              },
+              {
+                "key": "f",
+                "text": "Becomes absorbed in combining objects: for example, banging two objects or placing objects into containers."
               }
             ]
           },
@@ -5195,6 +5497,18 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "a",
                 "text": "Uses understanding of cause and effect: for example, straightens up a tower of blocks if it starts to wobble."
+              },
+              {
+                "key": "b",
+                "text": "Likes to put objects together: for example, puts cups on saucers, spoon in a bowl, doll in the bed."
+              },
+              {
+                "key": "c",
+                "text": "Is interested in pulling and pushing things, and builds simple structures."
+              },
+              {
+                "key": "d",
+                "text": "Explore and respond to different natural events in their setting and on trips: for example, splashing in puddles, looking at seasonal changes."
               }
             ]
           },
@@ -5286,6 +5600,26 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "d",
                 "text": "Explores and talks about different forces they can feel: for example, how the water pushes up when they try to push a plastic boat under it."
+              },
+              {
+                "key": "e",
+                "text": "Begins to understand the need to respect and care for the natural environment and all living things."
+              },
+              {
+                "key": "f",
+                "text": "Understands the key features of the life cycle of a plant and an animal."
+              },
+              {
+                "key": "g",
+                "text": "Plants seeds and cares for growing plants."
+              },
+              {
+                "key": "h",
+                "text": "Begins to understand the effect their behaviour can have on the environment: for example, littering."
+              },
+              {
+                "key": "i",
+                "text": "Begins to understand there are different countries in the world and talks about the differences they have experienced or seen."
               }
             ]
           },
@@ -5436,6 +5770,10 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "b",
                 "text": "Is expressive through physical actions and sounds."
+              },
+              {
+                "key": "c",
+                "text": "Builds simple structures with solid wooden blocks: for example, a tower."
               }
             ]
           },
@@ -5536,6 +5874,18 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "f",
                 "text": "Explores different materials freely, in order to develop their ideas about how to use them and what to make."
+              },
+              {
+                "key": "g",
+                "text": "Develop their own ideas and then decide which materials to use to express them."
+              },
+              {
+                "key": "h",
+                "text": "Join different materials and explore different textures."
+              },
+              {
+                "key": "i",
+                "text": "Is interested in and describes the texture of things: for example, 'rough', 'smooth', etc."
               }
             ]
           },
@@ -5710,6 +6060,26 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "f",
                 "text": "Uses real object for pretend play: for example, drinks from a cup; brushes someone’s hair."
+              },
+              {
+                "key": "g",
+                "text": "Play demonstrates understanding of use of objects: for example, puts telephone to ear; turns pages of book; stirs spoon in cup; or attempts to place pieces in a puzzle."
+              },
+              {
+                "key": "h",
+                "text": "Demonstrates early pretend behaviours: for example, pretends to be asleep by covering self with a blanket."
+              },
+              {
+                "key": "i",
+                "text": "Links ideas in play in simple combinations: for example: puts doll in car then pushes car along."
+              },
+              {
+                "key": "j",
+                "text": "Recognises favourite toys, games or activities: for example, sees a character in a favourite book and brings same toy for adult to play with."
+              },
+              {
+                "key": "k",
+                "text": "Enjoys picture books and simple stories."
               }
             ]
           },
@@ -5787,6 +6157,18 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "e",
                 "text": "Enjoys dressing-up: for example, putting on hats or daddy’s shoes; dressing up as a favourite character."
+              },
+              {
+                "key": "f",
+                "text": "Plays with playdough and makes different shapes. Will tell others what they have made."
+              },
+              {
+                "key": "g",
+                "text": "Creates sound effects and movements: for example, creates the sound of a car, animals."
+              },
+              {
+                "key": "h",
+                "text": "Plays alongside other children who are engaged in the same theme."
               }
             ]
           },
@@ -5970,6 +6352,46 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "b",
                 "text": "Sings in a group or on their own, increasingly matching the pitch and following the melody."
+              },
+              {
+                "key": "c",
+                "text": "Listens attentively, moves to and talks about music, expressing their feelings and responses."
+              },
+              {
+                "key": "d",
+                "text": "Develops storylines with increased detail."
+              },
+              {
+                "key": "e",
+                "text": "Introduces a storyline or narrative into their play."
+              },
+              {
+                "key": "f",
+                "text": "Plays cooperatively as part of a group to create, develop, and act out an imaginary idea or narrative."
+              },
+              {
+                "key": "g",
+                "text": "Responds to comments and questions, talking about their creations."
+              },
+              {
+                "key": "h",
+                "text": "Chooses particular movements, instruments, sounds, colours, and materials for their own imaginative purposes."
+              },
+              {
+                "key": "i",
+                "text": "Explores, uses, and refines a variety of artistic effects to express their ideas and feelings."
+              },
+              {
+                "key": "j",
+                "text": "Initiates new combinations of movements and gestures in order to express and respond to feelings, ideas, and experiences."
+              },
+              {
+                "key": "k",
+                "text": "Watches and talks about dance and performance art, expressing their feelings and responses."
+              },
+              {
+                "key": "l",
+                "text": "Uses combinations of art forms: for example, moving and singing, making and dramatic play, drawing and talking, constructing and mapping."
               }
             ]
           }
