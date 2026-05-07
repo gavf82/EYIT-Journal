@@ -30,10 +30,13 @@ const clerkPubKey = publishableKeyFromHost(
   import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
 );
 
-// In production VITE_CLERK_PROXY_URL is automatically injected.
-// In development: no proxy — Clerk JS talks directly to the FAPI (in-bengal-83.clerk.accounts.dev).
+// In production VITE_CLERK_PROXY_URL is automatically injected by Replit.
+// The proxy only works with live keys (pk_live_). When dev keys (pk_test_) are
+// in use — e.g. a personal Clerk account without a production instance — skip
+// the proxy so Clerk talks directly to its FAPI instead.
+const isDevKey = (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? "").startsWith("pk_test_");
 const clerkProxyUrl: string | undefined =
-  (import.meta.env.VITE_CLERK_PROXY_URL as string | undefined) || undefined;
+  isDevKey ? undefined : (import.meta.env.VITE_CLERK_PROXY_URL as string | undefined) || undefined;
 
 function stripBase(path: string): string {
   return basePath && path.startsWith(basePath)
