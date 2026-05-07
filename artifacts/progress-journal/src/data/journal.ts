@@ -1720,6 +1720,18 @@ export const JOURNAL: JournalArea[] = [
               {
                 "key": "a",
                 "text": "Shows sustained engagement and interactions when sharing a play activity with an adult."
+              },
+              {
+                "key": "b",
+                "text": "With adult help, is able to shift their full attention to the speaker and then back to an activity. Attention is becoming more flexible but can easily be distracted by other things."
+              },
+              {
+                "key": "c",
+                "text": "Picks out familiar sounds even when there is background noise: for example, ‘dinner time’, ‘no’, ‘stop.’"
+              },
+              {
+                "key": "d",
+                "text": "Listens to music and responds when it is turned off: for example, stops singing or dancing."
               }
             ]
           },
