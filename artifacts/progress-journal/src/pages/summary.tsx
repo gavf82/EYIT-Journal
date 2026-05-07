@@ -40,15 +40,6 @@ import { cn } from "../lib/utils";
 import { useDirty } from "../hooks/use-dirty";
 import { ageInMonths, formatAge } from "../lib/age";
 import { Switch } from "@/components/ui/switch";
-import {
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
 
 function ProgressBar({
   counts,
@@ -361,136 +352,6 @@ function StagnantItemsSection({ activeItems, dismissedItems, onAcknowledge, onUn
   );
 }
 
-// Short axis labels so the radar stays readable at small sizes.
-const AREA_SHORT: Record<string, string> = {
-  "Personal, Social and Emotional Development": "PSED",
-  "Communication and Language": "C & L",
-  "Physical Development": "Physical",
-  "Literacy": "Literacy",
-  "Mathematics": "Maths",
-  "Understanding the World": "World",
-  "Expressive Arts and Design": "Arts & Design",
-};
-
-interface RadarPoint {
-  area: string;
-  score: number; // 0–100
-  fullLabel: string;
-}
-
-function AreaRadarChart({
-  childId,
-  ratings,
-  visibility,
-}: {
-  childId: string;
-  ratings: ReturnType<typeof useStore>["state"]["ratings"];
-  visibility: StepVisibility;
-}) {
-  const data: RadarPoint[] = useMemo(() => {
-    return JOURNAL.flatMap((area, aIdx) => {
-      const ac = countArea(childId, aIdx, area, ratings, visibility);
-      // Use only recognised statuses as the denominator so stale/unknown
-      // entries don't artificially deflate the score.
-      const recognised = ac.emerging + ac.developing + ac.secure;
-      if (recognised === 0) return [];
-      // Weighted score: Emerging=1, Developing=2, Secure=3 out of max 3 per item.
-      const raw = ac.emerging * 1 + ac.developing * 2 + ac.secure * 3;
-      const score = Math.round((raw / (recognised * 3)) * 100);
-      return [{ area: AREA_SHORT[area.area] ?? area.area, fullLabel: area.area, score }];
-    });
-  }, [childId, ratings, visibility]);
-
-  if (data.length < 3) {
-    return (
-      <p className="text-sm text-muted-foreground italic py-4 text-center">
-        Rate statements in at least 3 areas to see the radar chart.
-      </p>
-    );
-  }
-
-  function dotColor(score: number): string {
-    if (score >= 70) return "hsl(130 45% 40%)";
-    if (score >= 40) return "hsl(38 88% 48%)";
-    return "hsl(5 72% 58%)";
-  }
-
-  return (
-    <div className="space-y-3">
-      <ResponsiveContainer width="100%" height={340}>
-        <RadarChart data={data} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
-          <PolarGrid stroke="hsl(var(--border))" />
-          <PolarAngleAxis
-            dataKey="area"
-            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))", fontWeight: 500 }}
-          />
-          <PolarRadiusAxis
-            angle={90}
-            domain={[0, 100]}
-            tickCount={4}
-            tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
-            tickFormatter={(v: number) => `${v}%`}
-          />
-          <Radar
-            name="Score"
-            dataKey="score"
-            stroke="hsl(var(--border))"
-            fill="hsl(var(--muted))"
-            fillOpacity={0.6}
-            dot={(props: {
-              cx?: number; cy?: number;
-              payload?: RadarPoint;
-              [key: string]: unknown;
-            }) => {
-              const { cx = 0, cy = 0, payload } = props;
-              const score = payload?.score ?? 0;
-              const color = dotColor(score);
-              return (
-                <circle
-                  key={`dot-${cx}-${cy}`}
-                  cx={cx}
-                  cy={cy}
-                  r={5}
-                  fill={color}
-                  stroke="white"
-                  strokeWidth={1.5}
-                />
-              );
-            }}
-          />
-          <Tooltip
-            formatter={(value: number, _name: string, entry: { payload?: RadarPoint }) => [
-              `${value}%`,
-              entry.payload?.fullLabel ?? "",
-            ]}
-            contentStyle={{
-              fontSize: 12,
-              borderRadius: 6,
-              border: "1px solid hsl(var(--border))",
-              backgroundColor: "hsl(var(--card))",
-              color: "hsl(var(--card-foreground))",
-            }}
-          />
-        </RadarChart>
-      </ResponsiveContainer>
-      <div className="flex flex-wrap gap-x-6 gap-y-1 justify-center text-xs text-muted-foreground">
-        <span>
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-[hsl(5_72%_58%)] mr-1.5 align-middle" />
-          Low — mainly Emerging (&lt;40%)
-        </span>
-        <span>
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-[hsl(38_88%_48%)] mr-1.5 align-middle" />
-          Mid — mainly Developing (40–69%)
-        </span>
-        <span>
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-[hsl(130_45%_40%)] mr-1.5 align-middle" />
-          High — mainly Secure (70%+)
-        </span>
-      </div>
-    </div>
-  );
-}
-
 // ── Best-fit step table ──────────────────────────────────────────────────────
 // Shown only when the age-relevant filter is active.
 // "Best-fit step" = the weighted-average step number across all rated items in
@@ -752,7 +613,6 @@ function BestFitStepChart({
 const SECTIONS = [
   { id: "sec-overview", label: "Overview" },
   { id: "sec-progress", label: "Progress" },
-  { id: "sec-radar", label: "Radar" },
   { id: "sec-best-fit", label: "Best-fit" },
   { id: "sec-by-area", label: "By area" },
   { id: "sec-alerts", label: "Alerts" },
@@ -768,7 +628,6 @@ export default function SummaryPage() {
   const childAgeLabel = child ? formatAge(child.dob) : "";
   const [ageFilterOn, setAgeFilterOn] = useState<boolean>(childMonths !== null);
   const [includeHistory, setIncludeHistory] = useState<boolean>(true);
-  const [radarInfoOpen, setRadarInfoOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("sec-overview");
   useEffect(() => {
     function onScroll() {
@@ -986,42 +845,6 @@ export default function SummaryPage() {
                   <div className="font-semibold text-2xl tabular-nums">{overall.secure}</div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        <section id="sec-radar">
-          <div className="flex items-center gap-2 mb-3">
-            <h2 className="text-lg font-semibold">Strengths &amp; development areas</h2>
-            <TooltipProvider>
-              <UITooltip open={radarInfoOpen} onOpenChange={setRadarInfoOpen}>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="How is this chart calculated?"
-                    className="rounded-full p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    onClick={() => setRadarInfoOpen((v) => !v)}
-                  >
-                    <Info className="h-4 w-4 shrink-0" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-64 text-xs leading-relaxed">
-                  Each area is scored on <strong>rated items only</strong>. Emerging = 1 pt,
-                  Developing = 2 pts, Secure = 3 pts. The score is
-                  (total points ÷ rated items × 3) × 100, so 100% means all rated items are
-                  Secure. Areas with no ratings are hidden. At least 3 areas must have ratings
-                  for the chart to appear.
-                </TooltipContent>
-              </UITooltip>
-            </TooltipProvider>
-          </div>
-          <Card>
-            <CardContent className="p-5">
-              <AreaRadarChart
-                childId={childId}
-                ratings={state.ratings}
-                visibility={visibility}
-              />
             </CardContent>
           </Card>
         </section>
