@@ -15,11 +15,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "../hooks/use-toast";
-import { Trash2, Download, Upload, FlaskConical, X, LogOut, Database } from "lucide-react";
+import { Trash2, Download, Upload, FlaskConical, X, LogOut, Database, ShieldAlert } from "lucide-react";
 import { useDirty } from "../hooks/use-dirty";
 import { useLocation } from "wouter";
 import { seedDemoData, removeDemoData, isDemoLoaded, DEMO_CHILD_ID } from "../lib/seed";
 import { exportSQLite, importSQLite } from "../lib/sqlite";
+import { useAuth } from "@clerk/react";
 
 export default function SettingsPage() {
   const { state, resetAll } = useStore();
@@ -29,6 +30,7 @@ export default function SettingsPage() {
   const sqliteFileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [demoLoaded, setDemoLoaded] = useState(isDemoLoaded);
+  const { isSignedIn } = useAuth();
 
   async function handleExportSQLite() {
     setBusy(true);
@@ -93,6 +95,30 @@ export default function SettingsPage() {
           </dl>
         </CardContent>
       </Card>
+
+      {isSignedIn && (
+        <Card className="border-amber-200 dark:border-amber-800/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ShieldAlert className="h-4 w-4 text-amber-500 shrink-0" />
+              Cloud save notice
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>
+              Cloud saving is provided as a convenience. The developers make no guarantees about
+              the security or long-term availability of cloud-saved data.
+            </p>
+            <p>
+              Keep regular local backups using the export options in the journal —{" "}
+              <strong className="text-foreground">SQLite</strong>,{" "}
+              <strong className="text-foreground">JSON</strong>, or{" "}
+              <strong className="text-foreground">CSV</strong>. These are the safest copies of
+              your records and work entirely offline.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

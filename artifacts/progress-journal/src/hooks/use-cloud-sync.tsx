@@ -4,6 +4,7 @@
  * Bridges the local store with the cloud API when a user is signed in.
  *
  * Responsibilities:
+ * - On sign-in: show disclaimer if not yet acknowledged, then proceed.
  * - On sign-in with NO local data: loads cloud data into localStorage.
  * - On sign-in WITH local data: prompts to upload.
  *   - Upload confirmed: local data is pushed to cloud, then cloud data loaded (now same).
@@ -32,6 +33,22 @@ export type SyncStatus = "idle" | "loading" | "synced" | "error";
 export interface CloudSyncState {
   status: SyncStatus;
   error: string | null;
+}
+
+const DISCLAIMER_KEY = "eyit-cloud-disclaimer-acked";
+
+export function isDisclaimerAcknowledged(): boolean {
+  try {
+    return localStorage.getItem(DISCLAIMER_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function acknowledgeDisclaimer() {
+  try {
+    localStorage.setItem(DISCLAIMER_KEY, "true");
+  } catch { /* ignore */ }
 }
 
 let _cloudSyncEnabled = false;
@@ -87,8 +104,11 @@ export function useCloudSync() {
   const { user } = useUser();
   const [syncState, setSyncState] = useState<CloudSyncState>({ status: "idle", error: null });
   const [showUploadPrompt, setShowUploadPrompt] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
   const lastUserIdRef = useRef<string | null | undefined>(undefined);
   const localDataRef = useRef<ReturnType<typeof getStore> | null>(null);
+  // What to do after the disclaimer is acknowledged
+  const pendingActionRef = useRef<"load" | "upload" | null>(null);
 
   const loadCloudData = useCallback(async () => {
     setSyncState({ status: "loading", error: null });
@@ -126,6 +146,18 @@ export function useCloudSync() {
     setSyncState({ status: "synced", error: null });
   }, []);
 
+  const handleDisclaimerAcknowledged = useCallback(() => {
+    acknowledgeDisclaimer();
+    setShowDisclaimer(false);
+    const action = pendingActionRef.current;
+    pendingActionRef.current = null;
+    if (action === "upload") {
+      setShowUploadPrompt(true);
+    } else if (action === "load") {
+      loadCloudData();
+    }
+  }, [loadCloudData]);
+
   useEffect(() => {
     if (!isLoaded) return;
 
@@ -138,7 +170,14 @@ export function useCloudSync() {
 
       // Check if there's local data to offer uploading
       const local = getStore();
-      if (local.children.length > 0) {
+      const hasLocal = local.children.length > 0;
+
+      if (!isDisclaimerAcknowledged()) {
+        // Show disclaimer first; defer the next action until acknowledged
+        pendingActionRef.current = hasLocal ? "upload" : "load";
+        if (hasLocal) localDataRef.current = local;
+        setShowDisclaimer(true);
+      } else if (hasLocal) {
         localDataRef.current = local;
         setShowUploadPrompt(true);
       } else {
@@ -151,6 +190,9 @@ export function useCloudSync() {
       lastUserIdRef.current = null;
       _cloudSyncEnabled = false;
       setSyncState({ status: "idle", error: null });
+      setShowDisclaimer(false);
+      setShowUploadPrompt(false);
+      pendingActionRef.current = null;
     }
   }, [isSignedIn, isLoaded, user?.id, loadCloudData]);
 
@@ -159,5 +201,7 @@ export function useCloudSync() {
     showUploadPrompt,
     handleUploadConfirmed,
     handleUploadSkipped,
+    showDisclaimer,
+    handleDisclaimerAcknowledged,
   };
 }
