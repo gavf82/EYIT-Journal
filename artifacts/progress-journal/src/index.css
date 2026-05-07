@@ -227,7 +227,21 @@
   /* Tighter margins on landscape A4 to maximise usable area. */
   @page {
     size: A4 landscape;
-    margin: 0.8cm 1.2cm;
+    margin: 0.8cm 1.2cm 1.1cm;
+
+    @bottom-center {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 8pt;
+      color: #555;
+      font-family: Verdana, Geneva, sans-serif;
+    }
+  }
+
+  /* No page number on the cover page */
+  @page :first {
+    @bottom-center {
+      content: none;
+    }
   }
   html, body {
     background: white !important;
