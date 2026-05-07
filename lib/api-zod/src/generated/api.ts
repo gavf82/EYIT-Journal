@@ -14,3 +14,135 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * @summary List all children for the authenticated user
+ */
+export const ListChildrenResponseItem = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  dob: zod.string(),
+  startDate: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+  status: zod.string().optional(),
+  archivedAt: zod.string().nullish(),
+  baselineStep: zod.number().nullish(),
+  isDemo: zod.boolean().nullish(),
+});
+export const ListChildrenResponse = zod.array(ListChildrenResponseItem);
+
+/**
+ * @summary Create a new child record
+ */
+export const CreateChildBody = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  dob: zod.string(),
+  startDate: zod.string(),
+  status: zod.string().optional(),
+  archivedAt: zod.string().nullish(),
+  baselineStep: zod.number().nullish(),
+  isDemo: zod.boolean().nullish(),
+  createdAt: zod.string().optional(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Update a child record
+ */
+export const UpdateChildParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateChildBody = zod.object({
+  name: zod.string().optional(),
+  dob: zod.string().optional(),
+  startDate: zod.string().optional(),
+  status: zod.string().optional(),
+  archivedAt: zod.string().nullish(),
+  baselineStep: zod.number().nullish(),
+  isDemo: zod.boolean().nullish(),
+});
+
+export const UpdateChildResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  dob: zod.string(),
+  startDate: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+  status: zod.string().optional(),
+  archivedAt: zod.string().nullish(),
+  baselineStep: zod.number().nullish(),
+  isDemo: zod.boolean().nullish(),
+});
+
+/**
+ * @summary Delete a child record
+ */
+export const DeleteChildParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+/**
+ * @summary Get all ratings for a child
+ */
+export const GetChildRatingsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetChildRatingsResponse = zod.record(
+  zod.string(),
+  zod.object({
+    status: zod.string(),
+    updatedAt: zod.string(),
+    history: zod
+      .array(
+        zod.object({
+          status: zod.string(),
+          date: zod.string(),
+        }),
+      )
+      .optional(),
+  }),
+);
+
+/**
+ * @summary Bulk upsert ratings for a child
+ */
+export const UpsertChildRatingsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpsertChildRatingsBody = zod.record(
+  zod.string(),
+  zod.object({
+    status: zod.string(),
+    updatedAt: zod.string(),
+    history: zod
+      .array(
+        zod.object({
+          status: zod.string(),
+          date: zod.string(),
+        }),
+      )
+      .optional(),
+  }),
+);
+
+export const UpsertChildRatingsResponse = zod.record(
+  zod.string(),
+  zod.object({
+    status: zod.string(),
+    updatedAt: zod.string(),
+    history: zod
+      .array(
+        zod.object({
+          status: zod.string(),
+          date: zod.string(),
+        }),
+      )
+      .optional(),
+  }),
+);

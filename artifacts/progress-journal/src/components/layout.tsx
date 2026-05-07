@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { BookOpen, Settings, Home, LogOut, AlertTriangle, Mail } from "lucide-react";
+import { BookOpen, Settings, Home, LogOut, AlertTriangle, Mail, Cloud, CloudOff, User, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSaveAndClose } from "../hooks/use-save-and-close";
 import { SaveAndCloseDialog } from "./save-and-close-dialog";
 import { getLastExportedAt } from "../lib/store";
+import { useUser, useClerk, Show } from "@clerk/react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 function daysSince(isoDate: string): number {
   const ms = Date.now() - new Date(isoDate).getTime();
@@ -85,6 +93,76 @@ function BackupIndicator() {
   );
 }
 
+function AuthControl() {
+  const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
+  const [, setLocation] = useLocation();
+
+  if (!isLoaded) return null;
+
+  return (
+    <>
+      <Show when="signed-out">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setLocation("/sign-in")}
+                data-testid="button-sign-in"
+              >
+                <LogIn className="h-4 w-4" />
+                <span className="hidden sm:inline">Sign in</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs max-w-52 text-center">
+              Sign in to save your data to the cloud and access it from any device.
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </Show>
+
+      <Show when="signed-in">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-user-menu">
+              <Cloud className="h-4 w-4 text-primary" />
+              <span className="hidden sm:inline max-w-[120px] truncate text-xs">
+                {user?.primaryEmailAddress?.emailAddress ?? user?.fullName ?? "Account"}
+              </span>
+              <User className="h-3 w-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-44">
+            <div className="px-2 py-1.5">
+              <p className="text-xs font-medium text-foreground truncate">
+                {user?.fullName ?? user?.primaryEmailAddress?.emailAddress}
+              </p>
+              <p className="text-[10px] text-muted-foreground truncate">
+                {user?.primaryEmailAddress?.emailAddress}
+              </p>
+              <p className="text-[10px] text-primary mt-0.5 flex items-center gap-1">
+                <Cloud className="h-2.5 w-2.5" /> Cloud sync active
+              </p>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => signOut({ redirectUrl: window.location.origin + window.location.pathname.replace(/\/sign-.*/, "") })}
+              className="gap-2 text-sm cursor-pointer"
+              data-testid="button-sign-out"
+            >
+              <CloudOff className="h-4 w-4" />
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </Show>
+    </>
+  );
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { openDialog, hasData, dialogProps } = useSaveAndClose();
@@ -116,18 +194,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
             >
               <span className="flex items-center gap-1.5"><Mail className="w-4 h-4"/> Contact</span>
             </Link>
-            <div className="flex flex-col items-end gap-0.5 ml-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                disabled={!hasData}
-                onClick={openDialog}
-                data-testid="button-save-and-close"
-              >
-                <LogOut className="h-4 w-4" /> Save
-              </Button>
-              <BackupIndicator />
+            <Show when="signed-out">
+              <div className="flex flex-col items-end gap-0.5 ml-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={!hasData}
+                  onClick={openDialog}
+                  data-testid="button-save-and-close"
+                >
+                  <LogOut className="h-4 w-4" /> Save
+                </Button>
+                <BackupIndicator />
+              </div>
+            </Show>
+            <div className="ml-1">
+              <AuthControl />
             </div>
             <SaveAndCloseDialog {...dialogProps} />
           </nav>

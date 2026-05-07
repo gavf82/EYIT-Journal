@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: children
+    description: Child management
+  - name: ratings
+    description: Rating management
 paths:
   /healthz:
     get:
@@ -24,7 +28,186 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /children:
+    get:
+      operationId: listChildren
+      tags: [children]
+      summary: List all children for the authenticated user
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: List of children
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Child"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createChild
+      tags: [children]
+      summary: Create a new child record
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateChildRequest"
+      responses:
+        "201":
+          description: Created child
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Child"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /children/{id}:
+    patch:
+      operationId: updateChild
+      tags: [children]
+      summary: Update a child record
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateChildRequest"
+      responses:
+        "200":
+          description: Updated child
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Child"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteChild
+      tags: [children]
+      summary: Delete a child record
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /children/{id}/ratings:
+    get:
+      operationId: getChildRatings
+      tags: [ratings]
+      summary: Get all ratings for a child
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Ratings map
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatingsMap"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: upsertChildRatings
+      tags: [ratings]
+      summary: Bulk upsert ratings for a child
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RatingsMap"
+      responses:
+        "200":
+          description: Updated ratings map
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatingsMap"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: __session
+
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +216,130 @@ components:
           type: string
       required:
         - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    HistoryEntry:
+      type: object
+      properties:
+        status:
+          type: string
+        date:
+          type: string
+      required:
+        - status
+        - date
+
+    Rating:
+      type: object
+      properties:
+        status:
+          type: string
+        updatedAt:
+          type: string
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/HistoryEntry"
+      required:
+        - status
+        - updatedAt
+
+    RatingsMap:
+      type: object
+      additionalProperties:
+        $ref: "#/components/schemas/Rating"
+
+    Child:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        dob:
+          type: string
+        startDate:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        status:
+          type: string
+        archivedAt:
+          type: string
+          nullable: true
+        baselineStep:
+          type: number
+          nullable: true
+        isDemo:
+          type: boolean
+          nullable: true
+      required:
+        - id
+        - name
+        - dob
+        - startDate
+        - createdAt
+        - updatedAt
+
+    CreateChildRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        dob:
+          type: string
+        startDate:
+          type: string
+        status:
+          type: string
+        archivedAt:
+          type: string
+          nullable: true
+        baselineStep:
+          type: number
+          nullable: true
+        isDemo:
+          type: boolean
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - dob
+        - startDate
+
+    UpdateChildRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        dob:
+          type: string
+        startDate:
+          type: string
+        status:
+          type: string
+        archivedAt:
+          type: string
+          nullable: true
+        baselineStep:
+          type: number
+          nullable: true
+        isDemo:
+          type: boolean
+          nullable: true
 

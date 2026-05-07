@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Status } from '../data/journal';
+import {
+  queueChildCreate,
+  queueChildUpdate,
+  queueChildDelete,
+  queueRatingsSync,
+} from '../hooks/use-cloud-sync';
 
 // ── Public types ─────────────────────────────────────────────────────────────
 
@@ -295,6 +301,7 @@ export function useStore() {
     saveRoot({ ...root, children: [...root.children, newChild] });
     setState((prev) => ({ ...prev, children: [...prev.children, newChild] }));
     notify();
+    queueChildCreate(newChild);
     return newChild;
   };
 
@@ -306,6 +313,7 @@ export function useStore() {
     saveRoot({ ...root, children: newChildren });
     setState((prev) => ({ ...prev, children: newChildren }));
     notify();
+    queueChildUpdate(id, data);
   };
 
   const deleteChild = (id: string) => {
@@ -321,6 +329,7 @@ export function useStore() {
       acknowledgedStagnations: Object.fromEntries(Object.entries(prev.acknowledgedStagnations).filter(([k]) => !k.startsWith(p))),
     }));
     notify();
+    queueChildDelete(id);
   };
 
   // ── Ratings ───────────────────────────────────────────────────────────────
@@ -356,6 +365,7 @@ export function useStore() {
     });
 
     notify();
+    queueRatingsSync(childId, newRatings);
   };
 
   // ── Stagnant notes ────────────────────────────────────────────────────────

@@ -8,3 +8,58 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface ErrorResponse {
+  error: string;
+}
+
+export interface HistoryEntry {
+  status: string;
+  date: string;
+}
+
+export interface Rating {
+  status: string;
+  updatedAt: string;
+  history?: HistoryEntry[];
+}
+
+export interface RatingsMap {
+  [key: string]: Rating;
+}
+
+export interface Child {
+  id: string;
+  name: string;
+  dob: string;
+  startDate: string;
+  createdAt: string;
+  updatedAt: string;
+  status?: string;
+  archivedAt?: string | null;
+  baselineStep?: number | null;
+  isDemo?: boolean | null;
+}
+
+export interface CreateChildRequest {
+  id: string;
+  name: string;
+  dob: string;
+  startDate: string;
+  status?: string;
+  archivedAt?: string | null;
+  baselineStep?: number | null;
+  isDemo?: boolean | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface UpdateChildRequest {
+  name?: string;
+  dob?: string;
+  startDate?: string;
+  status?: string;
+  archivedAt?: string | null;
+  baselineStep?: number | null;
+  isDemo?: boolean | null;
+}

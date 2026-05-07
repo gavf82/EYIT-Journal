@@ -6,4 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./child";
+export * from "./createChildRequest";
+export * from "./errorResponse";
 export * from "./healthStatus";
+export * from "./historyEntry";
+export * from "./rating";
+export * from "./ratingsMap";
+export * from "./updateChildRequest";
