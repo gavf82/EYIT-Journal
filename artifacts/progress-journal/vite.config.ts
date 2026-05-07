@@ -42,6 +42,10 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,wasm}"],
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB (covers sql.js WASM)
         navigateFallback: "index.html",
+        // Force the new service worker to take control immediately on update
+        // so users always run the latest app code after a deployment.
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             // Cache Google Fonts stylesheets
