@@ -844,8 +844,8 @@ export default function SummaryPage() {
                     <div key={aIdx} className="flex flex-col gap-1.5">
                       <div className="flex items-center justify-between gap-2">
                         <span
-                          className="text-xs font-medium leading-snug truncate"
-                          style={{ color: AREA_COLORS[area.area] ?? undefined }}
+                          className="text-xs font-semibold uppercase tracking-wide leading-snug truncate rounded px-1.5 py-0.5"
+                          style={{ backgroundColor: AREA_COLORS[area.area] ?? "#eee", color: "#111" }}
                         >
                           {area.area}
                         </span>
