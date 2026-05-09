@@ -83,9 +83,17 @@ app.post("/api/contact", async (req, res) => {
   }
 
   try {
+    // Forward the browser's Origin as Referer so Web3Forms can identify
+    // the submitting domain. Without this, server-side requests arrive
+    // with no Referer and Web3Forms may block them as unknown domains.
+    const originHeader = req.headers.origin ?? "";
     const upstream = await fetch("https://api.web3forms.com/submit", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...(originHeader ? { Referer: originHeader } : {}),
+      },
       body: JSON.stringify({ access_key: WEB3FORMS_KEY, name, email, subject, message }),
     });
 
