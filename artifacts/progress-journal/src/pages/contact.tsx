@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +14,6 @@ import {
 import { CheckCircle2, AlertCircle, Send } from "lucide-react";
 
 const WEB3FORMS_KEY = import.meta.env.VITE_WEB3FORMS_KEY as string | undefined;
-const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
 
 const RATE_LIMIT_MS = 60_000;
 const RATE_LIMIT_KEY = "contact_last_submit";
@@ -56,10 +54,8 @@ function recordSubmitTime(): void {
 }
 
 function ContactForm() {
-  const turnstileRef = useRef<TurnstileInstance | undefined>(undefined);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [honeypot, setHoneypot] = useState("");
-  const [token, setToken] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [cooldownMs, setCooldownMs] = useState(() => getRemainingCooldown());
@@ -106,13 +102,6 @@ function ContactForm() {
       return;
     }
 
-    // Turnstile token required
-    if (TURNSTILE_SITE_KEY && !token) {
-      setStatus("error");
-      setErrorMessage("Please complete the security check before submitting.");
-      return;
-    }
-
     setStatus("loading");
     setErrorMessage("");
 
@@ -124,10 +113,6 @@ function ContactForm() {
         subject: `EYIT Journal – ${form.messageType}`,
         message: `Type: ${form.messageType}\n\n${form.message.trim()}`,
       };
-
-      if (TURNSTILE_SITE_KEY && token) {
-        payload["cf-turnstile-response"] = token;
-      }
 
       const res = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
@@ -143,14 +128,9 @@ function ContactForm() {
 
       recordSubmitTime();
       setCooldownMs(RATE_LIMIT_MS);
-      setToken(null);
-      turnstileRef.current?.reset();
       setStatus("success");
       setForm(EMPTY_FORM);
     } catch (err: unknown) {
-      // Reset widget so the user can get a fresh token for a retry
-      setToken(null);
-      turnstileRef.current?.reset();
       setStatus("error");
       setErrorMessage(
         err instanceof Error ? err.message : "Something went wrong. Please try again.",
@@ -160,7 +140,6 @@ function ContactForm() {
 
   const cooldownSecs = Math.ceil(cooldownMs / 1000);
   const isRateLimited = cooldownMs > 0;
-  const isCaptchaPending = !!TURNSTILE_SITE_KEY && !token;
 
   const isValid =
     form.name.trim().length > 0 &&
@@ -286,17 +265,6 @@ function ContactForm() {
             />
           </div>
 
-          {TURNSTILE_SITE_KEY && (
-            <Turnstile
-              ref={turnstileRef}
-              siteKey={TURNSTILE_SITE_KEY}
-              onSuccess={(t: string) => setToken(t)}
-              onExpire={(_t: string) => setToken(null)}
-              onError={(_err: string) => setToken(null)}
-              options={{ theme: "auto" }}
-            />
-          )}
-
           {status === "error" && (
             <div
               ref={errorRef}
@@ -312,16 +280,14 @@ function ContactForm() {
           <Button
             type="submit"
             className="gap-2"
-            disabled={!isValid || status === "loading" || isRateLimited || isCaptchaPending}
+            disabled={!isValid || status === "loading" || isRateLimited}
           >
             <Send className="h-4 w-4" aria-hidden="true" />
             {status === "loading"
               ? "Sending…"
               : isRateLimited
                 ? `Please wait ${cooldownSecs}s`
-                : isCaptchaPending
-                  ? "Complete security check…"
-                  : "Send message"}
+                : "Send message"}
           </Button>
         </form>
       </CardContent>
@@ -329,7 +295,7 @@ function ContactForm() {
   );
 }
 
-function MissingConfigNotice({ missing }: { missing: string[] }) {
+function MissingConfigNotice() {
   return (
     <div className="container max-w-3xl px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-6">
       <div>
@@ -345,15 +311,9 @@ function MissingConfigNotice({ missing }: { missing: string[] }) {
             <div>
               <p className="font-medium text-foreground">Contact unavailable</p>
               <p className="text-sm mt-1">
-                The contact form requires the following environment{" "}
-                {missing.length === 1 ? "variable" : "variables"} to be set:{" "}
-                {missing.map((v, i) => (
-                  <span key={v}>
-                    <code className="text-xs bg-muted px-1 py-0.5 rounded">{v}</code>
-                    {i < missing.length - 1 ? " and " : ""}
-                  </span>
-                ))}
-                .
+                The contact form requires the{" "}
+                <code className="text-xs bg-muted px-1 py-0.5 rounded">VITE_WEB3FORMS_KEY</code>{" "}
+                environment variable to be set.
               </p>
             </div>
           </div>
@@ -364,12 +324,8 @@ function MissingConfigNotice({ missing }: { missing: string[] }) {
 }
 
 export default function ContactPage() {
-  const missing: string[] = [];
-  if (!WEB3FORMS_KEY) missing.push("VITE_WEB3FORMS_KEY");
-  if (!TURNSTILE_SITE_KEY) missing.push("VITE_TURNSTILE_SITE_KEY");
-
-  if (missing.length > 0) {
-    return <MissingConfigNotice missing={missing} />;
+  if (!WEB3FORMS_KEY) {
+    return <MissingConfigNotice />;
   }
 
   return (
