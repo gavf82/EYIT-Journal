@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
-    "build": "vite build --config vite.config.ts",
+    "build": "vite build --config vite.config.ts && node build-server.mjs",
     "build:external": "vite build --config vite.config.external.ts",
-    "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
+    "serve": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
@@ -45,6 +45,7 @@
     "@tailwindcss/typography": "^0.5.15",
     "@tailwindcss/vite": "catalog:",
     "@tanstack/react-query": "catalog:",
+    "@types/express": "^5.0.6",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
@@ -55,6 +56,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
+    "esbuild": "0.27.3",
     "framer-motion": "catalog:",
     "input-otp": "^1.4.2",
     "lucide-react": "catalog:",
@@ -77,6 +79,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "express": "^5.2.1",
     "sql.js": "^1.14.1"
   }
 }

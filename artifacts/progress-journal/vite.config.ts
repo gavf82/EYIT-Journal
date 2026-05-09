@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { VitePWA } from "vite-plugin-pwa";
+import { contactApiMiddleware } from "./contact-dev-middleware";
 
 // PORT and BASE_PATH are injected by the workflow at runtime.
 // They are not available during production builds, so we fall back to
@@ -85,6 +86,12 @@ export default defineConfig({
         ],
       },
     }),
+    {
+      name: "contact-api-dev",
+      configureServer(server) {
+        server.middlewares.use(contactApiMiddleware);
+      },
+    },
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [

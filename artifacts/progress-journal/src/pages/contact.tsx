@@ -13,8 +13,6 @@ import {
 } from "@/components/ui/select";
 import { CheckCircle2, AlertCircle, Send } from "lucide-react";
 
-const WEB3FORMS_KEY = import.meta.env.VITE_WEB3FORMS_KEY as string | undefined;
-
 const RATE_LIMIT_MS = 60_000;
 const RATE_LIMIT_KEY = "contact_last_submit";
 
@@ -92,7 +90,7 @@ function ContactForm() {
       return;
     }
 
-    // Client-side rate limit
+    // Client-side cooldown display (server enforces the real rate limit)
     const remaining = getRemainingCooldown();
     if (remaining > 0) {
       setStatus("error");
@@ -106,21 +104,23 @@ function ContactForm() {
     setErrorMessage("");
 
     try {
-      const payload: Record<string, unknown> = {
-        access_key: WEB3FORMS_KEY,
-        name: form.name.trim(),
-        email: form.email.trim(),
-        subject: `EYIT Journal – ${form.messageType}`,
-        message: `Type: ${form.messageType}\n\n${form.message.trim()}`,
-      };
-
-      const res = await fetch("https://api.web3forms.com/submit", {
+      const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          name: form.name.trim(),
+          email: form.email.trim(),
+          subject: `EYIT Journal – ${form.messageType}`,
+          message: `Type: ${form.messageType}\n\n${form.message.trim()}`,
+          honeypot,
+        }),
       });
 
-      const data = await res.json();
+      const data = (await res.json()) as { success?: boolean; message?: string };
+
+      if (res.status === 503) {
+        throw new Error("contact-unavailable");
+      }
 
       if (!res.ok || !data.success) {
         throw new Error(data.message ?? "Submission failed. Please try again.");
@@ -131,6 +131,11 @@ function ContactForm() {
       setStatus("success");
       setForm(EMPTY_FORM);
     } catch (err: unknown) {
+      if (err instanceof Error && err.message === "contact-unavailable") {
+        setStatus("error");
+        setErrorMessage("The contact form is not available right now. Please try again later.");
+        return;
+      }
       setStatus("error");
       setErrorMessage(
         err instanceof Error ? err.message : "Something went wrong. Please try again.",
@@ -295,39 +300,7 @@ function ContactForm() {
   );
 }
 
-function MissingConfigNotice() {
-  return (
-    <div className="container max-w-3xl px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Contact</h1>
-        <p className="mt-2 text-muted-foreground">
-          Send a recommendation, question, or bug report.
-        </p>
-      </div>
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-3 text-muted-foreground">
-            <AlertCircle className="h-5 w-5 mt-0.5 shrink-0 text-amber-500" />
-            <div>
-              <p className="font-medium text-foreground">Contact unavailable</p>
-              <p className="text-sm mt-1">
-                The contact form requires the{" "}
-                <code className="text-xs bg-muted px-1 py-0.5 rounded">VITE_WEB3FORMS_KEY</code>{" "}
-                environment variable to be set.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
 export default function ContactPage() {
-  if (!WEB3FORMS_KEY) {
-    return <MissingConfigNotice />;
-  }
-
   return (
     <div className="container max-w-3xl px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-6">
       <div>

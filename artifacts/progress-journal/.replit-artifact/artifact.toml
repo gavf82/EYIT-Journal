@@ -21,10 +21,6 @@ run = "pnpm --filter @workspace/progress-journal run dev"
 build = [ "pnpm", "--filter", "@workspace/progress-journal", "run", "build" ]
 run = [ "pnpm", "--filter", "@workspace/progress-journal", "run", "serve" ]
 
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
-
 [services.env]
 PORT = "25801"
 BASE_PATH = "/"
