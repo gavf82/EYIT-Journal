@@ -2,18 +2,6 @@ uploads = []
 generated = []
 
 [[outputs]]
-id = "PLsY_camJSaJlsjp7Oy0M"
-uri = "file://artifacts/progress-journal/eyit-journal-dist.zip"
-type = "unspecified"
-title = "EYIT Journal — Production Build"
-
-[[outputs]]
-id = "643n2t8T3IRil-kcJhvTX"
-uri = "file://eyit-journal.zip"
-type = "unspecified"
-title = "EYIT Development Journal — updated build"
-
-[[outputs]]
 id = "Roxi8Mh1Mmy1kHsFiII-Z"
 uri = "file://eyit-journal-static.zip"
 type = "unspecified"

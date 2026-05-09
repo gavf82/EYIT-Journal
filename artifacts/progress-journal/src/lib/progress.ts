@@ -231,21 +231,9 @@ export function countAll(
   return finalize(c);
 }
 
-export const STATUS_COLORS: Record<Exclude<Status, null> | "unset", string> = {
-  emerging: "var(--color-status-emerging)",
-  developing: "var(--color-status-developing)",
-  secure: "var(--color-status-secure)",
-  unset: "var(--color-status-unset)",
-};
-
 export const STATUS_LABELS: Record<Exclude<Status, null>, string> = {
   emerging: "Emerging",
   developing: "Developing",
   secure: "Secure",
 };
 
-export const STATUS_DESCRIPTIONS: Record<Exclude<Status, null>, string> = {
-  emerging: "Just starting to show signs of this skill",
-  developing: "Developing this skill with support",
-  secure: "Confidently and consistently demonstrates this skill",
-};
