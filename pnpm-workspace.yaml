@@ -172,3 +172,7 @@ overrides:
   postcss: "^8.5.10"
   # Security: fix RCE (GHSA-5c6j-r48x-rmvq) and DoS (GHSA-qj8w-gfj5-8c6v) vulnerabilities in serialize-javascript
   serialize-javascript: "^7.0.5"
+  # Security: fix path traversal (GHSA-q3j6-qgpj-74h6) and host confusion (GHSA-v39h-62p7-jpjc) in fast-uri
+  fast-uri: "^3.1.2"
+  # Security: fix arbitrary code execution (GHSA-fv7c-fp4j-7gwp) in @babel/plugin-transform-modules-systemjs
+  "@babel/plugin-transform-modules-systemjs": "^7.29.4"
