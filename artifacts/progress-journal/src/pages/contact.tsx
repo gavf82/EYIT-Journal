@@ -103,24 +103,28 @@ function ContactForm() {
     setStatus("loading");
     setErrorMessage("");
 
+    const accessKey = import.meta.env.VITE_WEB3FORMS_KEY as string | undefined;
+    if (!accessKey) {
+      setStatus("error");
+      setErrorMessage("The contact form is not available right now. Please try again later.");
+      return;
+    }
+
     try {
-      const res = await fetch("/api/contact", {
+      const res = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
+          access_key: accessKey,
           name: form.name.trim(),
           email: form.email.trim(),
           subject: `EYIT Journal – ${form.messageType}`,
           message: `Type: ${form.messageType}\n\n${form.message.trim()}`,
-          honeypot,
+          botcheck: honeypot || false,
         }),
       });
 
       const data = (await res.json()) as { success?: boolean; message?: string };
-
-      if (res.status === 503) {
-        throw new Error("contact-unavailable");
-      }
 
       if (!res.ok || !data.success) {
         throw new Error(data.message ?? "Submission failed. Please try again.");
@@ -131,11 +135,6 @@ function ContactForm() {
       setStatus("success");
       setForm(EMPTY_FORM);
     } catch (err: unknown) {
-      if (err instanceof Error && err.message === "contact-unavailable") {
-        setStatus("error");
-        setErrorMessage("The contact form is not available right now. Please try again later.");
-        return;
-      }
       setStatus("error");
       setErrorMessage(
         err instanceof Error ? err.message : "Something went wrong. Please try again.",
