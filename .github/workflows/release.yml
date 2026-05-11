@@ -1,0 +1,108 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  # ── Guard: ensure the pushed tag matches the version in package.json ──────────
+  # This prevents a common mistake where a developer bumps the tag but forgets
+  # to update package.json (or vice-versa), which would publish assets whose
+  # feed files report a version different from the GitHub Release tag and break
+  # electron-updater's version comparison.
+  validate:
+    name: Validate tag vs package.json version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check tag matches package version
+        shell: bash
+        run: |
+          PKG_VERSION=$(node -p "require('./artifacts/electron-journal/package.json').version")
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Version mismatch: package.json reports $PKG_VERSION but the tag is $GITHUB_REF_NAME (expected v$PKG_VERSION)"
+            exit 1
+          fi
+          echo "Version OK: $PKG_VERSION"
+
+  # ── Build & publish one installer per platform ────────────────────────────────
+  # All three matrix jobs run concurrently and each calls electron-builder
+  # --publish always, which creates the GitHub Release on the first job to finish
+  # and uploads assets from every job.  electron-builder uses a conditional
+  # create-or-update strategy so concurrent creation is safe in practice; if you
+  # observe intermittent "release already exists" errors in the future, switch to
+  # a two-phase flow: create a draft release here, upload assets from the matrix,
+  # then a final job publishes the draft.
+  release:
+    name: Build & publish (${{ matrix.label }})
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: linux
+          - os: windows-latest
+            label: windows
+          - os: macos-latest
+            label: macos
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # Linux requires these system libraries to build native modules and
+      # produce an AppImage.
+      - name: Install Linux build dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libnotify-dev \
+            libnss3 \
+            libxss1 \
+            libxtst6 \
+            xvfb \
+            fuse \
+            libfuse2
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build & publish release
+        working-directory: artifacts/electron-journal
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm release
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-logs-${{ matrix.label }}
+          path: |
+            artifacts/electron-journal/release/**/*.log
+            artifacts/electron-journal/release/**/*.yaml
+            artifacts/electron-journal/release/**/*.yml
+          retention-days: 7
