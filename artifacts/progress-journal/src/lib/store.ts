@@ -254,25 +254,34 @@ export async function initStore(): Promise<void> {
 }
 
 async function _doInit(): Promise<void> {
-  await migrateFromLocalStorageIfNeeded();
+  try {
+    await migrateFromLocalStorageIfNeeded();
 
-  const rootRaw = await kvGet(ROOT_KEY);
-  const root = parseRootData(rootRaw);
-  _lastExportedAt = root.lastExportedAt;
+    const rootRaw = await kvGet(ROOT_KEY);
+    const root = parseRootData(rootRaw);
+    _lastExportedAt = root.lastExportedAt;
 
-  const ratings: Record<string, Rating> = {};
-  const stagnantNotes: Record<string, StagnantNote> = {};
-  const acknowledgedStagnations: Record<string, AcknowledgedEntry> = {};
+    const ratings: Record<string, Rating> = {};
+    const stagnantNotes: Record<string, StagnantNote> = {};
+    const acknowledgedStagnations: Record<string, AcknowledgedEntry> = {};
 
-  for (const child of root.children) {
-    const raw = await kvGet(childKey(child.id));
-    const cd = parseChildData(raw);
-    Object.assign(ratings, cd.ratings);
-    Object.assign(stagnantNotes, cd.stagnantNotes);
-    Object.assign(acknowledgedStagnations, cd.acknowledgedStagnations);
+    for (const child of root.children) {
+      const raw = await kvGet(childKey(child.id));
+      const cd = parseChildData(raw);
+      Object.assign(ratings, cd.ratings);
+      Object.assign(stagnantNotes, cd.stagnantNotes);
+      Object.assign(acknowledgedStagnations, cd.acknowledgedStagnations);
+    }
+
+    _cache = { children: root.children, ratings, stagnantNotes, acknowledgedStagnations };
+  } catch (e) {
+    // IDB unavailable or corrupted — fall back to an empty in-memory store
+    // so useStore() calls never crash on a null cache.
+    if (_cache === null) {
+      _cache = { children: [], ratings: {}, stagnantNotes: {}, acknowledgedStagnations: {} };
+    }
+    throw e;
   }
-
-  _cache = { children: root.children, ratings, stagnantNotes, acknowledgedStagnations };
 }
 
 // ── Public getStore / setStore ─────────────────────────────────────────────────
