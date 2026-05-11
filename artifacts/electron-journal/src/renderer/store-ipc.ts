@@ -221,8 +221,10 @@ export function useStore() {
     } else {
       _cache!.stagnantNotes[key] = note;
     }
+    // Send null when empty so the main process runs DELETE instead of upsert
+    const ipcNote = (!note || note.text.trim() === "") ? null : note;
     window.electronAPI
-      .setStagnantNote(key, note)
+      .setStagnantNote(key, ipcNote)
       .catch(e => console.error("[EYIT] IPC setStagnantNote:", e));
     setState(prev => {
       const stagnantNotes = { ...prev.stagnantNotes };

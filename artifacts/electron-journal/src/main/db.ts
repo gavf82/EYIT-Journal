@@ -61,6 +61,14 @@ export function openDatabase(filePath: string): Database.Database {
   return db;
 }
 
+/**
+ * Opens an existing SQLite file in read-only mode for import parsing.
+ * Does not apply pragmas or DDL — the file is never mutated.
+ */
+export function openDatabaseReadOnly(filePath: string): Database.Database {
+  return new Database(filePath, { readonly: true });
+}
+
 // ── Read ──────────────────────────────────────────────────────────────────────
 
 export function loadAll(db: Database.Database): StoreState {

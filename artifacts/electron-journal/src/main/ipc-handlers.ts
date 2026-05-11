@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import type { Child, Rating, StagnantNote, AcknowledgedEntry, StoreState } from "../types";
 import * as db from "./db";
+import { openDatabaseReadOnly } from "./db";
 import { listBackups, restoreBackup } from "./backups";
 
 export interface IpcContext {
@@ -76,7 +77,8 @@ export function registerIpcHandlers(ctx: IpcContext): void {
       properties: ["openFile"],
     });
     if (result.canceled || !result.filePaths[0]) return null;
-    const tmp = db.openDatabase(result.filePaths[0]);
+    // Open read-only so we never mutate the selected file
+    const tmp = openDatabaseReadOnly(result.filePaths[0]);
     try {
       return db.loadAll(tmp);
     } finally {
