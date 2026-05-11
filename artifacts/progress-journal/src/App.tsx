@@ -1,8 +1,10 @@
+import { useState, useEffect } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { Layout } from "@/components/layout";
+import { initStore } from "@/lib/store";
 
 // Pages
 import HomePage from "@/pages/home";
@@ -31,6 +33,25 @@ function Router() {
 }
 
 function App() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    initStore()
+      .then(() => setReady(true))
+      .catch(e => {
+        console.error("[EYIT] Store init failed:", e);
+        setReady(true); // render anyway; IDB errors shouldn't block the UI
+      });
+  }, []);
+
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-muted-foreground text-sm">Loading journal…</div>
+      </div>
+    );
+  }
+
   return (
     <WouterRouter base={basePath}>
       <TooltipProvider>

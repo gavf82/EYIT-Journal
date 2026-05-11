@@ -132,7 +132,7 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Storage</CardTitle>
           <CardDescription>
-            All data is stored only on this device, in your browser's local storage.
+            All data is stored only on this device, in this browser's local database.
           </CardDescription>
         </CardHeader>
         <CardContent>

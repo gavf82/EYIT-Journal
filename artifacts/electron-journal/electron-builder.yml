@@ -1,0 +1,45 @@
+appId: com.eyit.journal
+productName: EYIT Development Journal
+copyright: Copyright © 2024-2026 EYIT
+
+directories:
+  output: release
+
+files:
+  - dist/**
+  - dist-electron/**
+  - package.json
+  - node_modules/**
+
+npmRebuild: true
+asar: true
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: public/icon.ico
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  category: public.app-category.education
+  icon: public/icon.icns
+
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  category: Education
+  icon: public/icon.png
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
