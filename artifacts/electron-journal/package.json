@@ -38,7 +38,7 @@
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "electron": "^36.3.2",
-    "electron-builder": "^25.1.8",
+    "electron-builder": "^26.8.1",
     "lucide-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
