@@ -53,10 +53,17 @@ jobs:
             fuse \
             libfuse2
 
+      # On Windows and macOS, delete the lockfile before installing so pnpm
+      # does a fresh platform-specific resolution and picks up the correct
+      # native Rollup binary (@rollup/rollup-win32-x64-msvc etc.).
+      # The lockfile was generated on Linux and marks those binaries as '-'
+      # (excluded), which persists even with --no-frozen-lockfile.
+      - name: Clear lockfile for platform-native resolution
+        if: matrix.os != 'ubuntu-latest'
+        shell: bash
+        run: rm -f pnpm-lock.yaml
+
       - name: Install workspace dependencies
-        # --no-frozen-lockfile lets pnpm install the correct platform-specific
-        # optional binaries (e.g. @rollup/rollup-win32-x64-msvc on Windows)
-        # without failing because the lockfile was generated on a different OS.
         run: pnpm install --no-frozen-lockfile
 
       # macOS requires an ICNS file for the DMG icon.  Generate it from the
