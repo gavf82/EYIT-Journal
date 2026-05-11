@@ -19,6 +19,15 @@ files:
 npmRebuild: true
 asar: true
 
+# GitHub Releases publish target — used by electron-updater to check for updates.
+# Set GH_TOKEN in your environment before running `pnpm dist` to publish.
+# Replace owner/repo with the actual GitHub repository that hosts releases.
+publish:
+  - provider: github
+    owner: YOUR_GITHUB_OWNER
+    repo: eyit-journal
+    releaseType: release
+
 win:
   target:
     - target: nsis

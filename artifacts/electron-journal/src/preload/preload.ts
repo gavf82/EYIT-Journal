@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { ElectronAPI } from "../types";
+import type { ElectronAPI, UpdateStatus } from "../types";
 
 const api: ElectronAPI = {
   // Store
@@ -21,6 +21,19 @@ const api: ElectronAPI = {
   // Backups
   listBackups: () => ipcRenderer.invoke("backup:list"),
   restoreBackup: (filename) => ipcRenderer.invoke("backup:restore", filename),
+
+  // Auto-update
+  onUpdateStatus: (callback) => {
+    const handler = (_event: Electron.IpcRendererEvent, status: UpdateStatus) =>
+      callback(status);
+    ipcRenderer.on("app:update-status", handler);
+    return () => {
+      ipcRenderer.off("app:update-status", handler);
+    };
+  },
+  installUpdate: () => {
+    ipcRenderer.send("app:install-update");
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", api);

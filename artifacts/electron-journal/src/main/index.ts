@@ -1,10 +1,11 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import path from "path";
 import fs from "fs";
 import { openDatabase } from "./db";
 import { createStartupBackup } from "./backups";
 import { registerIpcHandlers } from "./ipc-handlers";
 import type Database from "better-sqlite3";
+import type { UpdateStatus } from "../types";
 
 // ── Journal path management ───────────────────────────────────────────────────
 
@@ -35,6 +36,56 @@ function saveJournalPath(p: string): void {
 let mainWindow: BrowserWindow | null = null;
 let journalDb: Database.Database | null = null;
 let journalPath: string = "";
+
+// ── Auto-updater ──────────────────────────────────────────────────────────────
+
+function setupAutoUpdater(): void {
+  // Only run the updater in packaged builds — dev has no feed URL to check.
+  if (!app.isPackaged) return;
+
+  // Dynamic require so the module is resolved at runtime in the packaged app.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { autoUpdater } = require("electron-updater") as typeof import("electron-updater");
+
+  const send = (status: UpdateStatus): void => {
+    mainWindow?.webContents.send("app:update-status", status);
+  };
+
+  autoUpdater.on("checking-for-update", () => {
+    send({ phase: "checking" });
+  });
+
+  autoUpdater.on("update-not-available", () => {
+    send({ phase: "not-available" });
+  });
+
+  autoUpdater.on("update-available", (info) => {
+    send({ phase: "available", version: info.version });
+  });
+
+  autoUpdater.on("download-progress", (progress) => {
+    send({ phase: "downloading", percent: Math.round(progress.percent) });
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    send({ phase: "downloaded", version: info.version });
+  });
+
+  autoUpdater.on("error", (err) => {
+    send({ phase: "error", error: err.message });
+  });
+
+  ipcMain.on("app:install-update", () => {
+    autoUpdater.quitAndInstall();
+  });
+
+  // Delay the first check so the window has time to fully load
+  setTimeout(() => {
+    autoUpdater.checkForUpdatesAndNotify().catch((err: Error) => {
+      send({ phase: "error", error: err.message });
+    });
+  }, 3000);
+}
 
 // ── Window ────────────────────────────────────────────────────────────────────
 
@@ -90,6 +141,9 @@ app.whenReady().then(async () => {
   });
 
   await createWindow();
+
+  // Start silent auto-update check after the window loads
+  setupAutoUpdater();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {

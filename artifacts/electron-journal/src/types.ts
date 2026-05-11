@@ -49,6 +49,23 @@ export interface BackupEntry {
   mtime: number;
 }
 
+// ── Auto-update status ────────────────────────────────────────────────────────
+
+export type UpdatePhase =
+  | "checking"
+  | "not-available"
+  | "available"
+  | "downloading"
+  | "downloaded"
+  | "error";
+
+export interface UpdateStatus {
+  phase: UpdatePhase;
+  version?: string;
+  percent?: number;
+  error?: string;
+}
+
 // ── Electron IPC API (exposed via contextBridge) ──────────────────────────────
 
 export interface ElectronAPI {
@@ -70,4 +87,8 @@ export interface ElectronAPI {
   // Rolling backup management
   listBackups(): Promise<BackupEntry[]>;
   restoreBackup(filename: string): Promise<void>;
+
+  // Auto-update
+  onUpdateStatus(callback: (status: UpdateStatus) => void): () => void;
+  installUpdate(): void;
 }

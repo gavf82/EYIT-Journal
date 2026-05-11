@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout";
 import NotFound from "@/pages/not-found";
+import { UpdateBanner } from "./components/update-banner";
 
 // Pages – most come from progress-journal/src via alias; settings is overridden
 import HomePage from "@/pages/home";
@@ -32,6 +33,7 @@ export default function App() {
   return (
     <WouterRouter hook={useHashLocation}>
       <TooltipProvider>
+        <UpdateBanner />
         <Router />
         <div className="no-print">
           <Toaster />

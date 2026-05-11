@@ -14,7 +14,7 @@ export default defineConfig({
         vite: {
           build: {
             rollupOptions: {
-              external: ["better-sqlite3"],
+              external: ["better-sqlite3", "electron-updater"],
               output: {
                 // Explicit CJS so Electron can require() the entry and
                 // __dirname / __filename are available at runtime.
