@@ -88,7 +88,10 @@ jobs:
             libfuse2
 
       - name: Install workspace dependencies
-        run: pnpm install --frozen-lockfile
+        # --no-frozen-lockfile lets pnpm install the correct platform-specific
+        # optional binaries (e.g. @rollup/rollup-win32-x64-msvc on Windows)
+        # without failing because the lockfile was generated on a different OS.
+        run: pnpm install --no-frozen-lockfile
 
       # macOS requires an ICNS file for the DMG icon.  Generate it from the
       # committed PNG placeholder using macOS-only iconutil.
