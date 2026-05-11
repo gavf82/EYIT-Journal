@@ -96,16 +96,20 @@ export function registerIpcHandlers(ctx: IpcContext): void {
     });
     if (result.canceled || !result.filePath) return null;
     const newPath = result.filePath;
+    // No-op if the user confirmed the same location — never unlink in that case
+    if (path.resolve(newPath) === path.resolve(currentPath)) return currentPath;
     // Checkpoint WAL into the destination via db.backup(), then reopen, then
-    // delete the original. This order ensures we never lose data.
+    // delete the original and its sidecars. This order ensures we never lose data.
     fs.mkdirSync(path.dirname(newPath), { recursive: true });
     await ctx.getDb().backup(newPath);
     ctx.reopenDb(newPath);
     ctx.setJournalPath(newPath);
-    try {
-      fs.unlinkSync(currentPath);
-    } catch {
-      // non-fatal: old file may be in use or already gone
+    for (const target of [currentPath, currentPath + "-wal", currentPath + "-shm"]) {
+      try {
+        fs.unlinkSync(target);
+      } catch {
+        // non-fatal: file may already be gone
+      }
     }
     return newPath;
   });
