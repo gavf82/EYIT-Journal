@@ -1,4 +1,4 @@
-import { openDB } from 'idb';
+import { openDB, type IDBPDatabase, type DBSchema } from 'idb';
 import { useState, useEffect } from 'react';
 import { Status } from '../data/journal';
 
@@ -51,17 +51,24 @@ const ROOT_KEY = 'eyit-journal-root';
 const childKey = (id: string) => `eyit-journal-child-${id}`;
 const LEGACY_KEY = 'eyit-journal-store';
 const IDB_NAME = 'eyit-journal';
-const IDB_KV = 'kv';
+const IDB_KV = 'kv' as const;
+
+// ── IndexedDB schema ──────────────────────────────────────────────────────────
+
+interface EyitJournalDB extends DBSchema {
+  kv: {
+    key: string;
+    value: string;
+  };
+}
 
 // ── IndexedDB helpers ─────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _idb: Promise<any> | null = null;
+let _idb: Promise<IDBPDatabase<EyitJournalDB>> | null = null;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getIDB(): Promise<any> {
+function getIDB(): Promise<IDBPDatabase<EyitJournalDB>> {
   if (!_idb) {
-    _idb = openDB(IDB_NAME, 1, {
+    _idb = openDB<EyitJournalDB>(IDB_NAME, 1, {
       upgrade(db) {
         db.createObjectStore(IDB_KV);
       },
@@ -72,7 +79,7 @@ async function getIDB(): Promise<any> {
 
 async function kvGet(key: string): Promise<string | undefined> {
   const db = await getIDB();
-  return db.get(IDB_KV, key) as Promise<string | undefined>;
+  return db.get(IDB_KV, key);
 }
 
 async function kvSet(key: string, value: string): Promise<void> {
@@ -87,7 +94,7 @@ async function kvDelete(key: string): Promise<void> {
 
 async function kvGetAllKeys(): Promise<string[]> {
   const db = await getIDB();
-  return db.getAllKeys(IDB_KV) as Promise<string[]>;
+  return db.getAllKeys(IDB_KV);
 }
 
 // ── In-memory cache ───────────────────────────────────────────────────────────

@@ -2,6 +2,11 @@ appId: com.eyit.journal
 productName: EYIT Development Journal
 copyright: Copyright © 2024-2026 EYIT
 
+# Icon assets: place platform icons in build/icons/
+# (256x256+ PNG for Linux/Mac, ICO for Windows, ICNS for macOS).
+# If absent, electron-builder falls back to the default Electron icon.
+buildResources: build
+
 directories:
   output: release
 
@@ -19,7 +24,6 @@ win:
     - target: nsis
       arch:
         - x64
-  icon: public/icon.ico
 
 mac:
   target:
@@ -28,7 +32,6 @@ mac:
         - x64
         - arm64
   category: public.app-category.education
-  icon: public/icon.icns
 
 linux:
   target:
@@ -36,7 +39,6 @@ linux:
       arch:
         - x64
   category: Education
-  icon: public/icon.png
 
 nsis:
   oneClick: false
