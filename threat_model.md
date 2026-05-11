@@ -7,6 +7,7 @@ This repository is a pnpm workspace monorepo for the EYIT Development Journal. T
 The repo also contains `artifacts/mockup-sandbox`, which remains development-only and should be ignored unless production reachability is demonstrated. Earlier threat-model references to `artifacts/api-server` are stale for the current repo state and should not drive production scanning.
 
 Assumptions for this scan: the mockup sandbox is never deployed to production, production traffic is protected by platform TLS, and `NODE_ENV` is `production` in deployed environments.
+User-scoped dismissal for future scans: do not re-propose the public contact-form/Web3Forms direct-submission abuse issue unless the contact architecture changes materially or the user explicitly asks to revisit that risk. The current deployment intentionally accepts that exposure.
 
 ## Assets
 
@@ -37,7 +38,7 @@ Assumptions for this scan: the mockup sandbox is never deployed to production, p
 
 ### Tampering
 
-The application accepts untrusted local input through manual child entry and imported SQLite backups. Imported records must not poison application state, create unsafe object structures, or overwrite unrelated data beyond the explicitly intended merge scope.
+The application accepts untrusted local input through manual child entry and imported SQLite backups. Imported records must not poison application state, create unsafe object structures, or overwrite unrelated data beyond the explicitly intended merge scope. Imported identifiers also need to exclude reserved internal delimiters such as `::`, because storage and routing logic relies on that separator remaining structural rather than user-controlled.
 
 ### Information Disclosure
 
@@ -45,7 +46,7 @@ The primary security risk remains exposure of child profile and developmental as
 
 ### Denial of Service
 
-Malformed or oversized backup files can consume browser memory or freeze the tab, so import parsing must stay bounded across all tables and fail closed on invalid data. The public contact form is also an availability surface: because submissions are sent directly from the browser to Web3Forms, abuse controls must not depend solely on client-enforced cooldowns or hidden fields that an attacker can bypass with direct requests.
+Malformed or oversized backup files can consume browser memory or freeze the tab, so import parsing must stay bounded across all tables and fail closed on invalid data. Restore paths also need to respect realistic browser storage budgets and surface quota failures instead of reporting success after partial persistence. The public contact form is also an availability surface: because submissions are sent directly from the browser to Web3Forms, abuse controls must not depend solely on client-enforced cooldowns or hidden fields that an attacker can bypass with direct requests.
 
 ### Elevation of Privilege
 
