@@ -35,23 +35,20 @@ publish:
     releaseType: release
 
 win:
-  # electron-builder reads WIN_CSC_LINK (base64-encoded PFX) and
-  # WIN_CSC_KEY_PASSWORD automatically when present.  When those env vars are
-  # absent (e.g. during a local dev build) signing is silently skipped.
-  signingHashAlgorithms:
-    - sha256
+  # Code signing is optional — electron-builder skips it when WIN_CSC_LINK and
+  # WIN_CSC_KEY_PASSWORD are absent.  Add those GitHub secrets (see
+  # artifacts/electron-journal/CODESIGNING.md) to enable signing.
   target:
     - target: nsis
       arch:
         - x64
 
 mac:
-  # electron-builder reads CSC_LINK (base64-encoded .p12) and CSC_KEY_PASSWORD
-  # automatically when present.
-  #
-  # Notarization: electron-builder v25 reads APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD,
-  # and APPLE_TEAM_ID from the environment.  Set notarize: true to enable.
-  notarize: true
+  # Code signing is optional — electron-builder skips it when CSC_LINK and
+  # CSC_KEY_PASSWORD are absent.
+  # Notarization is disabled until Apple Developer credentials are available
+  # (APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID).  Set
+  # notarize: true and add those GitHub secrets to re-enable (see CODESIGNING.md).
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
