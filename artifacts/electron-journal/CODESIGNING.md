@@ -130,7 +130,15 @@ Team ID**.
 3. Watch the **Actions** tab on GitHub — the `Release` workflow will run across Linux,
    Windows, and macOS runners.
 4. Download the Windows `.exe` installer and the macOS `.dmg` from the resulting GitHub
-   Release and install them on clean machines to confirm no security warnings appear.
+   Release and install them on clean machines.
+5. Work through the **full manual testing checklist** in `RELEASE-TESTING.md` for
+   both platforms before announcing the release to users.
+
+> **Tip — pre-release build check**: Push to `main` (or open a PR) to trigger the
+> `Build check` workflow (`.github/workflows/build-check.yml`).  This builds the
+> unsigned installer on all three platforms and uploads the artefacts for 3 days, so
+> you can do a quick smoke test before spending a code-signing certificate on a formal
+> release tag.
 
 ---
 

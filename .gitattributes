@@ -1,0 +1,2 @@
+artifacts/electron-journal/release/EYIT[[:space:]]Development[[:space:]]Journal-0.1.0.AppImage filter=lfs diff=lfs merge=lfs -text
+artifacts/electron-journal/release/linux-unpacked/@workspaceelectron-journal filter=lfs diff=lfs merge=lfs -text
