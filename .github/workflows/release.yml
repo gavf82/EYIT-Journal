@@ -101,12 +101,18 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       # macOS requires an ICNS file for the DMG icon.  Generate it from the
-      # committed PNG placeholder using macOS-only iconutil.
+      # committed PNG placeholder using macOS-only iconutil — but only if the
+      # source PNG exists (when icons are absent, electron-builder uses the
+      # default Electron icon).
       - name: Generate macOS ICNS icon
         if: matrix.os == 'macos-latest'
         shell: bash
         run: |
           SRC=artifacts/electron-journal/build/icons/icon.png
+          if [ ! -f "$SRC" ]; then
+            echo "No icon.png found — skipping ICNS generation, using default Electron icon."
+            exit 0
+          fi
           ICONSET=icon.iconset
           mkdir -p "$ICONSET"
           for size in 16 32 64 128 256 512; do
