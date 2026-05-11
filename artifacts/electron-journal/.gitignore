@@ -1,0 +1,7 @@
+# Build outputs — never commit these
+dist/
+dist-electron/
+release/
+
+# Local dev
+node_modules/
