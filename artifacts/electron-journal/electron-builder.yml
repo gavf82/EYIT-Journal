@@ -20,24 +20,19 @@ npmRebuild: true
 asar: true
 
 # ── GitHub Releases publish target ────────────────────────────────────────────
-# This section tells electron-updater where to find new releases.
-# It is intentionally left with placeholder values until a GitHub repository
-# is created for distribution (tracked as a separate task).
+# Tells electron-updater where to find new releases and electron-builder where
+# to publish installers.
 #
-# To activate auto-update publishing:
-#   1. Create a GitHub repository for desktop releases.
-#   2. Replace PLACEHOLDER_OWNER and PLACEHOLDER_REPO below with the real values.
-#   3. Set a GH_TOKEN environment variable with repo write permission.
-#   4. Run `pnpm dist` to build installers and publish a release.
-#
-# The main process guards setupAutoUpdater() with `app.isPackaged` AND checks
-# that these env values are not placeholders at runtime, so shipping with
-# placeholders does not cause errors in packaged builds — the check is simply
-# skipped.
+# To publish a new release:
+#   1. Create the GitHub repository gavf82/EYIT-Journal if it does not exist.
+#   2. Set GH_TOKEN in your environment (a personal access token with repo scope).
+#   3. Run `pnpm dist` — electron-builder builds installers, uploads them, and
+#      writes the latest.yml / latest-mac.yml / latest-linux.yml feed files that
+#      electron-updater reads on each app launch.
 publish:
   - provider: github
-    owner: PLACEHOLDER_OWNER
-    repo: PLACEHOLDER_REPO
+    owner: gavf82
+    repo: EYIT-Journal
     releaseType: release
 
 win:

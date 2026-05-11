@@ -39,24 +39,9 @@ let journalPath: string = "";
 
 // ── Auto-updater ──────────────────────────────────────────────────────────────
 
-// Names baked in by electron-builder from electron-builder.yml at build time.
-// If they are still placeholders the publish feed has not been configured yet,
-// so silently skip update checks rather than showing an error to the user.
-const UPDATER_OWNER: string = "PLACEHOLDER_OWNER";
-const UPDATER_REPO: string = "PLACEHOLDER_REPO";
-
-function isUpdaterConfigured(): boolean {
-  return UPDATER_OWNER !== "PLACEHOLDER_OWNER" && UPDATER_REPO !== "PLACEHOLDER_REPO";
-}
-
 function setupAutoUpdater(): void {
   // Only run the updater in packaged builds — dev has no feed URL to check.
   if (!app.isPackaged) return;
-
-  // Skip silently when the publish target has not been configured yet.
-  // Replace PLACEHOLDER_OWNER / PLACEHOLDER_REPO in electron-builder.yml
-  // with real values once a GitHub repository exists for distribution.
-  if (!isUpdaterConfigured()) return;
 
   // Dynamic require so the module is resolved at runtime in the packaged app.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
