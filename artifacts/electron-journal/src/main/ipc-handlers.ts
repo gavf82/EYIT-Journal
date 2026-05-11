@@ -63,7 +63,8 @@ export function registerIpcHandlers(ctx: IpcContext): void {
       filters: [{ name: "SQLite database", extensions: ["db"] }],
     });
     if (result.canceled || !result.filePath) return false;
-    fs.copyFileSync(ctx.getJournalPath(), result.filePath);
+    // Use db.backup() so WAL content is checkpointed into the exported file
+    await ctx.getDb().backup(result.filePath);
     return true;
   });
 
@@ -93,9 +94,10 @@ export function registerIpcHandlers(ctx: IpcContext): void {
     });
     if (result.canceled || !result.filePath) return null;
     const newPath = result.filePath;
-    // Copy then reopen before deleting original (safe order)
+    // Checkpoint WAL into the destination via db.backup(), then reopen, then
+    // delete the original. This order ensures we never lose data.
     fs.mkdirSync(path.dirname(newPath), { recursive: true });
-    fs.copyFileSync(currentPath, newPath);
+    await ctx.getDb().backup(newPath);
     ctx.reopenDb(newPath);
     ctx.setJournalPath(newPath);
     try {
@@ -120,9 +122,12 @@ export function registerIpcHandlers(ctx: IpcContext): void {
   ipcMain.handle("backup:restore", (_event, filename: string): void => {
     const backupsDir = path.join(path.dirname(ctx.getJournalPath()), "backups");
     const backupPath = path.join(backupsDir, filename);
-    // Close, restore, reopen
+    const journalPath = ctx.getJournalPath();
+    // Close the live connection so we can safely overwrite the file
     ctx.getDb().close();
-    restoreBackup(backupPath, ctx.getJournalPath());
-    ctx.reopenDb(ctx.getJournalPath());
+    // Copy backup over the journal path and clean any stale WAL/SHM sidecars
+    restoreBackup(backupPath, journalPath);
+    // Reopen — reopenDb guards against double-close via db.open check
+    ctx.reopenDb(journalPath);
   });
 }

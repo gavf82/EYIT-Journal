@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import type Database from "better-sqlite3";
 
 const MAX_BACKUPS = 10;
 
@@ -18,14 +19,21 @@ function timestampSlug(): string {
   return new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
 }
 
-/** Called at app startup to snapshot the current journal file. */
-export function createStartupBackup(journalPath: string): void {
+/**
+ * Called at app startup to snapshot the current journal via the live DB.
+ * Uses better-sqlite3's backup() API which checkpoints WAL and produces a
+ * complete, self-contained SQLite file regardless of journal mode.
+ */
+export async function createStartupBackup(
+  db: Database.Database,
+  journalPath: string,
+): Promise<void> {
   try {
     if (!fs.existsSync(journalPath)) return; // nothing to back up yet
     const backupsDir = getBackupsDir(journalPath);
     fs.mkdirSync(backupsDir, { recursive: true });
     const filename = `journal-${timestampSlug()}.db`;
-    fs.copyFileSync(journalPath, path.join(backupsDir, filename));
+    await db.backup(path.join(backupsDir, filename));
     pruneBackups(journalPath);
   } catch (e) {
     console.error("[EYIT] Failed to create startup backup:", e);
@@ -51,9 +59,24 @@ export function listBackups(journalPath: string): BackupEntry[] {
   }
 }
 
-/** Copies a backup file over the live journal. */
+/**
+ * Restores a backup by copying it over the live journal path.
+ * Backup files are always checkpointed (created via db.backup()), so
+ * a plain file copy is safe. Any stale WAL/SHM sidecars at the
+ * destination are removed so SQLite opens cleanly after restore.
+ */
 export function restoreBackup(backupPath: string, journalPath: string): void {
   fs.copyFileSync(backupPath, journalPath);
+  for (const ext of ["-wal", "-shm"]) {
+    const sidecar = journalPath + ext;
+    if (fs.existsSync(sidecar)) {
+      try {
+        fs.unlinkSync(sidecar);
+      } catch {
+        // ignore — non-fatal if sidecar is already gone
+      }
+    }
+  }
 }
 
 /** Keeps only the N most recent backups. */

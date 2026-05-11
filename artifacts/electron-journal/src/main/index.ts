@@ -71,8 +71,8 @@ app.whenReady().then(async () => {
   // Open (or create) the database
   journalDb = openDatabase(journalPath);
 
-  // Create rolling startup backup
-  createStartupBackup(journalPath);
+  // Create rolling startup backup (WAL-aware via db.backup())
+  await createStartupBackup(journalDb, journalPath);
 
   // Register IPC handlers with mutable context
   registerIpcHandlers({
@@ -83,7 +83,8 @@ app.whenReady().then(async () => {
     },
     getDb: () => journalDb!,
     reopenDb: (newPath: string) => {
-      journalDb?.close();
+      // Guard against double-close: only close if the connection is still open
+      if (journalDb?.open) journalDb.close();
       journalDb = openDatabase(newPath);
     },
   });
