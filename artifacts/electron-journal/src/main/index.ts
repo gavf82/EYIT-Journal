@@ -68,7 +68,15 @@ function setupAutoUpdater(): void {
   });
 
   autoUpdater.on("update-downloaded", (info) => {
-    send({ phase: "downloaded", version: info.version });
+    const notes =
+      typeof info.releaseNotes === "string"
+        ? info.releaseNotes
+        : Array.isArray(info.releaseNotes)
+          ? info.releaseNotes.map((n) =>
+              typeof n === "string" ? n : (n.note ?? "")
+            ).join("\n")
+          : undefined;
+    send({ phase: "downloaded", version: info.version, releaseNotes: notes });
   });
 
   autoUpdater.on("error", (err) => {

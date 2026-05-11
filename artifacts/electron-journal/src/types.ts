@@ -64,6 +64,7 @@ export interface UpdateStatus {
   version?: string;
   percent?: number;
   error?: string;
+  releaseNotes?: string;
 }
 
 // ── Electron IPC API (exposed via contextBridge) ──────────────────────────────
