@@ -19,13 +19,25 @@ files:
 npmRebuild: true
 asar: true
 
-# GitHub Releases publish target — used by electron-updater to check for updates.
-# Set GH_TOKEN in your environment before running `pnpm dist` to publish.
-# Replace owner/repo with the actual GitHub repository that hosts releases.
+# ── GitHub Releases publish target ────────────────────────────────────────────
+# This section tells electron-updater where to find new releases.
+# It is intentionally left with placeholder values until a GitHub repository
+# is created for distribution (tracked as a separate task).
+#
+# To activate auto-update publishing:
+#   1. Create a GitHub repository for desktop releases.
+#   2. Replace PLACEHOLDER_OWNER and PLACEHOLDER_REPO below with the real values.
+#   3. Set a GH_TOKEN environment variable with repo write permission.
+#   4. Run `pnpm dist` to build installers and publish a release.
+#
+# The main process guards setupAutoUpdater() with `app.isPackaged` AND checks
+# that these env values are not placeholders at runtime, so shipping with
+# placeholders does not cause errors in packaged builds — the check is simply
+# skipped.
 publish:
   - provider: github
-    owner: YOUR_GITHUB_OWNER
-    repo: eyit-journal
+    owner: PLACEHOLDER_OWNER
+    repo: PLACEHOLDER_REPO
     releaseType: release
 
 win:
