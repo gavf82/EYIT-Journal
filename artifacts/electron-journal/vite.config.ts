@@ -15,12 +15,30 @@ export default defineConfig({
           build: {
             rollupOptions: {
               external: ["better-sqlite3"],
+              output: {
+                // Explicit CJS so Electron can require() the entry and
+                // __dirname / __filename are available at runtime.
+                format: "cjs",
+                entryFileNames: "[name].js",
+                chunkFileNames: "[name].js",
+              },
             },
           },
         },
       },
       preload: {
         input: path.join(import.meta.dirname, "src/preload/preload.ts"),
+        vite: {
+          build: {
+            rollupOptions: {
+              output: {
+                format: "cjs",
+                entryFileNames: "[name].js",
+                chunkFileNames: "[name].js",
+              },
+            },
+          },
+        },
       },
     }),
   ],
