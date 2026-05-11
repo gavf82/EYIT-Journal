@@ -918,8 +918,8 @@ export default function HomePage() {
               </p>
               <p>
                 <span className="font-semibold text-foreground">Data stays on this device.</span>{" "}
-                No information is sent to any server. Use the Save button to export a backup file
-                at the end of each session — restore it at the start of your next session.
+                No information is sent to any server. Changes are saved automatically to this
+                browser. Use the Backup button to export a .db file you can restore on any device.
               </p>
             </div>
           </DialogContent>

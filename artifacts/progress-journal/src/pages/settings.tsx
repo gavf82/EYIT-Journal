@@ -153,8 +153,8 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Backup</CardTitle>
           <CardDescription>
-            Save your data to a file and clear it from this browser. Use this at the end of
-            every session — restore it next time from the same file.
+            Changes are saved automatically. Export a backup file to keep a portable copy
+            you can restore on any device, or to clear this browser's storage.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

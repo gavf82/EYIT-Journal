@@ -1,89 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Link, useLocation } from "wouter";
-import { BookOpen, Settings, Home, AlertTriangle, Mail, LogOut } from "lucide-react";
+import { BookOpen, Settings, Home, Mail, Download, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSaveAndClose } from "../hooks/use-save-and-close";
 import { SaveAndCloseDialog } from "./save-and-close-dialog";
-import { getLastExportedAt } from "../lib/store";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-
-function daysSince(isoDate: string): number {
-  const ms = Date.now() - new Date(isoDate).getTime();
-  return Math.floor(ms / (1000 * 60 * 60 * 24));
-}
-
-function BackupIndicator() {
-  const [lastExported, setLastExported] = useState<string | null>(() =>
-    getLastExportedAt()
-  );
-
-  useEffect(() => {
-    const sync = () => setLastExported(getLastExportedAt());
-    window.addEventListener("eyit-store-change", sync);
-    window.addEventListener("storage", sync);
-    return () => {
-      window.removeEventListener("eyit-store-change", sync);
-      window.removeEventListener("storage", sync);
-    };
-  }, []);
-
-  if (!lastExported) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="flex items-center gap-1 text-[10px] text-amber-500 font-medium cursor-default">
-              <AlertTriangle className="h-3 w-3" /> No backup yet
-            </span>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs max-w-52 text-center">
-            Save your data to a .db file regularly so it isn't lost if the browser clears storage.
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-
-  const days = daysSince(lastExported);
-
-  if (days < 3) return null;
-
-  const label =
-    days === 0
-      ? "Today"
-      : days === 1
-      ? "Yesterday"
-      : `${days}d ago`;
-
-  const urgent = days >= 7;
-
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span
-            className={`flex items-center gap-1 text-[10px] font-medium cursor-default ${
-              urgent ? "text-amber-500" : "text-muted-foreground"
-            }`}
-          >
-            {urgent && <AlertTriangle className="h-3 w-3" />}
-            Backed up {label}
-          </span>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs max-w-52 text-center">
-          {urgent
-            ? "It's been a while — consider saving a backup .db file."
-            : `Last backup: ${new Date(lastExported).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -128,7 +48,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <span className="hidden sm:inline">Contact</span>
               </span>
             </Link>
-            <div className="flex flex-col items-end gap-0.5 ml-1 sm:ml-2">
+            <div className="flex items-center gap-2 ml-1 sm:ml-2">
+              {hasData && (
+                <span className="hidden sm:flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 select-none">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Saved
+                </span>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -136,10 +62,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 disabled={!hasData}
                 onClick={openDialog}
                 data-testid="button-save-and-close"
-                title="Save backup"
+                title="Export backup file"
               >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Save</span>
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">Backup</span>
               </Button>
             </div>
             <SaveAndCloseDialog {...dialogProps} />
