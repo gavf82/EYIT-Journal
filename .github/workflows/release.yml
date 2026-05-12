@@ -137,28 +137,30 @@ jobs:
         working-directory: artifacts/electron-journal
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # ── Windows code signing ──────────────────────────────────────────────
-          # WIN_CSC_LINK      Base64-encoded PFX certificate file.
-          #                   Encode with: base64 -w0 certificate.pfx
-          # WIN_CSC_KEY_PASSWORD  Password protecting the PFX.
-          # These are optional: electron-builder skips signing when absent.
-          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
-          # ── macOS code signing ────────────────────────────────────────────────
-          # CSC_LINK          Base64-encoded .p12 Developer ID Application cert.
-          #                   Encode with: base64 -w0 developer_id.p12
-          # CSC_KEY_PASSWORD  Password protecting the .p12.
-          # These are optional: electron-builder skips signing when absent.
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          # ── macOS notarization ────────────────────────────────────────────────
-          # APPLE_ID                  Apple ID email used to sign in to App Store Connect.
-          # APPLE_APP_SPECIFIC_PASSWORD  App-specific password generated at appleid.apple.com.
-          # APPLE_TEAM_ID             10-character Apple Developer Team ID.
-          # Notarization is skipped when these are absent.
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Prevent electron-builder from resolving an empty CSC_LINK/WIN_CSC_LINK
+          # to the working directory (which causes "not a file" failures).
+          # Passing an unset secret produces an empty string, which electron-builder
+          # treats as a path and resolves to CWD.  Omitting the vars entirely is the
+          # safe default; add them back once real certificates are available.
+          #
+          # To enable Windows signing: add WIN_CSC_LINK (base64 PFX) and
+          # WIN_CSC_KEY_PASSWORD as GitHub secrets, then uncomment:
+          # WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          # WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          #
+          # To enable macOS signing: add CSC_LINK (base64 .p12) and
+          # CSC_KEY_PASSWORD as GitHub secrets, then uncomment:
+          # CSC_LINK: ${{ secrets.CSC_LINK }}
+          # CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          #
+          # To enable macOS notarization: add APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD,
+          # APPLE_TEAM_ID as GitHub secrets, then uncomment:
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          #
+          # Stops macOS runner from auto-discovering a local Keychain identity.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
         run: pnpm release
 
       - name: Upload build logs on failure
