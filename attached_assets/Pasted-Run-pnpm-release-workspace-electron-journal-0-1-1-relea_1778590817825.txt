@@ -1,0 +1,52 @@
+Run pnpm release
+
+> @workspace/electron-journal@0.1.1 release /Users/runner/work/EYIT-Journal/EYIT-Journal/artifacts/electron-journal
+> vite build && electron-builder --publish always
+
+vite v7.3.3 building client environment for production...
+transforming...
+../progress-journal/src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+../progress-journal/src/components/ui/dropdown-menu.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+../progress-journal/src/components/ui/label.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+../progress-journal/src/components/ui/collapsible.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+../progress-journal/src/components/ui/select.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 1814 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                       0.64 kB │ gzip:   0.38 kB
+dist/assets/sql-wasm-UFUCzYNW.wasm  659.73 kB │ gzip: 323.01 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+dist/assets/index-DpbuvNEd.css       21.11 kB │ gzip:   5.11 kB
+dist/assets/index-BvROBeml.js       729.38 kB │ gzip: 217.67 kB
+✓ built in 2.79s
+vite v7.3.3 building client environment for production...
+transforming...
+✓ 4 modules transformed.
+rendering chunks...
+computing gzip size...
+dist-electron/index.js  10.71 kB │ gzip: 3.47 kB
+✓ built in 34ms
+vite v7.3.3 building client environment for production...
+transforming...
+✓ 1 modules transformed.
+rendering chunks...
+computing gzip size...
+dist-electron/preload.js  1.13 kB │ gzip: 0.43 kB
+✓ built in 11ms
+  • electron-builder  version=24.13.3 os=24.6.0
+  • loaded configuration  file=/Users/runner/work/EYIT-Journal/EYIT-Journal/artifacts/electron-journal/electron-builder.yml
+  • @electron/rebuild not required if you use electron-builder, please consider to remove excess dependency from devDependencies
+
+To ensure your native dependencies are always matched electron version, simply add script `"postinstall": "electron-builder install-app-deps" to your `package.json`
+  • skipped dependencies rebuild  reason=npmRebuild is set to false
+  • packaging       platform=darwin arch=x64 electron=36.9.5 appOutDir=release/mac
+  • downloading     url=https://github.com/electron/electron/releases/download/v36.9.5/electron-v36.9.5-darwin-x64.zip size=113 MB parts=6
+  • downloaded      url=https://github.com/electron/electron/releases/download/v36.9.5/electron-v36.9.5-darwin-x64.zip duration=1.038s
+  • empty password will be used for code signing  reason=CSC_KEY_PASSWORD is not defined
+  ⨯ /Users/runner/work/EYIT-Journal/EYIT-Journal/artifacts/electron-journal not a file
+ ELIFECYCLE  Command failed with exit code 1.
+Error: Process completed with exit code 1.
