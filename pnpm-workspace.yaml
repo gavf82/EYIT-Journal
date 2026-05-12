@@ -77,6 +77,11 @@ onlyBuiltDependencies:
   - unrs-resolver
 
 overrides:
+  # Pin app-builder-bin to the last stable 4.x release.
+  # 5.0.0-alpha.* (pulled by electron-builder 25/26) panics in doConvertIcon
+  # regardless of whether custom icons are present — it is a broken binary.
+  # electron-builder 24.x ships with app-builder-bin 4.x which works correctly.
+  app-builder-bin: "4.0.0"
   # Native binary exclusions:
   # - Keep only platforms that will NEVER run this build (not linux-x64, darwin, or win32-x64).
   # - darwin-* and win32-x64-* are intentionally NOT excluded so GitHub Actions CI
