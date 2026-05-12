@@ -39,11 +39,13 @@ publish:
     releaseType: release
 
 win:
-  # Custom sign script bypasses electron-builder's built-in app-builder signing
-  # call, which crashes on GitHub Actions Windows runners (Go binary panic).
-  # The script is a no-op when WIN_CSC_LINK is absent; add a real signtool
-  # integration there when a certificate is available (see CODESIGNING.md).
-  sign: ./build/skip-sign.js
+  # signAndEditExecutable: false skips BOTH the rcedit icon-embedding step
+  # AND the signing step, so app-builder.exe is never invoked on Windows.
+  # The binary from app-builder-bin crashes on GitHub Actions Windows runners
+  # regardless of version.  The produced installer is unsigned, which is
+  # acceptable for CI builds; remove this line and configure WIN_CSC_LINK when
+  # a code signing certificate is available (see CODESIGNING.md).
+  signAndEditExecutable: false
   target:
     - target: nsis
       arch:
