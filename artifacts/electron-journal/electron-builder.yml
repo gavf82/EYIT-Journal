@@ -15,7 +15,11 @@ files:
   - package.json
   - node_modules/**
 
-npmRebuild: true
+# Disable electron-builder's built-in npm rebuild: on Windows it tries to
+# fork/exec pnpm.cjs as a native Win32 binary, which fails.  Instead, we run
+# @electron/rebuild explicitly in CI before invoking electron-builder (see the
+# "Rebuild native modules for Electron" step in the GitHub Actions workflows).
+npmRebuild: false
 asar: true
 
 # ── GitHub Releases publish target ────────────────────────────────────────────

@@ -122,6 +122,14 @@ jobs:
           iconutil -c icns "$ICONSET" -o artifacts/electron-journal/build/icons/icon.icns
           rm -rf "$ICONSET"
 
+      # Rebuild better-sqlite3 against Electron's Node.js headers.
+      # We use npx (runs through Node) to avoid the Windows failure where
+      # electron-builder's fork/exec tries to run pnpm.cjs as a Win32 binary.
+      - name: Rebuild native modules for Electron
+        working-directory: artifacts/electron-journal
+        shell: bash
+        run: npx --yes @electron/rebuild@3 -f -w better-sqlite3
+
       - name: Build & publish release
         working-directory: artifacts/electron-journal
         env:
