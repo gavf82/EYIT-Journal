@@ -8,6 +8,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # ── Guard: ensure the pushed tag matches the version in package.json ──────────
   # This prevents a common mistake where a developer bumps the tag but forgets

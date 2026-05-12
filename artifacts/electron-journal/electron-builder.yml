@@ -39,9 +39,11 @@ publish:
     releaseType: release
 
 win:
-  # Code signing is optional — electron-builder skips it when WIN_CSC_LINK and
-  # WIN_CSC_KEY_PASSWORD are absent.  Add those GitHub secrets (see
-  # artifacts/electron-journal/CODESIGNING.md) to enable signing.
+  # Custom sign script bypasses electron-builder's built-in app-builder signing
+  # call, which crashes on GitHub Actions Windows runners (Go binary panic).
+  # The script is a no-op when WIN_CSC_LINK is absent; add a real signtool
+  # integration there when a certificate is available (see CODESIGNING.md).
+  sign: ./build/skip-sign.js
   target:
     - target: nsis
       arch:
