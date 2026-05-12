@@ -69,6 +69,9 @@ mac:
   category: public.app-category.education
 
 linux:
+  # Explicit 512x512 PNG path — Linux is case-sensitive; the filename and this
+  # value must match exactly (icon.png, not Icon.png or icon.PNG).
+  icon: build/icon.png
   target:
     - target: AppImage
       arch:
