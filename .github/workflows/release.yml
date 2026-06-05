@@ -35,17 +35,34 @@ jobs:
           fi
           echo "Version OK: $PKG_VERSION"
 
-  # ── Build & publish one installer per platform ────────────────────────────────
-  # All three matrix jobs run concurrently and each calls electron-builder
-  # --publish always, which creates the GitHub Release on the first job to finish
-  # and uploads assets from every job.  electron-builder uses a conditional
-  # create-or-update strategy so concurrent creation is safe in practice; if you
-  # observe intermittent "release already exists" errors in the future, switch to
-  # a two-phase flow: create a draft release here, upload assets from the matrix,
-  # then a final job publishes the draft.
+  # ── Phase 1: create the GitHub Release as a draft ────────────────────────────
+  # All three matrix build jobs race to create the release and the last one to
+  # arrive gets a 422 "already exists" from GitHub, failing the job.  Avoid this
+  # by pre-creating a draft release in a single dedicated job; the matrix jobs
+  # then just upload assets to the existing release.
+  create-release:
+    name: Create GitHub release
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft \
+            --title "$GITHUB_REF_NAME" \
+            --notes "Release $GITHUB_REF_NAME"
+
+  # ── Phase 2: build & publish one installer per platform ──────────────────────
+  # Each matrix job builds its platform installer and uploads assets to the
+  # already-created GitHub Release.  electron-builder's --publish always updates
+  # the existing draft release (no creation attempt, no race condition).
+  # A final job then un-drafts the release once all three builds succeed.
   release:
     name: Build & publish (${{ matrix.label }})
-    needs: validate
+    needs: [validate, create-release]
     strategy:
       fail-fast: false
       matrix:
@@ -158,35 +175,75 @@ jobs:
         shell: bash
         run: npx --yes @electron/rebuild@3 -f -w better-sqlite3
 
+      # Pass signing secrets into the environment only when they are non-empty.
+      # Passing an empty string for CSC_LINK / WIN_CSC_LINK causes electron-builder
+      # to resolve it as a file path (CWD), which triggers a "not a file" error.
+      # By writing to GITHUB_ENV here we ensure the variables are present only when
+      # a real value exists, so unsigned builds remain clean.
+      - name: Configure Windows code signing
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        env:
+          _WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          _WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: |
+          if [ -n "$_WIN_CSC_LINK" ]; then
+            echo "WIN_CSC_LINK=$_WIN_CSC_LINK" >> "$GITHUB_ENV"
+            echo "WIN_CSC_KEY_PASSWORD=$_WIN_CSC_KEY_PASSWORD" >> "$GITHUB_ENV"
+            echo "WIN_CSC_LINK is set — Windows installer will be signed."
+          else
+            echo "WIN_CSC_LINK not configured — Windows installer will be unsigned."
+          fi
+
+      # Pass macOS signing and notarization secrets only when present.
+      - name: Configure macOS code signing
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        env:
+          _CSC_LINK: ${{ secrets.CSC_LINK }}
+          _CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          _APPLE_ID: ${{ secrets.APPLE_ID }}
+          _APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          _APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$_CSC_LINK" ]; then
+            echo "CSC_LINK=$_CSC_LINK" >> "$GITHUB_ENV"
+            echo "CSC_KEY_PASSWORD=$_CSC_KEY_PASSWORD" >> "$GITHUB_ENV"
+            echo "CSC_LINK is set — macOS app will be signed."
+          else
+            echo "CSC_LINK not configured — macOS app will be unsigned."
+          fi
+          if [ -n "$_APPLE_ID" ]; then
+            echo "APPLE_ID=$_APPLE_ID" >> "$GITHUB_ENV"
+            echo "APPLE_APP_SPECIFIC_PASSWORD=$_APPLE_APP_SPECIFIC_PASSWORD" >> "$GITHUB_ENV"
+            echo "APPLE_TEAM_ID=$_APPLE_TEAM_ID" >> "$GITHUB_ENV"
+            echo "Apple notarization credentials are set."
+          else
+            echo "APPLE_ID not configured — macOS app will not be notarized."
+          fi
+
       - name: Build & publish release
         working-directory: artifacts/electron-journal
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Prevent electron-builder from resolving an empty CSC_LINK/WIN_CSC_LINK
-          # to the working directory (which causes "not a file" failures).
-          # Passing an unset secret produces an empty string, which electron-builder
-          # treats as a path and resolves to CWD.  Omitting the vars entirely is the
-          # safe default; add them back once real certificates are available.
-          #
-          # To enable Windows signing: add WIN_CSC_LINK (base64 PFX) and
-          # WIN_CSC_KEY_PASSWORD as GitHub secrets, then uncomment:
-          # WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          # WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
-          #
-          # To enable macOS signing: add CSC_LINK (base64 .p12) and
-          # CSC_KEY_PASSWORD as GitHub secrets, then uncomment:
-          # CSC_LINK: ${{ secrets.CSC_LINK }}
-          # CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          #
-          # To enable macOS notarization: add APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD,
-          # APPLE_TEAM_ID as GitHub secrets, then uncomment:
-          # APPLE_ID: ${{ secrets.APPLE_ID }}
-          # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          #
-          # Stops macOS runner from auto-discovering a local Keychain identity.
+          # Stops macOS runner from auto-discovering a local Keychain identity
+          # on machines where one might exist (e.g. a developer's laptop running
+          # act).  Signing is controlled exclusively by the CSC_LINK secret set
+          # in the step above.
           CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: pnpm release
+        shell: bash
+        run: |
+          pnpm run build
+          # On macOS, electron-builder.yml has notarize: true which reads
+          # APPLE_TEAM_ID from the environment.  When that variable is absent
+          # (no notarization secrets configured) we must override the YAML
+          # value to false, or electron-builder will error instead of skipping.
+          if [ "${{ matrix.os }}" = "macos-latest" ] && [ -z "$APPLE_TEAM_ID" ]; then
+            echo "APPLE_TEAM_ID not set — disabling notarization for this build."
+            pnpm exec electron-builder --publish always --config.mac.notarize=false
+          else
+            pnpm exec electron-builder --publish always
+          fi
 
       - name: Upload build logs on failure
         if: failure()
@@ -198,3 +255,17 @@ jobs:
             artifacts/electron-journal/release/**/*.yaml
             artifacts/electron-journal/release/**/*.yml
           retention-days: 7
+
+  # ── Phase 3: publish the draft once all builds succeed ───────────────────────
+  publish-release:
+    name: Publish release
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Un-draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft=false
