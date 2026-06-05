@@ -210,6 +210,15 @@ function showErrorWindow(error: unknown, jPath: string, logFilePath: string): vo
   win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
 }
 
+function getAppIcon(): string {
+  // In dev, __dirname is dist-electron/ so step back to the project root.
+  // In production, the icon is placed in resources/ via extraResources.
+  const iconFile = process.platform === "win32" ? "icon.ico" : "icon.png";
+  return app.isPackaged
+    ? path.join(process.resourcesPath, iconFile)
+    : path.join(__dirname, "../../build", iconFile);
+}
+
 async function createWindow(): Promise<void> {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -217,6 +226,7 @@ async function createWindow(): Promise<void> {
     minWidth: 820,
     minHeight: 600,
     show: false,
+    icon: getAppIcon(),
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),

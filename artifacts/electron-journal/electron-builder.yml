@@ -29,6 +29,15 @@ files:
 npmRebuild: false
 asar: true
 
+# Make icon files available at runtime so the main process can set the
+# BrowserWindow icon (window titlebar, taskbar).  Placed outside the ASAR
+# so the path is a plain filesystem path the OS can load directly.
+extraResources:
+  - from: build/icon.ico
+    to: icon.ico
+  - from: build/icon.png
+    to: icon.png
+
 # Native addons (.node files) cannot be loaded from inside an ASAR archive —
 # the OS linker needs them on real disk.  This pattern extracts every .node
 # binary to app.asar.unpacked/ so Electron can dlopen() them.
@@ -52,13 +61,16 @@ publish:
     releaseType: release
 
 win:
-  # signAndEditExecutable: false skips BOTH the rcedit icon-embedding step
-  # AND the signing step, so app-builder.exe is never invoked on Windows.
-  # The binary from app-builder-bin crashes on GitHub Actions Windows runners
-  # regardless of version.  The produced installer is unsigned, which is
-  # acceptable for CI builds; remove this line and configure WIN_CSC_LINK when
-  # a code signing certificate is available (see CODESIGNING.md).
-  signAndEditExecutable: false
+  # Signing is enabled when WIN_CSC_LINK and WIN_CSC_KEY_PASSWORD are present
+  # in the environment (set as GitHub Actions secrets — see CODESIGNING.md).
+  # When those secrets are absent the build proceeds unsigned (SmartScreen
+  # will show an "Unknown publisher" warning on first run).
+  #
+  # signAndEditExecutable defaults to true, which allows electron-builder to
+  # embed the app icon and version info into the .exe via rcedit AND to sign
+  # all executables with signtool.exe when a certificate is present.
+  # Do NOT set this to false once WIN_CSC_LINK is configured — doing so would
+  # skip signing entirely.
   target:
     - target: nsis
       arch:
@@ -75,10 +87,14 @@ win:
 
 mac:
   # Code signing is optional — electron-builder skips it when CSC_LINK and
-  # CSC_KEY_PASSWORD are absent.
-  # Notarization is disabled until Apple Developer credentials are available
-  # (APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID).  Set
-  # notarize: true and add those GitHub secrets to re-enable (see CODESIGNING.md).
+  # CSC_KEY_PASSWORD are absent from the environment.
+  #
+  # Notarization runs automatically when all five macOS secrets are configured
+  # in GitHub Actions (CSC_LINK, CSC_KEY_PASSWORD, APPLE_ID,
+  # APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID — see CODESIGNING.md sections
+  # 1-7).  The release workflow disables notarize via CLI when APPLE_TEAM_ID
+  # is absent so unsigned builds remain clean (no "not a credential" error).
+  notarize: true
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
