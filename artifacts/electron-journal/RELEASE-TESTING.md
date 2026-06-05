@@ -19,10 +19,29 @@ installed on that machine before.
 
 ## Windows — NSIS installer (`.exe`)
 
+### Building locally (pre-flight)
+
+Before running `electron-builder` on Windows (or to reproduce the CI build
+locally), download the VC++ redistributable first:
+
+```bash
+# From the repo root:
+bash scripts/download-vcredist.sh
+```
+
+This saves `artifacts/electron-journal/build/vc_redist.x64.exe` (~25 MB).
+The file is `.gitignore`d — it must be present before `pnpm dist` runs.
+CI downloads it automatically in the "Download VC++ redistributable" step.
+
 ### Installation
 
 - [ ] Download `EYIT-Development-Journal-Setup-x.x.x.exe` from the GitHub Release.
 - [ ] Double-click the installer.
+- [ ] **VC++ redistributable check**: if the target machine has never had the
+      VC++ 2015-2022 x64 runtime installed, the installer's detail view should
+      briefly show "Running vc_redist.x64.exe /install /quiet /norestart…"
+      before continuing.  On machines where it is already present the step is
+      skipped silently.
 - [ ] **SmartScreen check**: no "Windows protected your PC" dialog appears.
       If SmartScreen fires, note the publisher name shown — it should match the
       certificate CN.  An OV cert may still trigger SmartScreen until the app

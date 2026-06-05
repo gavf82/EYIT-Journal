@@ -125,6 +125,31 @@ jobs:
           iconutil -c icns "$ICONSET" -o artifacts/electron-journal/build/icon.icns
           rm -rf "$ICONSET"
 
+      # Download the VC++ 2015-2022 x64 redistributable so electron-builder can
+      # bundle it inside the NSIS installer.  The installer.nsh macro runs it
+      # silently on target machines that don't already have the runtime, which
+      # is required for better-sqlite3's native module to load.
+      # Only needed on the Windows runner — the file is ignored on other platforms.
+      - name: Download VC++ redistributable (Windows only)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          curl -fL --retry 3 --retry-delay 5 \
+            -o artifacts/electron-journal/build/vc_redist.x64.exe \
+            "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+          echo "Downloaded vc_redist.x64.exe ($(du -sh artifacts/electron-journal/build/vc_redist.x64.exe | cut -f1))"
+
+      - name: Verify vc_redist.x64.exe is present (Windows only)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          REDIST="artifacts/electron-journal/build/vc_redist.x64.exe"
+          if [ ! -f "$REDIST" ]; then
+            echo "::error::build/vc_redist.x64.exe is missing. The Windows NSIS installer requires it. Run scripts/download-vcredist.sh first."
+            exit 1
+          fi
+          echo "vc_redist.x64.exe present ($(du -sh "$REDIST" | cut -f1)) — ready for electron-builder."
+
       # Rebuild better-sqlite3 against Electron's Node.js headers.
       # We use npx (runs through Node) to avoid the Windows failure where
       # electron-builder's fork/exec tries to run pnpm.cjs as a Win32 binary.

@@ -60,6 +60,15 @@ win:
     - target: nsis
       arch:
         - x64
+  # Copy vc_redist.x64.exe into the NSIS installer package so installer.nsh
+  # can find it at $INSTDIR\resources\vc_redist.x64.exe during installation.
+  # Scoped to win: so macOS and Linux builds do not require the file.
+  # Download it with scripts/download-vcredist.sh before running electron-builder.
+  # The installer.nsh macro deletes it from $INSTDIR after running — it is not
+  # needed at runtime.
+  extraResources:
+    - from: build/vc_redist.x64.exe
+      to: vc_redist.x64.exe
 
 mac:
   # Code signing is optional — electron-builder skips it when CSC_LINK and
@@ -93,3 +102,9 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
+  # Custom NSIS fragment that silently installs the VC++ 2015-2022 x64
+  # redistributable before the app installs, if it is not already present.
+  # build/vc_redist.x64.exe must exist before running electron-builder —
+  # download it with scripts/download-vcredist.sh or the CI step in the
+  # GitHub Actions workflows.
+  include: build/installer.nsh
