@@ -4,6 +4,7 @@ import fs from "fs";
 import { openDatabase } from "./db";
 import { createStartupBackup } from "./backups";
 import { registerIpcHandlers } from "./ipc-handlers";
+import { getLogPath, logStartup, logStartupOk, logStartupError } from "./logger";
 import type Database from "better-sqlite3";
 import type { UpdateStatus } from "../types";
 
@@ -111,9 +112,10 @@ function escapeHtml(text: string): string {
  * Buttons navigate to custom eyit-error:// URLs which are intercepted
  * by will-navigate in main — no nodeIntegration or preload required.
  */
-function showErrorWindow(error: unknown, jPath: string): void {
+function showErrorWindow(error: unknown, jPath: string, logFilePath: string): void {
   const errText = error instanceof Error ? error.message : String(error);
   const folderPath = jPath ? path.dirname(jPath) : app.getPath("documents");
+  const logFolderPath = path.dirname(logFilePath);
 
   const html = `<!DOCTYPE html>
 <html>
@@ -141,7 +143,9 @@ function showErrorWindow(error: unknown, jPath: string): void {
       font-size: 12px; word-break: break-all; margin-bottom: 20px; line-height: 1.5;
     }
     .path-box { background: #171717; color: #fbbf24; }
-    .error-box { background: #3f1515; color: #fca5a5; margin-bottom: 28px; }
+    .log-box { background: #171717; color: #86efac; }
+    .error-box { background: #3f1515; color: #fca5a5; margin-bottom: 8px; }
+    .log-hint { color: #6b7280; font-size: 12px; margin-bottom: 28px; }
     .buttons { display: flex; gap: 12px; flex-wrap: wrap; }
     button {
       padding: 9px 22px; border-radius: 8px; border: none;
@@ -149,6 +153,7 @@ function showErrorWindow(error: unknown, jPath: string): void {
     }
     button:hover { opacity: .85; }
     .btn-folder { background: #3b82f6; color: #fff; }
+    .btn-log { background: #166534; color: #bbf7d0; }
     .btn-quit { background: #374151; color: #e5e5e5; }
   </style>
 </head>
@@ -164,8 +169,14 @@ function showErrorWindow(error: unknown, jPath: string): void {
     <div class="box path-box">${escapeHtml(jPath || "(unknown)")}</div>
     <div class="label">Error detail</div>
     <div class="box error-box">${escapeHtml(errText)}</div>
+    <p class="log-hint">
+      A full diagnostic log (including the error stack) has been saved to:
+    </p>
+    <div class="label">Diagnostic log</div>
+    <div class="box log-box">${escapeHtml(logFilePath)}</div>
     <div class="buttons">
       <button class="btn-folder" onclick="location.href='eyit-error://open-folder'">Open journal folder</button>
+      <button class="btn-log" onclick="location.href='eyit-error://open-log-folder'">Open log folder</button>
       <button class="btn-quit" onclick="location.href='eyit-error://quit'">Quit</button>
     </div>
   </div>
@@ -174,7 +185,7 @@ function showErrorWindow(error: unknown, jPath: string): void {
 
   const win = new BrowserWindow({
     width: 680,
-    height: 520,
+    height: 580,
     resizable: false,
     webPreferences: {
       nodeIntegration: false,
@@ -188,6 +199,8 @@ function showErrorWindow(error: unknown, jPath: string): void {
     event.preventDefault();
     if (url.startsWith("eyit-error://open-folder")) {
       shell.openPath(folderPath).catch(() => undefined);
+    } else if (url.startsWith("eyit-error://open-log-folder")) {
+      shell.openPath(logFolderPath).catch(() => undefined);
     } else if (url.startsWith("eyit-error://quit")) {
       app.quit();
     }
@@ -228,9 +241,16 @@ async function createWindow(): Promise<void> {
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 
 app.whenReady().then(async () => {
+  // Resolve the log path early so it is always available, even if startup fails
+  const logFilePath = getLogPath();
+
   try {
     // Resolve journal path
     journalPath = loadJournalPath();
+
+    // Write a startup banner to the log file on every launch
+    logStartup(journalPath);
+
     fs.mkdirSync(path.dirname(journalPath), { recursive: true });
 
     // Open (or create) the database
@@ -256,6 +276,9 @@ app.whenReady().then(async () => {
 
     await createWindow();
 
+    // Confirm clean startup in the log
+    logStartupOk();
+
     // Start silent auto-update check after the window loads
     setupAutoUpdater();
 
@@ -266,7 +289,8 @@ app.whenReady().then(async () => {
     });
   } catch (err) {
     console.error("[EYIT] Fatal startup error:", err);
-    showErrorWindow(err, journalPath);
+    logStartupError(err, journalPath);
+    showErrorWindow(err, journalPath, logFilePath);
   }
 });
 
