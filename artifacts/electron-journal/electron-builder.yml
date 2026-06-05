@@ -23,14 +23,13 @@ npmRebuild: false
 asar: true
 
 # Native addons (.node files) cannot be loaded from inside an ASAR archive —
-# the OS linker needs them on real disk.  Unpacking better-sqlite3 and its
-# helper packages extracts them to app.asar.unpacked/ where Electron can find
-# them.  Omitting this causes the main process to crash silently on launch
-# (two Electron instances appear in Task Manager but no window ever opens).
+# the OS linker needs them on real disk.  This pattern extracts every .node
+# binary to app.asar.unpacked/ so Electron can dlopen() them.
+# bindings and file-uri-to-path are listed as direct dependencies (not just
+# transitive) so pnpm creates top-level node_modules symlinks that
+# electron-builder and require() can both resolve.
 asarUnpack:
-  - node_modules/better-sqlite3/**
-  - node_modules/bindings/**
-  - node_modules/file-uri-to-path/**
+  - "**/*.node"
 
 # ── GitHub Releases publish target ────────────────────────────────────────────
 # Tells electron-updater where to find new releases and electron-builder where

@@ -1,6 +1,6 @@
 {
   "name": "@workspace/electron-journal",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "EYIT Development Journal — track children's progress against the EYIT Development Journal (September 2024)",
   "author": "EYIT",
   "private": true,
@@ -14,6 +14,7 @@
     "release": "vite build && electron-builder --publish always"
   },
   "devDependencies": {
+    "@electron/rebuild": "^3.7.1",
     "@radix-ui/react-accordion": "^1.2.4",
     "@radix-ui/react-alert-dialog": "^1.1.7",
     "@radix-ui/react-collapsible": "^1.1.4",
@@ -38,7 +39,6 @@
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "electron": "^36.3.2",
-    "@electron/rebuild": "^3.7.1",
     "electron-builder": "^24.13.3",
     "electron-builder-squirrel-windows": "^24.13.3",
     "lucide-react": "catalog:",
@@ -53,6 +53,8 @@
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",
-    "electron-updater": "^6.8.3"
+    "bindings": "^1.5.0",
+    "electron-updater": "^6.8.3",
+    "file-uri-to-path": "^2.0.0"
   }
 }
