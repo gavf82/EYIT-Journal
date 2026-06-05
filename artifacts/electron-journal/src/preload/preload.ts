@@ -34,6 +34,16 @@ const api: ElectronAPI = {
   installUpdate: () => {
     ipcRenderer.send("app:install-update");
   },
+
+  // Startup error reporting (deferred / background failures)
+  onStartupError: (callback) => {
+    const handler = (_event: Electron.IpcRendererEvent, message: string) =>
+      callback(message);
+    ipcRenderer.on("app:startup-error", handler);
+    return () => {
+      ipcRenderer.off("app:startup-error", handler);
+    };
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", api);

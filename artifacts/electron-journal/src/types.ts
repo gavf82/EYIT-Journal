@@ -92,4 +92,7 @@ export interface ElectronAPI {
   // Auto-update
   onUpdateStatus(callback: (status: UpdateStatus) => void): () => void;
   installUpdate(): void;
+
+  // Startup error reporting (deferred / background failures)
+  onStartupError(callback: (message: string) => void): () => void;
 }
