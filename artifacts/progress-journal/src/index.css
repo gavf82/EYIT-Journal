@@ -1,5 +1,10 @@
 @layer theme, base, components, utilities;
 @import "tailwindcss";
+/* Tell Tailwind v4 to explicitly scan this source tree.
+   Required when this CSS is imported via a cross-root Vite alias
+   (e.g. from artifacts/electron-journal) so that utility classes like
+   `hidden`, `flex-col`, etc. are always included in the generated bundle. */
+@source ".";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 

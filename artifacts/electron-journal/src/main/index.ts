@@ -279,8 +279,14 @@ app.whenReady().then(async () => {
     // Confirm clean startup in the log
     logStartupOk();
 
-    // Start silent auto-update check after the window loads
-    setupAutoUpdater();
+    // Start silent auto-update check after the window loads.
+    // Wrapped in its own try-catch so a packaging/module issue with
+    // electron-updater never prevents the app window from working.
+    try {
+      setupAutoUpdater();
+    } catch (updaterErr) {
+      console.error("[EYIT] Auto-updater failed to initialise (non-fatal):", updaterErr);
+    }
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {
