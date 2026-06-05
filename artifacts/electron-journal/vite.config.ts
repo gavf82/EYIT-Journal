@@ -45,7 +45,13 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: "@/lib/store",
+        // Match any import that ends with /lib/store — covers both the @/ alias
+        // form used in renderer/pages (e.g. "@/lib/store") and the relative form
+        // used by pages from progress-journal/src (e.g. "../lib/store" or
+        // "../../lib/store").  Relative imports bypass string-prefix aliases so a
+        // regex is required.  The replacement is the Electron IPC store that talks
+        // to the main process instead of IndexedDB.
+        find: /^.*\/lib\/store(\.tsx?)?$/,
         replacement: path.resolve(import.meta.dirname, "src/renderer/store-ipc.ts"),
       },
       {
