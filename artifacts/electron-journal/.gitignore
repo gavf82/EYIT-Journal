@@ -5,3 +5,7 @@ release/
 
 # Local dev
 node_modules/
+
+# VC++ redistributable binary — download with scripts/download-vcredist.sh
+# before running electron-builder.  ~25 MB; not committed to git.
+build/vc_redist.x64.exe
