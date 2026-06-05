@@ -55,8 +55,8 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: "EYIT Development Journal",
-        short_name: "EYIT Journal",
+        name: "EYIT Development Journal (Web)",
+        short_name: "EYIT Journal Web",
         description:
           "Early years SEND developmental journal for practitioners — works fully offline.",
         theme_color: "#008264",
