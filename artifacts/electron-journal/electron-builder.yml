@@ -13,7 +13,14 @@ files:
   - dist/**
   - dist-electron/**
   - package.json
-  - node_modules/**
+  # node_modules is intentionally NOT listed here so that electron-builder
+  # uses its built-in pnpm-aware dependency collection (introduced in v24).
+  # When node_modules/** is listed explicitly, electron-builder globs only the
+  # direct symlinks visible in this package's node_modules/ and misses all
+  # transitive deps that pnpm stores in the workspace virtual store (.pnpm/).
+  # Without the explicit glob, electron-builder traverses pnpm-lock.yaml and
+  # copies every runtime dep (including fs-extra, js-yaml, etc.) from the
+  # virtual store into the packaged app.
 
 # Disable electron-builder's built-in npm rebuild: on Windows it tries to
 # fork/exec pnpm.cjs as a native Win32 binary, which fails.  Instead, we run
@@ -25,9 +32,6 @@ asar: true
 # Native addons (.node files) cannot be loaded from inside an ASAR archive —
 # the OS linker needs them on real disk.  This pattern extracts every .node
 # binary to app.asar.unpacked/ so Electron can dlopen() them.
-# bindings and file-uri-to-path are listed as direct dependencies (not just
-# transitive) so pnpm creates top-level node_modules symlinks that
-# electron-builder and require() can both resolve.
 asarUnpack:
   - "**/*.node"
 
