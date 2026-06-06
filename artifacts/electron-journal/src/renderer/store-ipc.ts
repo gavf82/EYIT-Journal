@@ -119,7 +119,10 @@ export function useStore() {
     return () => window.removeEventListener("eyit-store-change", reload);
   }, []);
 
-  const notify = () => window.dispatchEvent(new Event("eyit-store-change"));
+  const notify = () => {
+    _cache = { ..._cache! };
+    window.dispatchEvent(new Event("eyit-store-change"));
+  };
 
   function childDataFromCache(childId: string): {
     ratings: Record<string, Rating>;
