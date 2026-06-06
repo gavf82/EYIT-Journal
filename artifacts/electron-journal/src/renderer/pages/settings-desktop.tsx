@@ -145,8 +145,8 @@ export default function SettingsDesktop() {
       toast({ title: "Demo data removed" });
     } else {
       seedDemoData();
-      navigate("/");
       toast({ title: "Demo data loaded", description: "Six sample children added." });
+      requestAnimationFrame(() => navigate("/"));
     }
   };
 
