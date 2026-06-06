@@ -4,8 +4,29 @@ import tailwindcss from "@tailwindcss/vite";
 import electron from "vite-plugin-electron/simple";
 import path from "path";
 
+// Vite plugin: catches `./store` imports from files inside progress-journal's
+// lib/ directory (e.g. seed.ts) and redirects them to the Electron IPC store.
+// The regex alias above catches `../lib/store` (used by pages), but seed.ts
+// lives IN lib/ so it uses `./store` which doesn't contain `/lib/store` and
+// would otherwise resolve to the browser IDB store.
+const electronLibStoreAlias = (): import("vite").Plugin => ({
+  name: "electron-lib-store-alias",
+  enforce: "pre",
+  resolveId(id, importer) {
+    if (
+      id === "./store" &&
+      importer &&
+      (importer.includes("/progress-journal/src/lib/") ||
+        importer.includes("\\progress-journal\\src\\lib\\"))
+    ) {
+      return path.resolve(import.meta.dirname, "src/renderer/store-ipc.ts");
+    }
+  },
+});
+
 export default defineConfig({
   plugins: [
+    electronLibStoreAlias(),
     react(),
     tailwindcss(),
     electron({
